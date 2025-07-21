@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import Auth from "./pages/Auth";
+import JobApplication from "./pages/JobApplication";
 import NotFound from "./pages/NotFound";
 
 // Protected Route component with permission checking
@@ -48,6 +49,7 @@ function AppContent() {
       {/* Public routes */}
       <Route path="/" element={<PublicHome />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/job-application" element={<JobApplication />} />
       
       {/* Employee routes */}
       <Route path="/employee-dashboard" element={<EmployeeDashboard />} />

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Briefcase, Users } from 'lucide-react';
 
 export default function PublicHome() {
   const { user, userRole, loading } = useAuth();
@@ -28,29 +29,68 @@ export default function PublicHome() {
     );
   }
 
-  // Show employee login access for non-authenticated users
+  // Show both job application and employee login for non-authenticated users
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-6">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Employee Portal</CardTitle>
-          <CardDescription>
-            Login to manage your leave requests and view your information
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button 
-            onClick={() => navigate('/auth')} 
-            className="w-full"
-            size="lg"
-          >
-            Employee Login
-          </Button>
-          <p className="text-sm text-muted-foreground text-center">
-            Access your dashboard to request leaves, view leave history, and manage your documents
-          </p>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-12 pt-8">
+          <h1 className="text-4xl font-bold mb-4">Welcome to Our Company</h1>
+          <p className="text-lg text-muted-foreground">Choose what you need to do today</p>
+        </div>
+        
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Job Application Portal */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                <Briefcase className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Apply for a Job</CardTitle>
+              <CardDescription>
+                Join our team! Submit your application and we'll review it promptly
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button 
+                onClick={() => navigate('/job-application')} 
+                className="w-full"
+                size="lg"
+              >
+                Start Application
+              </Button>
+              <p className="text-sm text-muted-foreground text-center">
+                Complete our multi-step application form with your details, experience, and skills
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Employee Portal */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-secondary" />
+              </div>
+              <CardTitle className="text-2xl">Employee Portal</CardTitle>
+              <CardDescription>
+                Current employees: Login to manage your leave requests and view your information
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button 
+                onClick={() => navigate('/auth')} 
+                className="w-full"
+                size="lg"
+                variant="secondary"
+              >
+                Employee Login
+              </Button>
+              <p className="text-sm text-muted-foreground text-center">
+                Access your dashboard to request leaves, view leave history, and manage your documents
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
