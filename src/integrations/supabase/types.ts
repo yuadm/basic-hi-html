@@ -458,6 +458,56 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_accounts: {
+        Row: {
+          created_at: string
+          email: string
+          employee_id: string
+          failed_login_attempts: number
+          id: string
+          is_active: boolean
+          last_login: string | null
+          locked_until: string | null
+          must_change_password: boolean
+          password_hash: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          employee_id: string
+          failed_login_attempts?: number
+          id?: string
+          is_active?: boolean
+          last_login?: string | null
+          locked_until?: string | null
+          must_change_password?: boolean
+          password_hash: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          employee_id?: string
+          failed_login_attempts?: number
+          id?: string
+          is_active?: boolean
+          last_login?: string | null
+          locked_until?: string | null
+          must_change_password?: boolean
+          password_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           branch: string
@@ -991,6 +1041,10 @@ export type Database = {
           role_param?: string
         }
         Returns: Json
+      }
+      generate_employee_accounts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       get_period_identifier: {
         Args: { frequency: string; target_date?: string }
