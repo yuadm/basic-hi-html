@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_documents: {
+        Row: {
+          application_id: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          id: string
+          uploaded_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          id?: string
+          uploaded_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_documents_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           created_at: string | null
@@ -493,6 +528,89 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      job_applications: {
+        Row: {
+          availability: Json | null
+          consent: Json | null
+          created_at: string
+          declarations: Json | null
+          employment_history: Json | null
+          id: string
+          personal_info: Json
+          position_id: string | null
+          skills_experience: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          availability?: Json | null
+          consent?: Json | null
+          created_at?: string
+          declarations?: Json | null
+          employment_history?: Json | null
+          id?: string
+          personal_info: Json
+          position_id?: string | null
+          skills_experience?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          availability?: Json | null
+          consent?: Json | null
+          created_at?: string
+          declarations?: Json | null
+          employment_history?: Json | null
+          id?: string
+          personal_info?: Json
+          position_id?: string | null
+          skills_experience?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_positions: {
+        Row: {
+          created_at: string
+          department: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          location: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       leave_requests: {
         Row: {

@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PermissionsProvider, usePermissions } from "@/contexts/PermissionsContext";
+import PublicHome from "./pages/PublicHome";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import Leaves from "./pages/Leaves";
@@ -16,6 +17,7 @@ import ComplianceType from "./pages/ComplianceType";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -33,7 +35,7 @@ function ProtectedRoute({ children, requiredPage }: { children: React.ReactNode;
   }
 
   if (requiredPage && !hasPageAccess(requiredPage)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/admin" replace />;
   }
   
   return <>{children}</>;
@@ -43,8 +45,15 @@ function ProtectedRoute({ children, requiredPage }: { children: React.ReactNode;
 function AppContent() {
   return (
     <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<PublicHome />} />
       <Route path="/auth" element={<Auth />} />
-      <Route path="/" element={
+      
+      {/* Employee routes */}
+      <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
+      
+      {/* Admin routes */}
+      <Route path="/admin" element={
         <ProtectedRoute>
           <Index />
         </ProtectedRoute>
