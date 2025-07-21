@@ -2,7 +2,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { JobApplicationPortal } from '@/components/job-application/JobApplicationPortal';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function PublicHome() {
   const { user, userRole, loading } = useAuth();
@@ -27,10 +28,29 @@ export default function PublicHome() {
     );
   }
 
-  // Show job application portal for non-authenticated users
+  // Show employee login access for non-authenticated users
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
-      <JobApplicationPortal />
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-6">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Employee Portal</CardTitle>
+          <CardDescription>
+            Login to manage your leave requests and view your information
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button 
+            onClick={() => navigate('/auth')} 
+            className="w-full"
+            size="lg"
+          >
+            Employee Login
+          </Button>
+          <p className="text-sm text-muted-foreground text-center">
+            Access your dashboard to request leaves, view leave history, and manage your documents
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
