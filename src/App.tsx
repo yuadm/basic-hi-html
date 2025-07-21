@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PermissionsProvider, usePermissions } from "@/contexts/PermissionsContext";
+import { EmployeeAuthProvider } from "@/contexts/EmployeeAuthContext";
 import PublicHome from "./pages/PublicHome";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
@@ -18,6 +19,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
+import EmployeeLogin from "./pages/EmployeeLogin";
 import Auth from "./pages/Auth";
 import JobApplication from "./pages/JobApplication";
 import NotFound from "./pages/NotFound";
@@ -52,6 +54,7 @@ function AppContent() {
       <Route path="/job-application" element={<JobApplication />} />
       
       {/* Employee routes */}
+      <Route path="/employee-login" element={<EmployeeLogin />} />
       <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
       
       {/* Admin routes */}
@@ -112,15 +115,17 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <PermissionsProvider>
-        <CompanyProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppContent />
-            </BrowserRouter>
-          </TooltipProvider>
-        </CompanyProvider>
+        <EmployeeAuthProvider>
+          <CompanyProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppContent />
+              </BrowserRouter>
+            </TooltipProvider>
+          </CompanyProvider>
+        </EmployeeAuthProvider>
       </PermissionsProvider>
     </AuthProvider>
   </QueryClientProvider>
