@@ -10,6 +10,7 @@ import { LeaveStats } from "./LeaveStats";
 import { LeaveDialogs } from "./LeaveDialogs";
 import { useLeaveData } from "./hooks/useLeaveData";
 import { useLeaveActions } from "./hooks/useLeaveActions";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { Leave } from "./types";
 
 export function LeavesContent() {
@@ -44,12 +45,16 @@ export function LeavesContent() {
     deleteLeave
   } = useLeaveActions({ leaves, employees, leaveTypes, refetchData });
 
+  // Get permissions context
+  const { isAdmin } = usePermissions();
+
   const filteredLeaves = leaves.filter(leave => {
     const matchesSearch = leave.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          leave.leave_type_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || leave.status === statusFilter;
-    const matchesBranch = branchFilter === 'all' || leave.employee_branch_id === branchFilter;
+    // Admin sees all branches, non-admin only sees their assigned branches
+    const matchesBranch = isAdmin || branchFilter === 'all' || leave.employee_branch_id === branchFilter;
     const matchesLeaveType = leaveTypeFilter === 'all' || leave.leave_type_id === leaveTypeFilter;
     
     return matchesSearch && matchesStatus && matchesBranch && matchesLeaveType;

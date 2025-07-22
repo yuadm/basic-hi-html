@@ -19,9 +19,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -44,21 +44,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (error) {
               console.error('Error fetching user role:', error);
               setUserRole('user');
+            } finally {
+              setLoading(false);
             }
           }, 0);
         } else {
           setUserRole(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
-    // Check for existing session
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      
+      if (session?.user) {
+        // Fetch user role for existing session
+        setTimeout(async () => {
+          try {
+            const { data: roles, error } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', session.user.id)
+              .limit(1);
+            
+            if (error) {
+              console.error('Error fetching user role:', error);
+              setUserRole('user');
+            } else {
+              setUserRole(roles?.[0]?.role || 'user');
+            }
+          } catch (error) {
+            console.error('Error fetching user role:', error);
+            setUserRole('user');
+          } finally {
+            setLoading(false);
+          }
+        }, 0);
+      } else {
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();

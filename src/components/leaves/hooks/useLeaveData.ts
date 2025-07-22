@@ -26,8 +26,8 @@ export function useLeaveData() {
         .from('leave_requests')
         .select(`
           *,
-          employees!inner(id, name, email, employee_code, remaining_leave_days, leave_taken, branch, branch_id),
-          leave_types!inner(id, name, reduces_balance)
+          employees!leave_requests_employee_id_fkey(id, name, email, employee_code, remaining_leave_days, leave_taken, branch, branch_id),
+          leave_types!leave_requests_leave_type_id_fkey(id, name, reduces_balance)
         `)
         .order('created_at', { ascending: false });
 
