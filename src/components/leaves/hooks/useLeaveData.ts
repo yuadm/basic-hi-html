@@ -21,9 +21,9 @@ export function useLeaveData() {
     try {
       setLoading(true);
       
-      // Fetch leaves with employee and leave type data
+      // Fetch leaves with employee and leave type data - use leave_requests table
       const { data: leavesData, error: leavesError } = await supabase
-        .from('leaves')
+        .from('leave_requests')
         .select(`
           *,
           employees!inner(id, name, email, employee_code, remaining_leave_days, leave_taken, branch, branch_id),
@@ -66,14 +66,22 @@ export function useLeaveData() {
       });
 
       // Transform the data to match our interface
-      const transformedLeaves = leavesData?.map(leave => ({
-        ...leave,
-        employee: leave.employees,
-        leave_type: leave.leave_types,
-        employee_name: leave.employees?.name || '',
-        leave_type_name: leave.leave_types?.name || '',
-        employee_branch_id: leave.employees?.branch_id || ''
-      })) || [];
+      const transformedLeaves = leavesData?.map(leave => {
+        // Calculate days from date range
+        const startDate = new Date(leave.start_date);
+        const endDate = new Date(leave.end_date);
+        const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        
+        return {
+          ...leave,
+          days, // Add calculated days field
+          employee: leave.employees,
+          leave_type: leave.leave_types,
+          employee_name: leave.employees?.name || '',
+          leave_type_name: leave.leave_types?.name || '',
+          employee_branch_id: leave.employees?.branch_id || ''
+        };
+      }) || [];
 
       setLeaves(transformedLeaves);
       setEmployees(employeesData || []);

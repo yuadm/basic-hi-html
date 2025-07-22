@@ -106,13 +106,12 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
       const days = calculateDays();
       
       const { error } = await supabase
-        .from('leaves')
+        .from('leave_requests')
         .insert({
           employee_id: selectedEmployee,
           leave_type_id: selectedLeaveType,
           start_date: format(startDate, 'yyyy-MM-dd'),
           end_date: format(endDate, 'yyyy-MM-dd'),
-          days,
           notes: notes || null,
           status: 'pending'
         });

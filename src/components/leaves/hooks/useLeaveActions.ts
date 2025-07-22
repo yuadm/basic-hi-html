@@ -49,13 +49,12 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
     leave_type_id: string;
     start_date: string;
     end_date: string;
-    days: number;
     notes: string;
     manager_notes: string;
   }) => {
     try {
       const { error } = await supabase
-        .from('leaves')
+        .from('leave_requests')
         .insert([{
           ...data,
           status: 'pending'
@@ -84,13 +83,11 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
     leave_type_id: string;
     start_date: string;
     end_date: string;
-    days: number;
     notes: string;
-    manager_notes: string;
   }) => {
     try {
       const { error } = await supabase
-        .from('leaves')
+        .from('leave_requests')
         .update(data)
         .eq('id', leaveId);
 
@@ -118,7 +115,7 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
       const leave = leaves.find(l => l.id === leaveId);
       
       const { error } = await supabase
-        .from('leaves')
+        .from('leave_requests')
         .delete()
         .eq('id', leaveId);
 
@@ -159,7 +156,7 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
 
       // Update leave status
       const { error: leaveError } = await supabase
-        .from('leaves')
+        .from('leave_requests')
         .update({ 
           status: newStatus, 
           manager_notes: managerNotes || null,

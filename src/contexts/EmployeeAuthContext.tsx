@@ -56,6 +56,7 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     localStorage.removeItem('employee_session');
     setEmployee(null);
+    setLoading(false);
   };
 
   useEffect(() => {

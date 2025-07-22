@@ -109,9 +109,7 @@ export function LeavesContent() {
     leave_type_id: string;
     start_date: string;
     end_date: string;
-    days: number;
     notes: string;
-    manager_notes: string;
   }) => {
     if (selectedLeave) {
       await updateLeave(selectedLeave.id, data);
