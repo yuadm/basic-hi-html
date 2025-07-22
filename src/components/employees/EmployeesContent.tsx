@@ -139,7 +139,11 @@ export function EmployeesContent() {
           leave_allowance: newEmployee.leave_allowance,
           leave_taken: 0,
           remaining_leave_days: newEmployee.leave_allowance,
-          hours_restriction: newEmployee.hours_restriction || null
+          hours_restriction: newEmployee.hours_restriction || null,
+          password_hash: 'temp',
+          must_change_password: true,
+          is_active: true,
+          failed_login_attempts: 0
         }]);
 
       if (error) throw error;
@@ -356,7 +360,7 @@ export function EmployeesContent() {
 
       const employeesToInsert = validEmployees.map(emp => ({
         name: emp.name,
-        email: null,
+        email: emp.email || null,
         phone: emp.phone || null,
         branch: emp.branch,
         employee_code: emp.employee_code,
@@ -366,6 +370,10 @@ export function EmployeesContent() {
         leave_allowance: emp.leave_allowance || 28,
         leave_taken: emp.leave_taken || 0,
         remaining_leave_days: emp.remaining_leave_days || 28,
+        password_hash: 'temp',
+        must_change_password: true,
+        is_active: true,
+        failed_login_attempts: 0
       }));
 
       const { error } = await supabase

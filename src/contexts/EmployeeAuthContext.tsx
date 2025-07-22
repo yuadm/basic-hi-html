@@ -14,17 +14,8 @@ interface Employee {
   leave_taken: number;
 }
 
-interface EmployeeAccount {
-  id: string;
-  employee_id: string;
-  email: string;
-  must_change_password: boolean;
-  last_login: string | null;
-}
-
 interface EmployeeAuthContextType {
   employee: Employee | null;
-  employeeAccount: EmployeeAccount | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshEmployeeData: () => Promise<void>;
@@ -34,10 +25,9 @@ const EmployeeAuthContext = createContext<EmployeeAuthContextType | undefined>(u
 
 export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
   const [employee, setEmployee] = useState<Employee | null>(null);
-  const [employeeAccount, setEmployeeAccount] = useState<EmployeeAccount | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchEmployeeData = async (employeeId: string, accountId: string) => {
+  const fetchEmployeeData = async (employeeId: string) => {
     try {
       // Fetch employee data
       const { data: employeeData, error: empError } = await supabase
@@ -48,17 +38,7 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
 
       if (empError) throw empError;
 
-      // Fetch employee account data
-      const { data: accountData, error: accError } = await supabase
-        .from('employee_accounts')
-        .select('*')
-        .eq('id', accountId)
-        .single();
-
-      if (accError) throw accError;
-
       setEmployee(employeeData);
-      setEmployeeAccount(accountData);
     } catch (error) {
       console.error('Error fetching employee data:', error);
       signOut();
@@ -69,14 +49,13 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
     const sessionData = localStorage.getItem('employee_session');
     if (sessionData) {
       const session = JSON.parse(sessionData);
-      await fetchEmployeeData(session.employee_id, session.account_id);
+      await fetchEmployeeData(session.employee_id);
     }
   };
 
   const signOut = async () => {
     localStorage.removeItem('employee_session');
     setEmployee(null);
-    setEmployeeAccount(null);
   };
 
   useEffect(() => {
@@ -85,7 +64,7 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
         const sessionData = localStorage.getItem('employee_session');
         if (sessionData) {
           const session = JSON.parse(sessionData);
-          await fetchEmployeeData(session.employee_id, session.account_id);
+          await fetchEmployeeData(session.employee_id);
         }
       } catch (error) {
         console.error('Error initializing employee auth:', error);
@@ -100,7 +79,6 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     employee,
-    employeeAccount,
     loading,
     signOut,
     refreshEmployeeData

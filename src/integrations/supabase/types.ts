@@ -458,56 +458,6 @@ export type Database = {
         }
         Relationships: []
       }
-      employee_accounts: {
-        Row: {
-          created_at: string
-          email: string
-          employee_id: string
-          failed_login_attempts: number
-          id: string
-          is_active: boolean
-          last_login: string | null
-          locked_until: string | null
-          must_change_password: boolean
-          password_hash: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          employee_id: string
-          failed_login_attempts?: number
-          id?: string
-          is_active?: boolean
-          last_login?: string | null
-          locked_until?: string | null
-          must_change_password?: boolean
-          password_hash: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          employee_id?: string
-          failed_login_attempts?: number
-          id?: string
-          is_active?: boolean
-          last_login?: string | null
-          locked_until?: string | null
-          must_change_password?: boolean
-          password_hash?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employee_accounts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       employees: {
         Row: {
           branch: string
@@ -516,12 +466,18 @@ export type Database = {
           email: string | null
           employee_code: string
           employee_type: string | null
+          failed_login_attempts: number | null
           hours_restriction: string | null
           id: string
+          is_active: boolean | null
           job_title: string | null
+          last_login: string | null
           leave_allowance: number | null
           leave_taken: number | null
+          locked_until: string | null
+          must_change_password: boolean | null
           name: string
+          password_hash: string
           phone: string | null
           remaining_leave_days: number | null
           sponsored: boolean | null
@@ -536,12 +492,18 @@ export type Database = {
           email?: string | null
           employee_code: string
           employee_type?: string | null
+          failed_login_attempts?: number | null
           hours_restriction?: string | null
           id?: string
+          is_active?: boolean | null
           job_title?: string | null
+          last_login?: string | null
           leave_allowance?: number | null
           leave_taken?: number | null
+          locked_until?: string | null
+          must_change_password?: boolean | null
           name: string
+          password_hash: string
           phone?: string | null
           remaining_leave_days?: number | null
           sponsored?: boolean | null
@@ -556,12 +518,18 @@ export type Database = {
           email?: string | null
           employee_code?: string
           employee_type?: string | null
+          failed_login_attempts?: number | null
           hours_restriction?: string | null
           id?: string
+          is_active?: boolean | null
           job_title?: string | null
+          last_login?: string | null
           leave_allowance?: number | null
           leave_taken?: number | null
+          locked_until?: string | null
+          must_change_password?: boolean | null
           name?: string
+          password_hash?: string
           phone?: string | null
           remaining_leave_days?: number | null
           sponsored?: boolean | null

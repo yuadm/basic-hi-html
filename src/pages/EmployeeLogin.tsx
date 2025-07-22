@@ -24,27 +24,19 @@ export default function EmployeeLogin() {
 
     try {
       // First, verify employee credentials
-      const { data: employeeAccount } = await supabase
-        .from('employee_accounts')
-        .select(`
-          *,
-          employees (
-            id,
-            name,
-            email,
-            user_id
-          )
-        `)
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('*')
         .eq('email', email)
         .eq('is_active', true)
         .single();
 
-      if (!employeeAccount) {
+      if (!employee) {
         throw new Error('Invalid email or password');
       }
 
       // Check if account is locked
-      if (employeeAccount.locked_until && new Date(employeeAccount.locked_until) > new Date()) {
+      if (employee.locked_until && new Date(employee.locked_until) > new Date()) {
         throw new Error('Account is temporarily locked. Please try again later.');
       }
 
@@ -52,49 +44,48 @@ export default function EmployeeLogin() {
       const { data: passwordCheckResult, error: passwordError } = await supabase
         .rpc('verify_password', {
           password_input: password,
-          password_hash: employeeAccount.password_hash
+          password_hash: employee.password_hash
         });
 
       if (passwordError || !passwordCheckResult) {
         // Increment failed login attempts
         await supabase
-          .from('employee_accounts')
+          .from('employees')
           .update({ 
-            failed_login_attempts: employeeAccount.failed_login_attempts + 1,
-            locked_until: employeeAccount.failed_login_attempts >= 4 ? 
+            failed_login_attempts: employee.failed_login_attempts + 1,
+            locked_until: employee.failed_login_attempts >= 4 ? 
               new Date(Date.now() + 30 * 60 * 1000).toISOString() : null // Lock for 30 minutes after 5 failed attempts
           })
-          .eq('id', employeeAccount.id);
+          .eq('id', employee.id);
         
         throw new Error('Invalid email or password');
       }
 
       // Update last login and reset failed attempts
       await supabase
-        .from('employee_accounts')
+        .from('employees')
         .update({
           last_login: new Date().toISOString(),
           failed_login_attempts: 0,
           locked_until: null
         })
-        .eq('id', employeeAccount.id);
+        .eq('id', employee.id);
 
       // Store employee session data
       localStorage.setItem('employee_session', JSON.stringify({
-        employee_id: employeeAccount.employee_id,
-        account_id: employeeAccount.id,
-        email: employeeAccount.email,
-        must_change_password: employeeAccount.must_change_password,
-        employee_data: employeeAccount.employees
+        employee_id: employee.id,
+        email: employee.email,
+        must_change_password: employee.must_change_password,
+        employee_data: employee
       }));
 
       toast({
         title: "Login successful",
-        description: `Welcome back, ${employeeAccount.employees?.name}!`,
+        description: `Welcome back, ${employee.name}!`,
       });
 
       // Check if password change is required
-      if (employeeAccount.must_change_password) {
+      if (employee.must_change_password) {
         navigate('/employee-change-password');
       } else {
         navigate('/employee-dashboard');
