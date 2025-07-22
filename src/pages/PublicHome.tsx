@@ -11,17 +11,17 @@ export default function PublicHome() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && userRole !== null) {
       // Redirect authenticated users to their appropriate dashboard
       if (userRole === 'admin') {
         navigate('/admin');
-      } else {
+      } else if (userRole === 'user') {
         navigate('/employee-dashboard');
       }
     }
   }, [user, userRole, loading, navigate]);
 
-  if (loading) {
+  if (loading || (user && userRole === null)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>
