@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEmployeeAuth } from '@/contexts/EmployeeAuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,18 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, FileText, User, LogOut, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { LeaveRequestDialog } from '@/components/employee/LeaveRequestDialog';
 import { DocumentUploadDialog } from '@/components/employee/DocumentUploadDialog';
-
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  branch: string;
-  job_title: string;
-  leave_allowance: number;
-  leave_taken: number;
-  remaining_leave_days: number;
-}
 
 interface LeaveRequest {
   id: string;
@@ -33,34 +21,26 @@ interface LeaveRequest {
 }
 
 export default function EmployeeDashboard() {
-  const { user, signOut } = useAuth();
+  const { employee, loading, signOut } = useEmployeeAuth();
   const navigate = useNavigate();
-  const [employee, setEmployee] = useState<Employee | null>(null);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/auth');
+    if (!loading && !employee) {
+      navigate('/employee-login');
       return;
     }
-    fetchEmployeeData();
-  }, [user, navigate]);
+    if (employee) {
+      fetchLeaveRequests();
+    }
+  }, [employee, loading, navigate]);
 
-  const fetchEmployeeData = async () => {
+  const fetchLeaveRequests = async () => {
+    if (!employee) return;
+    
     try {
-      // Fetch employee profile
-      const { data: employeeData, error: employeeError } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (employeeError) throw employeeError;
-      setEmployee(employeeData);
-
       // Fetch leave requests
       const { data: leaveData, error: leaveError } = await supabase
         .from('leave_requests')
@@ -68,22 +48,20 @@ export default function EmployeeDashboard() {
           *,
           leave_type:leave_types(name)
         `)
-        .eq('employee_id', employeeData.id)
+        .eq('employee_id', employee.id)
         .order('created_at', { ascending: false });
 
       if (leaveError) throw leaveError;
       setLeaveRequests(leaveData || []);
 
     } catch (error) {
-      console.error('Error fetching employee data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching leave requests:', error);
     }
   };
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate('/employee-login');
   };
 
   const getStatusColor = (status: string) => {
@@ -200,8 +178,8 @@ export default function EmployeeDashboard() {
                 <p className="font-medium">{employee.email}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Phone</p>
-                <p className="font-medium">{employee.phone}</p>
+                <p className="text-sm text-muted-foreground">Employee Code</p>
+                <p className="font-medium">{employee.employee_code}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Branch</p>
@@ -210,6 +188,10 @@ export default function EmployeeDashboard() {
               <div>
                 <p className="text-sm text-muted-foreground">Job Title</p>
                 <p className="font-medium">{employee.job_title}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Employee Type</p>
+                <p className="font-medium">{employee.employee_type}</p>
               </div>
             </div>
           </CardContent>
@@ -274,7 +256,7 @@ export default function EmployeeDashboard() {
         open={showLeaveDialog}
         onOpenChange={setShowLeaveDialog}
         employeeId={employee.id}
-        onSuccess={fetchEmployeeData}
+        onSuccess={fetchLeaveRequests}
       />
       
       <DocumentUploadDialog
