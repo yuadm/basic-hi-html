@@ -1035,6 +1035,10 @@ export type Database = {
         Args: { input_user_id: string }
         Returns: string
       }
+      hash_password: {
+        Args: { password: string }
+        Returns: string
+      }
       increment: {
         Args: { row_id: string; increment_amount: number }
         Returns: number

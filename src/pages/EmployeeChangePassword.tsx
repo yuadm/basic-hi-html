@@ -38,7 +38,7 @@ export default function EmployeeChangePassword() {
 
     try {
       // Hash the new password
-      const { data, error: hashError } = await supabase.rpc('hash_password', {
+      const { data: hashedPassword, error: hashError } = await supabase.rpc('hash_password', {
         password: newPassword
       });
 
@@ -48,7 +48,7 @@ export default function EmployeeChangePassword() {
       const { error: updateError } = await supabase
         .from('employees')
         .update({
-          password_hash: data,
+          password_hash: hashedPassword as string,
           must_change_password: false
         })
         .eq('id', employee?.id);
