@@ -27,9 +27,16 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchEmployeeData = async (employeeId: string) => {
+  const fetchEmployeeData = async (user: any) => {
     try {
-      // Fetch employee data
+      const employeeId = user.user_metadata?.employee_id;
+      if (!employeeId) {
+        console.error('No employee_id found in user metadata');
+        signOut();
+        return;
+      }
+
+      // Fetch employee data using employee_id from user metadata
       const { data: employeeData, error: empError } = await supabase
         .from('employees')
         .select('*')
@@ -46,15 +53,15 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshEmployeeData = async () => {
-    const sessionData = localStorage.getItem('employee_session');
-    if (sessionData) {
-      const session = JSON.parse(sessionData);
-      await fetchEmployeeData(session.employee_id);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await fetchEmployeeData(user);
     }
   };
 
   const signOut = async () => {
-    localStorage.removeItem('employee_session');
+    await supabase.auth.signOut();
+    localStorage.removeItem('employee_session'); // Clean up old session data
     setEmployee(null);
     setLoading(false);
   };
@@ -62,20 +69,41 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const sessionData = localStorage.getItem('employee_session');
-        if (sessionData) {
-          const session = JSON.parse(sessionData);
-          await fetchEmployeeData(session.employee_id);
+        // Get current session from Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Check if this is an employee user
+          if (session.user.user_metadata?.role === 'employee') {
+            await fetchEmployeeData(session.user);
+          } else {
+            // Not an employee, sign out
+            signOut();
+          }
         }
       } catch (error) {
         console.error('Error initializing employee auth:', error);
-        localStorage.removeItem('employee_session');
       } finally {
         setLoading(false);
       }
     };
 
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user?.user_metadata?.role === 'employee') {
+          await fetchEmployeeData(session.user);
+          setLoading(false);
+        } else {
+          setEmployee(null);
+          setLoading(false);
+        }
+      }
+    );
+
     initializeAuth();
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const value = {

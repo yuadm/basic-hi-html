@@ -23,15 +23,15 @@ export default function EmployeeLogin() {
     setError('');
 
     try {
-      // First, verify employee credentials
-      const { data: employee } = await supabase
+      // First, find the employee record
+      const { data: employee, error: empError } = await supabase
         .from('employees')
         .select('*')
         .eq('email', email)
         .eq('is_active', true)
         .single();
 
-      if (!employee) {
+      if (empError || !employee) {
         throw new Error('Invalid email or password');
       }
 
@@ -40,25 +40,76 @@ export default function EmployeeLogin() {
         throw new Error('Account is temporarily locked. Please try again later.');
       }
 
-      // Verify password using SQL query
-      const { data: passwordCheckResult, error: passwordError } = await supabase
-        .rpc('verify_password', {
-          password_input: password,
-          password_hash: employee.password_hash
+      // Try to sign in with Supabase auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (authError) {
+        // If employee doesn't have Supabase auth account, create one
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            data: {
+              role: 'employee',
+              employee_id: employee.id,
+              name: employee.name
+            }
+          }
         });
 
-      if (passwordError || !passwordCheckResult) {
-        // Increment failed login attempts
-        await supabase
-          .from('employees')
-          .update({ 
-            failed_login_attempts: employee.failed_login_attempts + 1,
-            locked_until: employee.failed_login_attempts >= 4 ? 
-              new Date(Date.now() + 30 * 60 * 1000).toISOString() : null // Lock for 30 minutes after 5 failed attempts
-          })
-          .eq('id', employee.id);
-        
-        throw new Error('Invalid email or password');
+        if (signUpError) {
+          // If signup fails, try password verification with the stored hash
+          const { data: passwordCheckResult, error: passwordError } = await supabase
+            .rpc('verify_password', {
+              password_input: password,
+              password_hash: employee.password_hash
+            });
+
+          if (passwordError || !passwordCheckResult) {
+            // Increment failed login attempts
+            await supabase
+              .from('employees')
+              .update({ 
+                failed_login_attempts: employee.failed_login_attempts + 1,
+                locked_until: employee.failed_login_attempts >= 4 ? 
+                  new Date(Date.now() + 30 * 60 * 1000).toISOString() : null
+              })
+              .eq('id', employee.id);
+            
+            throw new Error('Invalid email or password');
+          }
+
+          // Password is correct, but no Supabase auth account exists
+          // Create the auth account
+          const { error: createAuthError } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+              data: {
+                role: 'employee',
+                employee_id: employee.id,
+                name: employee.name
+              }
+            }
+          });
+
+          if (createAuthError) {
+            throw new Error('Failed to create authentication account');
+          }
+        }
+
+        // Try to sign in again after creating the account
+        const { error: retrySignInError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
+
+        if (retrySignInError) {
+          throw new Error('Authentication failed');
+        }
       }
 
       // Update last login and reset failed attempts
@@ -70,44 +121,6 @@ export default function EmployeeLogin() {
           locked_until: null
         })
         .eq('id', employee.id);
-
-      // Create or sign in with Supabase auth using employee email
-      // This ensures the employee has a proper Supabase session for API calls
-      try {
-        // Try to sign in the employee with Supabase auth
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email: employee.email,
-          password: password,
-        });
-
-        if (authError) {
-          // If employee doesn't have a Supabase auth account, create one
-          const { error: signUpError } = await supabase.auth.signUp({
-            email: employee.email,
-            password: password,
-            options: {
-              data: {
-                role: 'employee',
-                employee_id: employee.id
-              }
-            }
-          });
-
-          if (signUpError) {
-            console.error('Error creating employee auth account:', signUpError);
-          }
-        }
-      } catch (authError) {
-        console.error('Employee auth setup error:', authError);
-      }
-
-      // Store employee session data
-      localStorage.setItem('employee_session', JSON.stringify({
-        employee_id: employee.id,
-        email: employee.email,
-        must_change_password: employee.must_change_password,
-        employee_data: employee
-      }));
 
       toast({
         title: "Login successful",
