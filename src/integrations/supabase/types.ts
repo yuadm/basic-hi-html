@@ -632,36 +632,58 @@ export type Database = {
       }
       leave_requests: {
         Row: {
+          approved_by: string | null
+          approved_date: string | null
           created_at: string | null
+          days_requested: number | null
           employee_id: string
           end_date: string
           id: string
           leave_type_id: string
+          manager_notes: string | null
           notes: string | null
+          rejected_date: string | null
           start_date: string
           status: string
         }
         Insert: {
+          approved_by?: string | null
+          approved_date?: string | null
           created_at?: string | null
+          days_requested?: number | null
           employee_id: string
           end_date: string
           id?: string
           leave_type_id: string
+          manager_notes?: string | null
           notes?: string | null
+          rejected_date?: string | null
           start_date: string
           status?: string
         }
         Update: {
+          approved_by?: string | null
+          approved_date?: string | null
           created_at?: string | null
+          days_requested?: number | null
           employee_id?: string
           end_date?: string
           id?: string
           leave_type_id?: string
+          manager_notes?: string | null
           notes?: string | null
+          rejected_date?: string | null
           start_date?: string
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "leave_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leave_requests_employee_id_fkey"
             columns: ["employee_id"]
