@@ -71,6 +71,36 @@ export default function EmployeeLogin() {
         })
         .eq('id', employee.id);
 
+      // Create or sign in with Supabase auth using employee email
+      // This ensures the employee has a proper Supabase session for API calls
+      try {
+        // Try to sign in the employee with Supabase auth
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: employee.email,
+          password: password,
+        });
+
+        if (authError) {
+          // If employee doesn't have a Supabase auth account, create one
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: employee.email,
+            password: password,
+            options: {
+              data: {
+                role: 'employee',
+                employee_id: employee.id
+              }
+            }
+          });
+
+          if (signUpError) {
+            console.error('Error creating employee auth account:', signUpError);
+          }
+        }
+      } catch (authError) {
+        console.error('Employee auth setup error:', authError);
+      }
+
       // Store employee session data
       localStorage.setItem('employee_session', JSON.stringify({
         employee_id: employee.id,
