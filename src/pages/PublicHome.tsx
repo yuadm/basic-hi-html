@@ -77,12 +77,20 @@ export default function PublicHome() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button 
-                onClick={() => navigate('/auth')} 
+                onClick={() => navigate('/employee-login')} 
                 className="w-full"
                 size="lg"
                 variant="secondary"
               >
                 Employee Login
+              </Button>
+              <Button 
+                onClick={() => navigate('/auth')} 
+                className="w-full"
+                size="lg"
+                variant="outline"
+              >
+                Admin Login
               </Button>
               <p className="text-sm text-muted-foreground text-center">
                 Access your dashboard to request leaves, view leave history, and manage your documents

@@ -48,13 +48,14 @@ export default function EmployeeLogin() {
         throw new Error('Account is temporarily locked. Please try again later.');
       }
 
-      // Verify password using pgcrypto
-      const { data: passwordValid } = await supabase.rpc('verify_password', {
-        password_input: password,
-        password_hash: employeeAccount.password_hash
-      });
+      // Verify password using SQL query
+      const { data: passwordCheckResult, error: passwordError } = await supabase
+        .rpc('verify_password', {
+          password_input: password,
+          password_hash: employeeAccount.password_hash
+        });
 
-      if (!passwordValid) {
+      if (passwordError || !passwordCheckResult) {
         // Increment failed login attempts
         await supabase
           .from('employee_accounts')

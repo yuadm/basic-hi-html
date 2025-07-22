@@ -1083,6 +1083,10 @@ export type Database = {
         Args: { user_id: string; perm_type: string; perm_key: string }
         Returns: boolean
       }
+      verify_password: {
+        Args: { password_input: string; password_hash: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
