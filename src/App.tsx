@@ -20,6 +20,7 @@ import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import EmployeeLogin from "./pages/EmployeeLogin";
+import EmployeeChangePassword from "./pages/EmployeeChangePassword";
 import Auth from "./pages/Auth";
 import JobApplication from "./pages/JobApplication";
 import NotFound from "./pages/NotFound";
@@ -55,6 +56,7 @@ function AppContent() {
       
       {/* Employee routes */}
       <Route path="/employee-login" element={<EmployeeLogin />} />
+      <Route path="/employee-change-password" element={<EmployeeChangePassword />} />
       <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
       
       {/* Admin routes */}

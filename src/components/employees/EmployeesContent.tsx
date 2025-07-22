@@ -429,11 +429,12 @@ export function EmployeesContent() {
   };
 
   const filteredEmployees = employees.filter(employee => {
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.employee_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (employee.job_title && employee.job_title.toLowerCase().includes(searchTerm.toLowerCase()));
+      (employee.name || '').toLowerCase().includes(searchLower) ||
+      (employee.email || '').toLowerCase().includes(searchLower) ||
+      (employee.employee_code || '').toLowerCase().includes(searchLower) ||
+      (employee.job_title || '').toLowerCase().includes(searchLower);
     
     const matchesBranch = branchFilter === 'all' || employee.branch === branchFilter;
     
