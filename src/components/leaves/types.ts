@@ -22,10 +22,14 @@ export interface Leave {
   leave_type_id: string;
   start_date: string;
   end_date: string;
-  days: number;
-  status: string;
+  days?: number; // Legacy field
+  days_requested: number;
+  status: 'pending' | 'approved' | 'rejected';
   notes?: string;
   manager_notes?: string;
+  approved_date?: string;
+  rejected_date?: string;
+  approved_by?: string;
   created_at: string;
   employee?: Employee;
   leave_type?: LeaveType;

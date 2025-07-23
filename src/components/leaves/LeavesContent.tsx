@@ -104,7 +104,7 @@ export function LeavesContent() {
     setDeleteDialogOpen(true);
   };
 
-  const handleUpdateStatus = async (leaveId: string, status: 'approved' | 'rejected', managerNotes?: string) => {
+  const handleUpdateStatus = async (leaveId: string, status: 'approved' | 'rejected' | 'pending', managerNotes?: string) => {
     await updateLeaveStatus(leaveId, status, managerNotes);
     refetchData();
   };

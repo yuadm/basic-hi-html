@@ -15,7 +15,7 @@ interface LeaveTableProps {
   onViewLeave: (leave: Leave) => void;
   onEditLeave: (leave: Leave) => void;
   onDeleteLeave: (leave: Leave) => void;
-  onUpdateStatus: (leaveId: string, status: 'approved' | 'rejected', managerNotes?: string) => void;
+  onUpdateStatus: (leaveId: string, status: 'approved' | 'rejected' | 'pending', managerNotes?: string) => void;
 }
 
 export function LeaveTable({ 
@@ -150,7 +150,7 @@ export function LeaveTable({
                         <div className="text-muted-foreground">to {format(new Date(leave.end_date), 'MMM dd, yyyy')}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{leave.days} days</TableCell>
+                    <TableCell className="font-medium">{leave.days_requested} days</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(leave.status)}>
                         {leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}
@@ -202,6 +202,16 @@ export function LeaveTable({
                               <XCircle className="h-4 w-4" />
                             </Button>
                           </>
+                        )}
+                        {(leave.status === 'approved' || leave.status === 'rejected') && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="text-blue-600 hover:text-blue-700"
+                            onClick={() => onUpdateStatus(leave.id, 'pending')}
+                          >
+                            Reset to Pending
+                          </Button>
                         )}
                       </div>
                     </TableCell>

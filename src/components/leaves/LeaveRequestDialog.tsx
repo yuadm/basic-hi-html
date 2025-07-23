@@ -195,8 +195,13 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
           </div>
 
           {startDate && endDate && (
-            <div className="text-sm text-muted-foreground">
-              Duration: {calculateDays()} day(s)
+            <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <div className="text-sm font-medium text-blue-900">
+                Leave Duration: {calculateDays()} day(s)
+              </div>
+              <div className="text-xs text-blue-700 mt-1">
+                From {startDate.toLocaleDateString()} to {endDate.toLocaleDateString()}
+              </div>
             </div>
           )}
 

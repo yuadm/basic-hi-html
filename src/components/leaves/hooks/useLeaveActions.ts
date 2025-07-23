@@ -125,7 +125,7 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
       if (leave && leave.status === 'approved') {
         const leaveType = leaveTypes.find(lt => lt.id === leave.leave_type_id);
         if (leaveType?.reduces_balance) {
-          await updateEmployeeLeaveBalance(leave.employee_id, leave.days, 'subtract');
+          await updateEmployeeLeaveBalance(leave.employee_id, leave.days_requested, 'subtract');
         }
       }
 
@@ -172,10 +172,10 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
         // Status change logic
         if (previousStatus === 'approved' && newStatus !== 'approved') {
           // Was approved, now not approved - restore balance
-          await updateEmployeeLeaveBalance(leave.employee_id, leave.days, 'subtract');
+          await updateEmployeeLeaveBalance(leave.employee_id, leave.days_requested, 'subtract');
         } else if (previousStatus !== 'approved' && newStatus === 'approved') {
           // Was not approved, now approved - deduct balance
-          await updateEmployeeLeaveBalance(leave.employee_id, leave.days, 'add');
+          await updateEmployeeLeaveBalance(leave.employee_id, leave.days_requested, 'add');
         }
         // If changing from pending to rejected or vice versa, no balance change needed
         // If changing from approved to approved (just updating notes), no balance change needed

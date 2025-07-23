@@ -75,6 +75,8 @@ export function useLeaveData() {
         return {
           ...leave,
           days, // Add calculated days field
+          days_requested: leave.days_requested || days, // Use days_requested from DB or calculated
+          status: leave.status as 'pending' | 'approved' | 'rejected',
           employee: leave.employees,
           leave_type: leave.leave_types,
           employee_name: leave.employees?.name || '',
