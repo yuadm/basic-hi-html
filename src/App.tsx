@@ -19,9 +19,8 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
-import EmployeeLogin from "./pages/EmployeeLogin";
 import EmployeeChangePassword from "./pages/EmployeeChangePassword";
-import Auth from "./pages/Auth";
+import UnifiedAuth from "./pages/UnifiedAuth";
 import JobApplication from "./pages/JobApplication";
 import NotFound from "./pages/NotFound";
 
@@ -35,7 +34,7 @@ function ProtectedRoute({ children, requiredPage }: { children: React.ReactNode;
   }
   
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (requiredPage && !hasPageAccess(requiredPage)) {
@@ -51,11 +50,12 @@ function AppContent() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<PublicHome />} />
-      <Route path="/auth" element={<Auth />} />
+      <Route path="/login" element={<UnifiedAuth />} />
       <Route path="/job-application" element={<JobApplication />} />
       
-      {/* Employee routes */}
-      <Route path="/employee-login" element={<EmployeeLogin />} />
+      {/* Legacy redirects */}
+      <Route path="/auth" element={<Navigate to="/login" replace />} />
+      <Route path="/employee-login" element={<Navigate to="/login" replace />} />
       <Route path="/employee-change-password" element={<EmployeeChangePassword />} />
       <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
       
