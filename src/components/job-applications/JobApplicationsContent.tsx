@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, Eye, Calendar, Mail, Phone, MapPin, FileText, User, Edit, Trash2, Send } from "lucide-react";
+import { Search, Eye, FileText, Edit, Trash2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface JobApplication {
@@ -58,35 +58,6 @@ export function JobApplicationsContent() {
     }
   };
 
-  const updateApplicationStatus = async (id: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('job_applications')
-        .update({ status: newStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setApplications(prev => 
-        prev.map(app => 
-          app.id === id ? { ...app, status: newStatus } : app
-        )
-      );
-
-      toast({
-        title: "Status Updated",
-        description: `Application status changed to ${newStatus}`,
-      });
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update application status",
-        variant: "destructive",
-      });
-    }
-  };
-
   const deleteApplication = async (id: string) => {
     try {
       const { error } = await supabase
@@ -129,7 +100,6 @@ export function JobApplicationsContent() {
     const applicantName = application.personal_info?.fullName || 'Unknown Applicant';
     const position = application.personal_info?.positionAppliedFor || 'Unknown Position';
     const referenceName = reference.name || 'Reference';
-    const referenceCompany = reference.company || '';
     
     const subject = `Reference Request for ${applicantName} - ${position}`;
     const body = `Dear ${referenceName},
@@ -159,17 +129,6 @@ Address: ${[reference.address, reference.address2, reference.town, reference.pos
 
     const mailtoLink = `mailto:${reference.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoLink;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'new': return 'bg-blue-100 text-blue-800';
-      case 'reviewing': return 'bg-yellow-100 text-yellow-800';
-      case 'interviewed': return 'bg-purple-100 text-purple-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
   };
 
   const filteredApplications = applications.filter(app => {
@@ -359,6 +318,23 @@ function ApplicationDetails({
   const [editData, setEditData] = useState(application);
   const { toast } = useToast();
 
+  const downloadApplication = () => {
+    const dataStr = JSON.stringify(application, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `job-application-${application.personal_info?.fullName || application.personal_info?.firstName + ' ' + application.personal_info?.lastName || 'unknown'}-${new Date().toISOString().split('T')[0]}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    toast({
+      title: "Download Started",
+      description: "Application data has been downloaded as JSON file",
+    });
+  };
+
   const handleSave = async () => {
     try {
       const { error } = await supabase
@@ -369,19 +345,19 @@ function ApplicationDetails({
           employment_history: editData.employment_history,
           skills_experience: editData.skills_experience,
           declarations: editData.declarations,
-          consent: editData.consent,
-          status: editData.status
+          consent: editData.consent
         })
-        .eq('id', application.id);
+        .eq('id', editData.id);
 
       if (error) throw error;
 
-      setIsEditing(false);
-      onUpdate?.();
       toast({
         title: "Application Updated",
-        description: "The application has been updated successfully.",
+        description: "The job application has been updated successfully.",
       });
+
+      setIsEditing(false);
+      onUpdate?.();
     } catch (error) {
       console.error('Error updating application:', error);
       toast({
@@ -396,22 +372,40 @@ function ApplicationDetails({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end gap-2">
-        {!isEditing ? (
-          <Button onClick={() => setIsEditing(true)} variant="outline">
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
+      {/* Header with Edit and Download buttons */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-semibold">
+            {displayData.personal_info?.fullName || 
+             `${displayData.personal_info?.firstName || ''} ${displayData.personal_info?.lastName || ''}`.trim() ||
+             'Unknown Applicant'}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Applied: {new Date(displayData.created_at).toLocaleDateString()}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadApplication}
+            className="flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            Download
           </Button>
-        ) : (
-          <>
-            <Button onClick={() => setIsEditing(false)} variant="outline">
-              Cancel
+          {isEditing ? (
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSave}>Save</Button>
+              <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+            </div>
+          ) : (
+            <Button size="sm" onClick={() => setIsEditing(true)}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
             </Button>
-            <Button onClick={handleSave}>
-              Save Changes
-            </Button>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Personal Information */}
@@ -419,89 +413,219 @@ function ApplicationDetails({
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium text-gray-500">Full Name</label>
-            {isEditing ? (
-              <Input 
-                value={editData.personal_info?.fullName || ''} 
-                onChange={(e) => setEditData(prev => ({
-                  ...prev,
-                  personal_info: { ...prev.personal_info, fullName: e.target.value }
-                }))}
-              />
-            ) : (
-              <p>{displayData.personal_info?.fullName}</p>
-            )}
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">Title</label>
-            <p>{displayData.personal_info?.title}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">Email</label>
-            <p>{displayData.personal_info?.email}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">Phone</label>
-            <p>{displayData.personal_info?.telephone}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">Date of Birth</label>
-            <p>{displayData.personal_info?.dateOfBirth}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">Position Applied For</label>
-            <p>{displayData.personal_info?.positionAppliedFor}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">National Insurance Number</label>
-            <p>{displayData.personal_info?.nationalInsuranceNumber}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-500">English Proficiency</label>
-            <p>{displayData.personal_info?.englishProficiency}</p>
-          </div>
-          <div className="col-span-2">
-            <label className="text-sm font-medium text-gray-500">Address</label>
-            <p>
-              {[
-                displayData.personal_info?.streetAddress,
-                displayData.personal_info?.streetAddress2,
-                displayData.personal_info?.town,
-                displayData.personal_info?.borough,
-                displayData.personal_info?.postcode
-              ].filter(Boolean).join(', ')}
-            </p>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-500">Full Name</label>
+              <p>{displayData.personal_info?.fullName || 
+                  `${displayData.personal_info?.firstName || ''} ${displayData.personal_info?.lastName || ''}`.trim() ||
+                  'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Title</label>
+              <p>{displayData.personal_info?.title || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Email</label>
+              <p>{displayData.personal_info?.email || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Phone</label>
+              <p>{displayData.personal_info?.telephone || displayData.personal_info?.phone || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Date of Birth</label>
+              <p>{displayData.personal_info?.dateOfBirth || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">National Insurance Number</label>
+              <p>{displayData.personal_info?.nationalInsuranceNumber || displayData.personal_info?.niNumber || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Address</label>
+              <p>
+                {[
+                  displayData.personal_info?.streetAddress,
+                  displayData.personal_info?.streetAddress2,
+                  displayData.personal_info?.town,
+                  displayData.personal_info?.borough,
+                  displayData.personal_info?.postcode
+                ].filter(Boolean).join(', ') || 'Not provided'}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Position Applied For</label>
+              <p>{displayData.personal_info?.positionAppliedFor || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">English Proficiency</label>
+              <p>{displayData.personal_info?.englishProficiency || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Other Languages</label>
+              <p>{
+                Array.isArray(displayData.personal_info?.otherLanguages) 
+                  ? displayData.personal_info.otherLanguages.join(', ') 
+                  : displayData.personal_info?.otherLanguages || 'None'
+              }</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Has DBS</label>
+              <p>{displayData.personal_info?.hasDBS || 'Not specified'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Has Car & License</label>
+              <p>{displayData.personal_info?.hasCarAndLicense || displayData.personal_info?.hasCarLicense || 'Not specified'}</p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Availability */}
+      {/* Availability & Emergency Contact */}
       <Card>
         <CardHeader>
-          <CardTitle>Availability</CardTitle>
+          <CardTitle>Availability & Emergency Contact</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="text-sm font-medium text-gray-500">Hours Per Week</label>
-              <p>{displayData.availability?.hoursPerWeek}</p>
+              <h4 className="font-medium mb-3">Availability</h4>
+              <div className="space-y-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Hours Per Week</label>
+                  <p>{displayData.availability?.hoursPerWeek || 'Not specified'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Right to Work</label>
+                  <p>{displayData.availability?.hasRightToWork || displayData.availability?.rightToWork || 'Not specified'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Selected Shifts</label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {(displayData.availability?.selectedShifts || displayData.availability?.shifts || []).map((shift: string, index: number) => (
+                      <Badge key={index} variant="secondary">{shift}</Badge>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">How Did You Hear About Us</label>
+                  <p>{displayData.availability?.howDidYouHear || displayData.availability?.howHeard || 'Not specified'}</p>
+                </div>
+              </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-500">Right to Work</label>
-              <p>{displayData.availability?.hasRightToWork}</p>
+              <h4 className="font-medium mb-3">Emergency Contact</h4>
+              <div className="space-y-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Name</label>
+                  <p>{displayData.availability?.emergencyName || 'Not provided'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Relationship</label>
+                  <p>{displayData.availability?.emergencyRelationship || 'Not provided'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Phone</label>
+                  <p>{displayData.availability?.emergencyPhone || 'Not provided'}</p>
+                </div>
+              </div>
             </div>
-            {displayData.availability?.selectedShifts && displayData.availability.selectedShifts.length > 0 && (
-              <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-500">Selected Shifts</label>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {displayData.availability.selectedShifts.map((shift: string, index: number) => (
-                    <Badge key={index} variant="secondary">{shift}</Badge>
-                  ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Employment History */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Employment History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-500">Previously Employed</label>
+              <p>{displayData.employment_history?.previouslyEmployed || 'Not specified'}</p>
+            </div>
+            
+            {/* Recent Employer */}
+            {displayData.employment_history?.recentEmployer && (
+              <div className="border p-4 rounded-lg">
+                <h4 className="font-medium mb-3">Recent Employer</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-400">Company</label>
+                    <p>{displayData.employment_history.recentEmployer.company}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Position</label>
+                    <p>{displayData.employment_history.recentEmployer.position}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Contact Name</label>
+                    <p>{displayData.employment_history.recentEmployer.name}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Email</label>
+                    <p>{displayData.employment_history.recentEmployer.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Phone</label>
+                    <p>{displayData.employment_history.recentEmployer.telephone}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Period</label>
+                    <p>{displayData.employment_history.recentEmployer.from} to {displayData.employment_history.recentEmployer.to}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs text-gray-400">Address</label>
+                    <p>
+                      {[
+                        displayData.employment_history.recentEmployer.address,
+                        displayData.employment_history.recentEmployer.address2,
+                        displayData.employment_history.recentEmployer.town,
+                        displayData.employment_history.recentEmployer.postcode
+                      ].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs text-gray-400">Reason for Leaving</label>
+                    <p>{displayData.employment_history.recentEmployer.reasonForLeaving}</p>
+                  </div>
                 </div>
               </div>
             )}
+
+            {/* Previous Employments Array */}
+            {displayData.employment_history?.employments && displayData.employment_history.employments.map((employment: any, index: number) => (
+              <div key={index} className="border p-4 rounded-lg">
+                <h4 className="font-medium mb-3">Employment {index + 1}</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-400">Company</label>
+                    <p>{employment.company}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Position</label>
+                    <p>{employment.position}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Email</label>
+                    <p>{employment.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Phone</label>
+                    <p>{employment.telephone}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Period</label>
+                    <p>{employment.fromDate} to {employment.toDate}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Reason for Leaving</label>
+                    <p>{employment.reasonForLeaving}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -509,133 +633,122 @@ function ApplicationDetails({
       {/* References */}
       <Card>
         <CardHeader>
-          <CardTitle>References</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>References</CardTitle>
+            <div className="flex gap-2">
+              {displayData.personal_info?.references?.reference1?.email && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onSendReferenceEmail(displayData, 1)}
+                  className="flex items-center gap-1"
+                >
+                  <Send className="w-4 h-4" />
+                  Send Reference 1
+                </Button>
+              )}
+              {displayData.personal_info?.references?.reference2?.email && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onSendReferenceEmail(displayData, 2)}
+                  className="flex items-center gap-1"
+                >
+                  <Send className="w-4 h-4" />
+                  Send Reference 2
+                </Button>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {/* Reference 1 */}
-            {displayData.personal_info?.references?.reference1 ? (
-              <div className="border p-4 rounded-lg">
-                <div className="flex justify-between items-start mb-4">
-                  <h4 className="font-medium">Reference 1</h4>
-                  {displayData.personal_info.references.reference1.email && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onSendReferenceEmail(displayData, 1)}
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Send Reference Email
-                    </Button>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-gray-400">Name</label>
-                    <p>{displayData.personal_info.references.reference1.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Company</label>
-                    <p>{displayData.personal_info.references.reference1.company}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Job Title</label>
-                    <p>{displayData.personal_info.references.reference1.jobTitle}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Email</label>
-                    <p>{displayData.personal_info.references.reference1.email}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Contact Number</label>
-                    <p>{displayData.personal_info.references.reference1.contactNumber}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Address</label>
-                    <p>
-                      {[
-                        displayData.personal_info.references.reference1.address,
-                        displayData.personal_info.references.reference1.address2,
-                        displayData.personal_info.references.reference1.town,
-                        displayData.personal_info.references.reference1.postcode
-                      ].filter(Boolean).join(', ')}
-                    </p>
+          {!displayData.personal_info?.references ? (
+            <div className="text-center py-8 text-gray-500">
+              No references provided in this application.
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Reference 1 */}
+              {displayData.personal_info?.references?.reference1 && (
+                <div className="border p-4 rounded-lg">
+                  <h4 className="font-medium mb-3">Reference 1</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-gray-400">Name</label>
+                      <p>{displayData.personal_info.references.reference1.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">Company</label>
+                      <p>{displayData.personal_info.references.reference1.company}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">Job Title</label>
+                      <p>{displayData.personal_info.references.reference1.jobTitle}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">Email</label>
+                      <p>{displayData.personal_info.references.reference1.email}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">Contact Number</label>
+                      <p>{displayData.personal_info.references.reference1.contactNumber}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">Address</label>
+                      <p>
+                        {[
+                          displayData.personal_info.references.reference1.address,
+                          displayData.personal_info.references.reference1.address2,
+                          displayData.personal_info.references.reference1.town,
+                          displayData.personal_info.references.reference1.postcode
+                        ].filter(Boolean).join(', ')}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="border border-dashed border-gray-300 p-8 rounded-lg text-center">
-                <p className="text-gray-500">No Reference 1 provided</p>
-              </div>
-            )}
-            
-            {/* Reference 2 */}
-            {displayData.personal_info?.references?.reference2 ? (
-              <div className="border p-4 rounded-lg">
-                <div className="flex justify-between items-start mb-4">
-                  <h4 className="font-medium">Reference 2</h4>
-                  {displayData.personal_info.references.reference2.email && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onSendReferenceEmail(displayData, 2)}
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Send Reference Email
-                    </Button>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-gray-400">Name</label>
-                    <p>{displayData.personal_info.references.reference2.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Company</label>
-                    <p>{displayData.personal_info.references.reference2.company}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Job Title</label>
-                    <p>{displayData.personal_info.references.reference2.jobTitle}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Email</label>
-                    <p>{displayData.personal_info.references.reference2.email}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Contact Number</label>
-                    <p>{displayData.personal_info.references.reference2.contactNumber}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Address</label>
-                    <p>
-                      {[
-                        displayData.personal_info.references.reference2.address,
-                        displayData.personal_info.references.reference2.address2,
-                        displayData.personal_info.references.reference2.town,
-                        displayData.personal_info.references.reference2.postcode
-                      ].filter(Boolean).join(', ')}
-                    </p>
+              )}
+              
+              {/* Reference 2 */}
+              {displayData.personal_info?.references?.reference2 && (
+                <div className="border p-4 rounded-lg">
+                  <h4 className="font-medium mb-3">Reference 2</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-gray-400">Name</label>
+                      <p>{displayData.personal_info.references.reference2.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">Company</label>
+                      <p>{displayData.personal_info.references.reference2.company}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">Job Title</label>
+                      <p>{displayData.personal_info.references.reference2.jobTitle}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">Email</label>
+                      <p>{displayData.personal_info.references.reference2.email}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">Contact Number</label>
+                      <p>{displayData.personal_info.references.reference2.contactNumber}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400">Address</label>
+                      <p>
+                        {[
+                          displayData.personal_info.references.reference2.address,
+                          displayData.personal_info.references.reference2.address2,
+                          displayData.personal_info.references.reference2.town,
+                          displayData.personal_info.references.reference2.postcode
+                        ].filter(Boolean).join(', ')}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="border border-dashed border-gray-300 p-8 rounded-lg text-center">
-                <p className="text-gray-500">No Reference 2 provided</p>
-              </div>
-            )}
-
-            {/* Add a note about the data structure issue */}
-            {!displayData.personal_info?.references && (
-              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                <p className="text-yellow-800 text-sm">
-                  <strong>Note:</strong> References data is not available in the current format. 
-                  This could be because the job application form is not saving references data, 
-                  or the data structure is different than expected.
-                </p>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -650,8 +763,8 @@ function ApplicationDetails({
               {Object.entries(displayData.skills_experience.skills).map(([skill, value]: [string, any]) => (
                 <div key={skill} className="flex justify-between items-center">
                   <span className="capitalize">{skill.replace(/([A-Z])/g, ' $1').trim()}</span>
-                  <Badge variant={value ? "default" : "secondary"}>
-                    {value ? "Yes" : "No"}
+                  <Badge variant={value === 'good' ? "default" : value === 'basic' ? "secondary" : "outline"}>
+                    {String(value).charAt(0).toUpperCase() + String(value).slice(1)}
                   </Badge>
                 </div>
               ))}
@@ -668,22 +781,36 @@ function ApplicationDetails({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(displayData.declarations).map(([key, value]: [string, any]) => (
-                <div key={key} className="flex justify-between items-center">
-                  <span className="capitalize">
-                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                  </span>
-                  <Badge variant={value === 'yes' ? "destructive" : "default"}>
-                    {String(value)}
-                  </Badge>
-                </div>
-              ))}
+              {Object.entries(displayData.declarations).map(([key, value]: [string, any]) => {
+                if (typeof value === 'boolean') {
+                  return (
+                    <div key={key} className="flex justify-between items-center">
+                      <span className="capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                      <Badge variant={value ? "default" : "secondary"}>
+                        {value ? 'Yes' : 'No'}
+                      </Badge>
+                    </div>
+                  );
+                } else if (value && value !== '') {
+                  return (
+                    <div key={key} className="space-y-1">
+                      <label className="text-sm font-medium text-gray-500 capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </label>
+                      <p className="text-sm">{String(value)}</p>
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Consent */}
+      {/* Consent & Terms */}
       {displayData.consent && (
         <Card>
           <CardHeader>
@@ -691,18 +818,14 @@ function ApplicationDetails({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500">Consent to Terms</label>
-                <p>{displayData.consent.consentToTerms ? 'Yes' : 'No'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-500">Signature</label>
-                <p>{displayData.consent.signature}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-500">Date</label>
-                <p>{displayData.consent.date}</p>
-              </div>
+              {Object.entries(displayData.consent).map(([key, value]: [string, any]) => (
+                <div key={key}>
+                  <label className="text-sm font-medium text-gray-500 capitalize">
+                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                  </label>
+                  <p>{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}</p>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
