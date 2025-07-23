@@ -514,7 +514,7 @@ function ApplicationDetails({
         <CardContent>
           <div className="space-y-6">
             {/* Reference 1 */}
-            {displayData.personal_info?.references?.reference1 && (
+            {displayData.personal_info?.references?.reference1 ? (
               <div className="border p-4 rounded-lg">
                 <div className="flex justify-between items-start mb-4">
                   <h4 className="font-medium">Reference 1</h4>
@@ -563,10 +563,14 @@ function ApplicationDetails({
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className="border border-dashed border-gray-300 p-8 rounded-lg text-center">
+                <p className="text-gray-500">No Reference 1 provided</p>
+              </div>
             )}
             
             {/* Reference 2 */}
-            {displayData.personal_info?.references?.reference2 && (
+            {displayData.personal_info?.references?.reference2 ? (
               <div className="border p-4 rounded-lg">
                 <div className="flex justify-between items-start mb-4">
                   <h4 className="font-medium">Reference 2</h4>
@@ -614,6 +618,21 @@ function ApplicationDetails({
                     </p>
                   </div>
                 </div>
+              </div>
+            ) : (
+              <div className="border border-dashed border-gray-300 p-8 rounded-lg text-center">
+                <p className="text-gray-500">No Reference 2 provided</p>
+              </div>
+            )}
+
+            {/* Add a note about the data structure issue */}
+            {!displayData.personal_info?.references && (
+              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                <p className="text-yellow-800 text-sm">
+                  <strong>Note:</strong> References data is not available in the current format. 
+                  This could be because the job application form is not saving references data, 
+                  or the data structure is different than expected.
+                </p>
               </div>
             )}
           </div>
