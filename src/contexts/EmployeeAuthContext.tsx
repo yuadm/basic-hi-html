@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { cleanupAuthState, forceSignOut } from '@/utils/authCleanup';
 
 interface Employee {
   id: string;
@@ -26,14 +27,14 @@ const EmployeeAuthContext = createContext<EmployeeAuthContextType | undefined>(u
 export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialCheckComplete, setInitialCheckComplete] = useState(false);
 
-  const fetchEmployeeData = async (user: any) => {
+  const fetchEmployeeData = async (user: any): Promise<boolean> => {
     try {
       const employeeId = user.user_metadata?.employee_id;
       if (!employeeId) {
         console.error('No employee_id found in user metadata');
-        signOut();
-        return;
+        return false;
       }
 
       // Fetch employee data using employee_id from user metadata
@@ -43,72 +44,129 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
         .eq('id', employeeId)
         .single();
 
-      if (empError) throw empError;
+      if (empError) {
+        console.error('Error fetching employee data:', empError);
+        return false;
+      }
 
       setEmployee(employeeData);
+      return true;
     } catch (error) {
-      console.error('Error fetching employee data:', error);
-      signOut();
+      console.error('Error in fetchEmployeeData:', error);
+      return false;
     }
   };
 
   const refreshEmployeeData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await fetchEmployeeData(user);
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      
+      if (user && user.user_metadata?.role === 'employee') {
+        await fetchEmployeeData(user);
+      }
+    } catch (error) {
+      console.error('Error refreshing employee data:', error);
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem('employee_session'); // Clean up old session data
-    setEmployee(null);
-    setLoading(false);
+    try {
+      await forceSignOut(supabase);
+      setEmployee(null);
+      setLoading(false);
+      
+      // Force page reload for clean state
+      window.location.href = '/employee-login';
+    } catch (error) {
+      console.error('Employee sign out error:', error);
+      // Force page reload anyway
+      window.location.href = '/employee-login';
+    }
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const initializeAuth = async () => {
       try {
         // Get current session from Supabase
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (session?.user) {
-          // Check if this is an employee user
-          if (session.user.user_metadata?.role === 'employee') {
-            await fetchEmployeeData(session.user);
-          } else {
-            // Not an employee, sign out
-            signOut();
+        if (error) {
+          console.error('Employee session error:', error);
+          cleanupAuthState();
+          if (isMounted) {
+            setLoading(false);
+            setInitialCheckComplete(true);
           }
+          return;
+        }
+        
+        if (session?.user?.user_metadata?.role === 'employee') {
+          const success = await fetchEmployeeData(session.user);
+          if (!success && isMounted) {
+            // Failed to fetch employee data, sign out
+            await signOut();
+            return;
+          }
+        } else if (session?.user) {
+          // Not an employee user, clean up and redirect
+          cleanupAuthState();
+        }
+        
+        if (isMounted) {
+          setLoading(false);
+          setInitialCheckComplete(true);
         }
       } catch (error) {
         console.error('Error initializing employee auth:', error);
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setInitialCheckComplete(true);
+        }
       }
     };
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user?.user_metadata?.role === 'employee') {
-          await fetchEmployeeData(session.user);
+        if (!isMounted) return;
+        
+        console.log('Employee auth state change:', event, session ? 'session exists' : 'no session');
+        
+        if (event === 'SIGNED_OUT') {
+          cleanupAuthState();
+          setEmployee(null);
           setLoading(false);
+          setInitialCheckComplete(true);
+        } else if (session?.user?.user_metadata?.role === 'employee') {
+          const success = await fetchEmployeeData(session.user);
+          if (!success && isMounted) {
+            await signOut();
+            return;
+          }
+          setLoading(false);
+          setInitialCheckComplete(true);
         } else {
           setEmployee(null);
           setLoading(false);
+          setInitialCheckComplete(true);
         }
       }
     );
 
     initializeAuth();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const value = {
     employee,
-    loading,
+    loading: loading && !initialCheckComplete,
     signOut,
     refreshEmployeeData
   };
