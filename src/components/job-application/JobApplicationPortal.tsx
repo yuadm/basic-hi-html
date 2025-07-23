@@ -1,89 +1,108 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import { JobApplicationData, PersonalInfo, Availability, EmergencyContact, EmploymentHistory, References, SkillsExperience, Declaration, TermsPolicy } from './types';
+import { PersonalInfoStep } from './steps/PersonalInfoStep';
+import { AvailabilityStep } from './steps/AvailabilityStep';
+import { EmergencyContactStep } from './steps/EmergencyContactStep';
+import { EmploymentHistoryStep } from './steps/EmploymentHistoryStep';
+import { ReferencesStep } from './steps/ReferencesStep';
+import { SkillsExperienceStep } from './steps/SkillsExperienceStep';
+import { DeclarationStep } from './steps/DeclarationStep';
+import { TermsPolicyStep } from './steps/TermsPolicyStep';
 
-interface FormData {
-  // Personal Information
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address: string;
-  dateOfBirth: string;
-  
-  // Position & Availability
-  position: string;
-  availableStartDate: string;
-  expectedSalary: string;
-  workType: string;
-  
-  // Experience
-  previousEmployer: string;
-  jobTitle: string;
-  workPeriod: string;
-  responsibilities: string;
-  
-  // Skills
-  skills: string;
-  qualifications: string;
-  languages: string;
-  
-  // Declarations
-  eligibleToWork: boolean;
-  criminalRecord: boolean;
-  references: string;
-  
-  // Consent
-  dataProcessingConsent: boolean;
-  declarationConsent: boolean;
-  digitalSignature: string;
-}
-
-const initialFormData: FormData = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  address: '',
-  dateOfBirth: '',
-  position: '',
-  availableStartDate: '',
-  expectedSalary: '',
-  workType: '',
-  previousEmployer: '',
-  jobTitle: '',
-  workPeriod: '',
-  responsibilities: '',
-  skills: '',
-  qualifications: '',
-  languages: '',
-  eligibleToWork: false,
-  criminalRecord: false,
-  references: '',
-  dataProcessingConsent: false,
-  declarationConsent: false,
-  digitalSignature: ''
+const initialFormData: JobApplicationData = {
+  personalInfo: {
+    title: '',
+    fullName: '',
+    email: '',
+    confirmEmail: '',
+    telephone: '',
+    dateOfBirth: '',
+    streetAddress: '',
+    streetAddress2: '',
+    town: '',
+    borough: '',
+    postcode: '',
+    englishProficiency: '',
+    otherLanguages: [],
+    positionAppliedFor: '',
+    hasDBS: '',
+    hasCarAndLicense: '',
+    nationalInsuranceNumber: '',
+  },
+  availability: {
+    selectedShifts: [],
+    hoursPerWeek: '',
+    hasRightToWork: '',
+  },
+  emergencyContact: {
+    fullName: '',
+    relationship: '',
+    contactNumber: '',
+    howDidYouHear: '',
+  },
+  employmentHistory: {
+    previouslyEmployed: '',
+  },
+  references: {
+    reference1: {
+      name: '', company: '', jobTitle: '', email: '', address: '', address2: '', town: '', contactNumber: '', postcode: ''
+    },
+    reference2: {
+      name: '', company: '', jobTitle: '', email: '', address: '', address2: '', town: '', contactNumber: '', postcode: ''
+    }
+  },
+  skillsExperience: { skills: {} },
+  declaration: {
+    socialServiceEnquiry: '', convictedOfOffence: '', safeguardingInvestigation: '', 
+    criminalConvictions: '', healthConditions: '', cautionsReprimands: ''
+  },
+  termsPolicy: { consentToTerms: false, signature: '', fullName: '', date: '' }
 };
 
 export function JobApplicationPortal() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [formData, setFormData] = useState<JobApplicationData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
 
-  const totalSteps = 6;
+  const totalSteps = 8;
 
-  const updateFormData = (field: keyof FormData, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const updatePersonalInfo = (field: keyof PersonalInfo, value: string | string[]) => {
+    setFormData(prev => ({ ...prev, personalInfo: { ...prev.personalInfo, [field]: value } }));
+  };
+
+  const updateAvailability = (field: keyof Availability, value: string | string[]) => {
+    setFormData(prev => ({ ...prev, availability: { ...prev.availability, [field]: value } }));
+  };
+
+  const updateEmergencyContact = (field: keyof EmergencyContact, value: string) => {
+    setFormData(prev => ({ ...prev, emergencyContact: { ...prev.emergencyContact, [field]: value } }));
+  };
+
+  const updateEmploymentHistory = (field: keyof EmploymentHistory, value: any) => {
+    setFormData(prev => ({ ...prev, employmentHistory: { ...prev.employmentHistory, [field]: value } }));
+  };
+
+  const updateReferences = (field: keyof References, value: any) => {
+    setFormData(prev => ({ ...prev, references: { ...prev.references, [field]: value } }));
+  };
+
+  const updateSkillsExperience = (field: keyof SkillsExperience, value: any) => {
+    setFormData(prev => ({ ...prev, skillsExperience: { ...prev.skillsExperience, [field]: value } }));
+  };
+
+  const updateDeclaration = (field: keyof Declaration, value: string) => {
+    setFormData(prev => ({ ...prev, declaration: { ...prev.declaration, [field]: value } }));
+  };
+
+  const updateTermsPolicy = (field: keyof TermsPolicy, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, termsPolicy: { ...prev.termsPolicy, [field]: value } }));
   };
 
   const nextStep = () => {
