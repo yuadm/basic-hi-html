@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Briefcase,
 } from "lucide-react";
 import {
   Sidebar,
@@ -76,6 +77,13 @@ const navigationItems = [
     icon: BarChart3,
     description: "Analytics & Export",
     requiredPage: "/reports"
+  },
+  {
+    title: "Job Applications",
+    url: "/job-applications",
+    icon: Briefcase,
+    description: "Review Applications",
+    requiredPage: "/job-applications"
   },
 ];
 

@@ -22,6 +22,7 @@ import EmployeeDashboard from "./pages/EmployeeDashboard";
 import EmployeeChangePassword from "./pages/EmployeeChangePassword";
 import UnifiedAuth from "./pages/UnifiedAuth";
 import JobApplication from "./pages/JobApplication";
+import JobApplications from "./pages/JobApplications";
 import NotFound from "./pages/NotFound";
 
 // Protected Route component with permission checking
@@ -103,6 +104,11 @@ function AppContent() {
       <Route path="/user-management" element={
         <ProtectedRoute requiredPage="/user-management">
           <UserManagement />
+        </ProtectedRoute>
+      } />
+      <Route path="/job-applications" element={
+        <ProtectedRoute requiredPage="/job-applications">
+          <JobApplications />
         </ProtectedRoute>
       } />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
