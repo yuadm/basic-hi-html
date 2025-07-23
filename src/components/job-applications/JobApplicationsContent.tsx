@@ -112,59 +112,53 @@ export function JobApplicationsContent() {
     }
   };
 
-  const sendReferenceEmail = async (application: JobApplication, referenceIndex: number) => {
-    try {
-      const reference = referenceIndex === 1 
-        ? application.personal_info?.references?.reference1 
-        : application.personal_info?.references?.reference2;
-      
-      if (!reference?.email) {
-        toast({
-          title: "Error",
-          description: "No email address found for this reference",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const referenceAddress = [
-        reference.address,
-        reference.address2,
-        reference.town,
-        reference.postcode
-      ].filter(Boolean).join(', ');
-
-      const { data, error } = await supabase.functions.invoke('send-reference-email', {
-        body: {
-          applicantName: application.personal_info?.fullName,
-          positionAppliedFor: application.personal_info?.positionAppliedFor,
-          referenceEmail: reference.email,
-          referenceName: reference.name,
-          referenceCompany: reference.company,
-          referenceAddress: referenceAddress
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data?.success) {
-        toast({
-          title: "Reference Email Sent",
-          description: `Reference request sent to ${reference.name} at ${reference.email}`,
-        });
-      } else {
-        throw new Error(data?.error || 'Failed to send email');
-      }
-    } catch (error) {
-      console.error('Error sending reference email:', error);
+  const sendReferenceEmail = (application: JobApplication, referenceIndex: number) => {
+    const reference = referenceIndex === 1 
+      ? application.personal_info?.references?.reference1 
+      : application.personal_info?.references?.reference2;
+    
+    if (!reference?.email) {
       toast({
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to send reference email. Please ensure RESEND_API_KEY is configured.",
+        title: "Error",
+        description: "No email address found for this reference",
         variant: "destructive",
       });
+      return;
     }
+
+    const applicantName = application.personal_info?.fullName || 'Unknown Applicant';
+    const position = application.personal_info?.positionAppliedFor || 'Unknown Position';
+    const referenceName = reference.name || 'Reference';
+    const referenceCompany = reference.company || '';
+    
+    const subject = `Reference Request for ${applicantName} - ${position}`;
+    const body = `Dear ${referenceName},
+
+We hope this email finds you well.
+
+We are writing to request a reference for ${applicantName}, who has applied for the position of ${position} with our company. ${applicantName} has listed you as a reference.
+
+Could you please provide information about:
+- The nature and duration of your relationship with ${applicantName}
+- Their professional capabilities and work ethic
+- Any relevant skills or qualities that would be pertinent to this role
+
+Your insights would be greatly appreciated and will help us make an informed decision.
+
+Thank you for your time and assistance.
+
+Best regards,
+HR Department
+
+Reference Details:
+Name: ${reference.name}
+Company: ${reference.company}
+Job Title: ${reference.jobTitle}
+Contact: ${reference.contactNumber}
+Address: ${[reference.address, reference.address2, reference.town, reference.postcode].filter(Boolean).join(', ')}`;
+
+    const mailtoLink = `mailto:${reference.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
   };
 
   const getStatusColor = (status: string) => {
@@ -244,11 +238,10 @@ export function JobApplicationsContent() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Applicant</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Applied Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>References</TableHead>
+                  <TableHead>Position Applied</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Postcode</TableHead>
+                  <TableHead>Proficiency In English</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -256,93 +249,24 @@ export function JobApplicationsContent() {
                 {filteredApplications.map((application) => (
                   <TableRow key={application.id}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center">
-                          <User className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                          <div className="font-medium">
-                            {application.personal_info?.fullName || 'Unknown'}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {application.personal_info?.nationalInsuranceNumber || 'No NI'}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
                       <div className="font-medium">
-                        {application.personal_info?.positionAppliedFor || 'Not specified'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {application.availability?.hoursPerWeek} hours/week
+                        {application.personal_info?.fullName || 'Unknown'}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-sm">
-                          <Mail className="w-3 h-3" />
-                          {application.personal_info?.email || 'No email'}
-                        </div>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="w-3 h-3" />
-                          {application.personal_info?.telephone || 'No phone'}
-                        </div>
-                      </div>
+                      {application.personal_info?.positionAppliedFor || 'Not specified'}
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        {new Date(application.created_at).toLocaleDateString()}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(application.created_at).toLocaleTimeString()}
-                      </div>
+                      {new Date(application.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Select 
-                        value={application.status} 
-                        onValueChange={(value) => updateApplicationStatus(application.id, value)}
-                      >
-                        <SelectTrigger className="w-28">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="new">New</SelectItem>
-                          <SelectItem value="reviewing">Reviewing</SelectItem>
-                          <SelectItem value="interviewed">Interviewed</SelectItem>
-                          <SelectItem value="accepted">Accepted</SelectItem>
-                          <SelectItem value="rejected">Rejected</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {application.personal_info?.postcode || 'Not provided'}
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-1">
-                        {application.personal_info?.references?.reference1?.email && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => sendReferenceEmail(application, 1)}
-                            className="text-xs"
-                          >
-                            <Send className="w-3 h-3 mr-1" />
-                            Ref 1
-                          </Button>
-                        )}
-                        {application.personal_info?.references?.reference2?.email && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => sendReferenceEmail(application, 2)}
-                            className="text-xs"
-                          >
-                            <Send className="w-3 h-3 mr-1" />
-                            Ref 2
-                          </Button>
-                        )}
-                      </div>
+                      {application.personal_info?.englishProficiency || 'Not specified'}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex gap-2">
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
@@ -350,7 +274,8 @@ export function JobApplicationsContent() {
                               size="sm"
                               onClick={() => setSelectedApplication(application)}
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-6xl max-h-[90vh]">
@@ -372,7 +297,8 @@ export function JobApplicationsContent() {
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
