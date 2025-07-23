@@ -87,8 +87,12 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    let initialized = false;
 
     const initializeAuth = async () => {
+      if (initialized) return;
+      initialized = true;
+      
       try {
         // Get current session from Supabase
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -135,28 +139,40 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
         
         console.log('Employee auth state change:', event, session ? 'session exists' : 'no session');
         
+        // Handle different events appropriately
         if (event === 'SIGNED_OUT') {
           cleanupAuthState();
           setEmployee(null);
           setLoading(false);
           setInitialCheckComplete(true);
-        } else if (session?.user?.user_metadata?.role === 'employee') {
-          const success = await fetchEmployeeData(session.user);
-          if (!success && isMounted) {
-            await signOut();
-            return;
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Only process if this is an employee session
+          if (session?.user?.user_metadata?.role === 'employee') {
+            const success = await fetchEmployeeData(session.user);
+            if (!success && isMounted) {
+              return; // Don't call signOut here to avoid loops
+            }
+          } else {
+            setEmployee(null);
           }
-          setLoading(false);
-          setInitialCheckComplete(true);
-        } else {
-          setEmployee(null);
-          setLoading(false);
-          setInitialCheckComplete(true);
+          
+          if (isMounted) {
+            setLoading(false);
+            setInitialCheckComplete(true);
+          }
+        } else if (event === 'INITIAL_SESSION') {
+          // Handle initial session load
+          if (!initialized) {
+            initializeAuth();
+          }
         }
       }
     );
 
-    initializeAuth();
+    // Only initialize if we haven't already
+    if (!initialized) {
+      initializeAuth();
+    }
 
     return () => {
       isMounted = false;
