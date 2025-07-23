@@ -123,42 +123,12 @@ export function JobApplicationPortal() {
       const { error } = await supabase
         .from('job_applications')
         .insert([{
-          personal_info: {
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email,
-            phone: formData.phone,
-            address: formData.address,
-            dateOfBirth: formData.dateOfBirth
-          },
-          position_info: {
-            position: formData.position,
-            availableStartDate: formData.availableStartDate,
-            expectedSalary: formData.expectedSalary,
-            workType: formData.workType
-          },
-          experience: {
-            previousEmployer: formData.previousEmployer,
-            jobTitle: formData.jobTitle,
-            workPeriod: formData.workPeriod,
-            responsibilities: formData.responsibilities
-          },
-          skills: {
-            skills: formData.skills,
-            qualifications: formData.qualifications,
-            languages: formData.languages
-          },
-          declarations: {
-            eligibleToWork: formData.eligibleToWork,
-            criminalRecord: formData.criminalRecord,
-            references: formData.references
-          },
-          consent: {
-            dataProcessingConsent: formData.dataProcessingConsent,
-            declarationConsent: formData.declarationConsent,
-            digitalSignature: formData.digitalSignature,
-            signatureDate: new Date().toISOString()
-          },
+          personal_info: formData.personalInfo,
+          availability: formData.availability,
+          employment_history: formData.employmentHistory,
+          skills_experience: formData.skillsExperience,
+          declarations: formData.declaration,
+          consent: formData.termsPolicy,
           status: 'new'
         }]);
 
@@ -194,7 +164,7 @@ export function JobApplicationPortal() {
               Thank you for your interest in joining our team. We have received your application and will review it shortly.
             </p>
             <p className="text-sm text-muted-foreground">
-              You should receive a confirmation email at <strong>{formData.email}</strong> within the next few minutes.
+              You should receive a confirmation email at <strong>{formData.personalInfo.email}</strong> within the next few minutes.
             </p>
             <Button onClick={() => window.location.href = '/'} className="w-full">
               Return to Homepage
@@ -208,281 +178,21 @@ export function JobApplicationPortal() {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName">First Name *</Label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => updateFormData('firstName', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="lastName">Last Name *</Label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => updateFormData('lastName', e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="email">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => updateFormData('email', e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">Phone Number *</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => updateFormData('phone', e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="address">Address</Label>
-              <Textarea
-                id="address"
-                value={formData.address}
-                onChange={(e) => updateFormData('address', e.target.value)}
-                rows={3}
-              />
-            </div>
-            <div>
-              <Label htmlFor="dateOfBirth">Date of Birth</Label>
-              <Input
-                id="dateOfBirth"
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) => updateFormData('dateOfBirth', e.target.value)}
-              />
-            </div>
-          </div>
-        );
-
+        return <PersonalInfoStep data={formData.personalInfo} updateData={updatePersonalInfo} />;
       case 2:
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="position">Position Applied For *</Label>
-              <Select value={formData.position} onValueChange={(value) => updateFormData('position', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a position" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="software-engineer">Software Engineer</SelectItem>
-                  <SelectItem value="data-analyst">Data Analyst</SelectItem>
-                  <SelectItem value="project-manager">Project Manager</SelectItem>
-                  <SelectItem value="sales-representative">Sales Representative</SelectItem>
-                  <SelectItem value="customer-service">Customer Service</SelectItem>
-                  <SelectItem value="marketing-specialist">Marketing Specialist</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="availableStartDate">Available Start Date</Label>
-              <Input
-                id="availableStartDate"
-                type="date"
-                value={formData.availableStartDate}
-                onChange={(e) => updateFormData('availableStartDate', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="expectedSalary">Expected Salary</Label>
-              <Input
-                id="expectedSalary"
-                value={formData.expectedSalary}
-                onChange={(e) => updateFormData('expectedSalary', e.target.value)}
-                placeholder="e.g., £30,000 - £35,000"
-              />
-            </div>
-            <div>
-              <Label htmlFor="workType">Preferred Work Type</Label>
-              <Select value={formData.workType} onValueChange={(value) => updateFormData('workType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select work type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="full-time">Full-time</SelectItem>
-                  <SelectItem value="part-time">Part-time</SelectItem>
-                  <SelectItem value="contract">Contract</SelectItem>
-                  <SelectItem value="remote">Remote</SelectItem>
-                  <SelectItem value="hybrid">Hybrid</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        );
-
+        return <AvailabilityStep data={formData.availability} updateData={updateAvailability} />;
       case 3:
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="previousEmployer">Previous Employer</Label>
-              <Input
-                id="previousEmployer"
-                value={formData.previousEmployer}
-                onChange={(e) => updateFormData('previousEmployer', e.target.value)}
-                placeholder="Company name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="jobTitle">Job Title</Label>
-              <Input
-                id="jobTitle"
-                value={formData.jobTitle}
-                onChange={(e) => updateFormData('jobTitle', e.target.value)}
-                placeholder="Your role"
-              />
-            </div>
-            <div>
-              <Label htmlFor="workPeriod">Work Period</Label>
-              <Input
-                id="workPeriod"
-                value={formData.workPeriod}
-                onChange={(e) => updateFormData('workPeriod', e.target.value)}
-                placeholder="e.g., Jan 2020 - Dec 2023"
-              />
-            </div>
-            <div>
-              <Label htmlFor="responsibilities">Key Responsibilities</Label>
-              <Textarea
-                id="responsibilities"
-                value={formData.responsibilities}
-                onChange={(e) => updateFormData('responsibilities', e.target.value)}
-                rows={4}
-                placeholder="Describe your main duties and achievements"
-              />
-            </div>
-          </div>
-        );
-
+        return <EmergencyContactStep data={formData.emergencyContact} updateData={updateEmergencyContact} />;
       case 4:
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="skills">Skills & Competencies</Label>
-              <Textarea
-                id="skills"
-                value={formData.skills}
-                onChange={(e) => updateFormData('skills', e.target.value)}
-                rows={3}
-                placeholder="List your key skills, software proficiency, etc."
-              />
-            </div>
-            <div>
-              <Label htmlFor="qualifications">Qualifications & Certifications</Label>
-              <Textarea
-                id="qualifications"
-                value={formData.qualifications}
-                onChange={(e) => updateFormData('qualifications', e.target.value)}
-                rows={3}
-                placeholder="Degrees, certifications, courses, etc."
-              />
-            </div>
-            <div>
-              <Label htmlFor="languages">Languages</Label>
-              <Input
-                id="languages"
-                value={formData.languages}
-                onChange={(e) => updateFormData('languages', e.target.value)}
-                placeholder="e.g., English (Native), Spanish (Conversational)"
-              />
-            </div>
-          </div>
-        );
-
+        return <EmploymentHistoryStep data={formData.employmentHistory} updateData={updateEmploymentHistory} />;
       case 5:
-        return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="eligibleToWork"
-                  checked={formData.eligibleToWork}
-                  onCheckedChange={(checked) => updateFormData('eligibleToWork', checked === true)}
-                />
-                <Label htmlFor="eligibleToWork" className="text-sm leading-relaxed">
-                  I confirm that I am eligible to work in the UK and can provide appropriate documentation if required.
-                </Label>
-              </div>
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="criminalRecord"
-                  checked={formData.criminalRecord}
-                  onCheckedChange={(checked) => updateFormData('criminalRecord', checked === true)}
-                />
-                <Label htmlFor="criminalRecord" className="text-sm leading-relaxed">
-                  I declare that I have no unspent criminal convictions (or I am willing to discuss any that may be relevant to this position).
-                </Label>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="references">References</Label>
-              <Textarea
-                id="references"
-                value={formData.references}
-                onChange={(e) => updateFormData('references', e.target.value)}
-                rows={4}
-                placeholder="Please provide contact details for 2 professional references (name, position, company, email, phone)"
-              />
-            </div>
-          </div>
-        );
-
+        return <ReferencesStep data={formData.references} employmentHistory={formData.employmentHistory} updateData={updateReferences} />;
       case 6:
-        return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="dataProcessingConsent"
-                  checked={formData.dataProcessingConsent}
-                  onCheckedChange={(checked) => updateFormData('dataProcessingConsent', checked === true)}
-                />
-                <Label htmlFor="dataProcessingConsent" className="text-sm leading-relaxed">
-                  I consent to the processing of my personal data for the purpose of this job application and recruitment process.
-                </Label>
-              </div>
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="declarationConsent"
-                  checked={formData.declarationConsent}
-                  onCheckedChange={(checked) => updateFormData('declarationConsent', checked === true)}
-                />
-                <Label htmlFor="declarationConsent" className="text-sm leading-relaxed">
-                  I declare that the information provided in this application is true and complete to the best of my knowledge.
-                </Label>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="digitalSignature">Digital Signature *</Label>
-              <Input
-                id="digitalSignature"
-                value={formData.digitalSignature}
-                onChange={(e) => updateFormData('digitalSignature', e.target.value)}
-                placeholder="Type your full name as your digital signature"
-                required
-              />
-              <p className="text-sm text-muted-foreground mt-1">
-                By typing your name, you are providing your digital signature for this application.
-              </p>
-            </div>
-          </div>
-        );
-
+        return <SkillsExperienceStep data={formData.skillsExperience} updateData={updateSkillsExperience} />;
+      case 7:
+        return <DeclarationStep data={formData.declaration} updateData={updateDeclaration} />;
+      case 8:
+        return <TermsPolicyStep data={formData.termsPolicy} updateData={updateTermsPolicy} />;
       default:
         return null;
     }
@@ -491,11 +201,13 @@ export function JobApplicationPortal() {
   const getStepTitle = () => {
     const titles = [
       'Personal Information',
-      'Position & Availability',
+      'Availability',
+      'Emergency Contact',
       'Employment History',
-      'Skills & Qualifications',
-      'Declarations',
-      'Consent & Signature'
+      'References',
+      'Skills & Experience',
+      'Declaration',
+      'Terms & Policy'
     ];
     return titles[currentStep - 1];
   };
@@ -503,11 +215,15 @@ export function JobApplicationPortal() {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return formData.firstName && formData.lastName && formData.email && formData.phone;
+        return formData.personalInfo.title && formData.personalInfo.fullName && formData.personalInfo.email && formData.personalInfo.telephone;
       case 2:
-        return formData.position;
-      case 6:
-        return formData.dataProcessingConsent && formData.declarationConsent && formData.digitalSignature;
+        return formData.availability.hoursPerWeek && formData.availability.hasRightToWork;
+      case 3:
+        return formData.emergencyContact.fullName && formData.emergencyContact.relationship && formData.emergencyContact.contactNumber && formData.emergencyContact.howDidYouHear;
+      case 5:
+        return formData.references.reference1.name && formData.references.reference2.name;
+      case 8:
+        return formData.termsPolicy.consentToTerms && formData.termsPolicy.signature && formData.termsPolicy.fullName && formData.termsPolicy.date;
       default:
         return true;
     }
