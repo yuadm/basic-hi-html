@@ -130,7 +130,7 @@ export function JobApplicationPortal() {
           declarations: formData.declaration,
           consent: formData.termsPolicy,
           status: 'new'
-        }]);
+        }] as any);
 
       if (error) throw error;
 
