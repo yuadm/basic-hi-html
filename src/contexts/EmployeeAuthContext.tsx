@@ -134,7 +134,7 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!isMounted) return;
         
         console.log('Employee auth state change:', event, session ? 'session exists' : 'no session');
@@ -148,15 +148,17 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           // Only process if this is an employee session
           if (session?.user?.user_metadata?.role === 'employee') {
-            const success = await fetchEmployeeData(session.user);
-            if (!success && isMounted) {
-              return; // Don't call signOut here to avoid loops
-            }
+            // Defer async operations to prevent deadlocks
+            setTimeout(async () => {
+              const success = await fetchEmployeeData(session.user);
+              if (!success && isMounted) {
+                setEmployee(null);
+                setLoading(false);
+                setInitialCheckComplete(true);
+              }
+            }, 0);
           } else {
             setEmployee(null);
-          }
-          
-          if (isMounted) {
             setLoading(false);
             setInitialCheckComplete(true);
           }
@@ -165,6 +167,10 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
           if (!initialized) {
             initializeAuth();
           }
+        } else {
+          // For other events, just update loading state
+          setLoading(false);
+          setInitialCheckComplete(true);
         }
       }
     );

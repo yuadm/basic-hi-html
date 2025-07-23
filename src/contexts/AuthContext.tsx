@@ -53,16 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.error('Error in handleAuthState:', error);
           setUserRole('user');
-        } finally {
-          setLoading(false);
-          setInitialAuthCheckComplete(true);
         }
       }, 0);
     } else {
       setUserRole(null);
-      setLoading(false);
-      setInitialAuthCheckComplete(true);
     }
+    
+    setLoading(false);
+    setInitialAuthCheckComplete(true);
   };
 
   useEffect(() => {
@@ -98,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!isMounted) return;
         
         console.log('Auth state change:', event, session ? 'session exists' : 'no session');
@@ -111,7 +109,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
           setInitialAuthCheckComplete(true);
         } else {
-          await handleAuthState(session);
+          // Synchronous state updates only
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          // Defer async operations
+          if (session?.user) {
+            setTimeout(async () => {
+              try {
+                const role = await fetchUserRole(session.user.id);
+                setUserRole(role);
+              } catch (error) {
+                console.error('Error fetching user role:', error);
+                setUserRole('user');
+              }
+            }, 0);
+          } else {
+            setUserRole(null);
+          }
+          
+          setLoading(false);
+          setInitialAuthCheckComplete(true);
         }
       }
     );
