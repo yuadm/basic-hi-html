@@ -86,7 +86,7 @@ export function JobApplicationsContent() {
   const sendReferenceEmail = (application: JobApplication, referenceIndex: number) => {
     const reference = referenceIndex === 1 
       ? application.employment_history?.recentEmployer 
-      : application.employment_history?.employments?.[0];
+      : application.employment_history?.previousEmployers?.[0];
     
     if (!reference?.email) {
       toast({
@@ -662,7 +662,7 @@ function ApplicationDetails({
                 <Send className="w-4 h-4" />
                 Send Reference 1
               </Button>
-              {displayData.employment_history?.employments?.[0]?.email && (
+              {displayData.employment_history?.previousEmployers?.[0]?.email && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -722,31 +722,35 @@ function ApplicationDetails({
             {/* Reference 2 - Previous Employment */}
             <div className="border p-4 rounded-lg">
               <h4 className="font-medium mb-3">Reference 2 - Previous Employment</h4>
-              {displayData.employment_history?.employments?.[0] ? (
+              {displayData.employment_history?.previousEmployers?.[0] ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-gray-400">Company</label>
-                    <p>{displayData.employment_history.employments[0].company || 'Not provided'}</p>
+                    <p>{displayData.employment_history.previousEmployers[0].company || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Position</label>
-                    <p>{displayData.employment_history.employments[0].position || 'Not provided'}</p>
+                    <p>{displayData.employment_history.previousEmployers[0].position || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Contact Name</label>
+                    <p>{displayData.employment_history.previousEmployers[0].name || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Email</label>
-                    <p>{displayData.employment_history.employments[0].email || 'Not provided'}</p>
+                    <p>{displayData.employment_history.previousEmployers[0].email || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Phone</label>
-                    <p>{displayData.employment_history.employments[0].telephone || 'Not provided'}</p>
+                    <p>{displayData.employment_history.previousEmployers[0].telephone || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Address</label>
                     <p>
                       {[
-                        displayData.employment_history.employments[0].address,
-                        displayData.employment_history.employments[0].town,
-                        displayData.employment_history.employments[0].postcode
+                        displayData.employment_history.previousEmployers[0].address,
+                        displayData.employment_history.previousEmployers[0].town,
+                        displayData.employment_history.previousEmployers[0].postcode
                       ].filter(Boolean).join(', ') || 'Not provided'}
                     </p>
                   </div>
