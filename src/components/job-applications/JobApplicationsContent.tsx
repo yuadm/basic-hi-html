@@ -85,8 +85,8 @@ export function JobApplicationsContent() {
 
   const sendReferenceEmail = (application: JobApplication, referenceIndex: number) => {
     const reference = referenceIndex === 1 
-      ? application.personal_info?.references?.reference1 
-      : application.personal_info?.references?.reference2;
+      ? application.employment_history?.recentEmployer 
+      : application.employment_history?.employments?.[0];
     
     if (!reference?.email) {
       toast({
@@ -97,11 +97,20 @@ export function JobApplicationsContent() {
       return;
     }
 
-    const applicantName = application.personal_info?.fullName || 'Unknown Applicant';
+    const applicantName = application.personal_info?.fullName || 
+                         `${application.personal_info?.firstName || ''} ${application.personal_info?.lastName || ''}`.trim() ||
+                         'Unknown Applicant';
     const position = application.personal_info?.positionAppliedFor || 'Unknown Position';
-    const referenceName = reference.name || 'Reference';
+    const referenceName = reference.name || reference.company || 'Reference';
+    const referenceCompany = reference.company || 'Unknown Company';
+    const referenceAddress = [
+      reference.address,
+      reference.address2,
+      reference.town,
+      reference.postcode
+    ].filter(Boolean).join(', ') || 'Address not provided';
     
-    const subject = `Reference Request for ${applicantName} - ${position}`;
+    const subject = `Reference Request for ${applicantName} - ${position} Position`;
     const body = `Dear ${referenceName},
 
 We hope this email finds you well.
@@ -112,20 +121,25 @@ Could you please provide information about:
 - The nature and duration of your relationship with ${applicantName}
 - Their professional capabilities and work ethic
 - Any relevant skills or qualities that would be pertinent to this role
+- Their reliability and punctuality
+- Would you employ this person again? If not, why not?
 
 Your insights would be greatly appreciated and will help us make an informed decision.
 
 Thank you for your time and assistance.
 
 Best regards,
+Mohamed Ahmed
 HR Department
 
 Reference Details:
-Name: ${reference.name}
-Company: ${reference.company}
-Job Title: ${reference.jobTitle}
-Contact: ${reference.contactNumber}
-Address: ${[reference.address, reference.address2, reference.town, reference.postcode].filter(Boolean).join(', ')}`;
+Company: ${referenceCompany}
+Contact Person: ${referenceName}
+Position: ${reference.position || 'Not specified'}
+Phone: ${reference.telephone || 'Not provided'}
+Address: ${referenceAddress}
+
+Please complete and return this reference as soon as possible.`;
 
     const mailtoLink = `mailto:${reference.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoLink;
@@ -636,18 +650,19 @@ function ApplicationDetails({
           <div className="flex justify-between items-center">
             <CardTitle>References</CardTitle>
             <div className="flex gap-2">
-              {displayData.personal_info?.references?.reference1?.email && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onSendReferenceEmail(displayData, 1)}
-                  className="flex items-center gap-1"
-                >
-                  <Send className="w-4 h-4" />
-                  Send Reference 1
-                </Button>
-              )}
-              {displayData.personal_info?.references?.reference2?.email && (
+              {/* Check if references exist and show send buttons accordingly */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSendReferenceEmail(displayData, 1)}
+                className="flex items-center gap-1"
+                disabled={!displayData.employment_history?.recentEmployer?.email}
+                title={displayData.employment_history?.recentEmployer?.email ? "Send email to recent employer" : "No employer email available"}
+              >
+                <Send className="w-4 h-4" />
+                Send Reference 1
+              </Button>
+              {displayData.employment_history?.employments?.[0]?.email && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -662,93 +677,85 @@ function ApplicationDetails({
           </div>
         </CardHeader>
         <CardContent>
-          {!displayData.personal_info?.references ? (
-            <div className="text-center py-8 text-gray-500">
-              No references provided in this application.
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Reference 1 */}
-              {displayData.personal_info?.references?.reference1 && (
-                <div className="border p-4 rounded-lg">
-                  <h4 className="font-medium mb-3">Reference 1</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-400">Name</label>
-                      <p>{displayData.personal_info.references.reference1.name}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400">Company</label>
-                      <p>{displayData.personal_info.references.reference1.company}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400">Job Title</label>
-                      <p>{displayData.personal_info.references.reference1.jobTitle}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400">Email</label>
-                      <p>{displayData.personal_info.references.reference1.email}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400">Contact Number</label>
-                      <p>{displayData.personal_info.references.reference1.contactNumber}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400">Address</label>
-                      <p>
-                        {[
-                          displayData.personal_info.references.reference1.address,
-                          displayData.personal_info.references.reference1.address2,
-                          displayData.personal_info.references.reference1.town,
-                          displayData.personal_info.references.reference1.postcode
-                        ].filter(Boolean).join(', ')}
-                      </p>
-                    </div>
+          <div className="space-y-6">
+            {/* Reference 1 - Recent Employer */}
+            <div className="border p-4 rounded-lg">
+              <h4 className="font-medium mb-3">Reference 1 - Recent Employer</h4>
+              {displayData.employment_history?.recentEmployer ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-400">Name</label>
+                    <p>{displayData.employment_history.recentEmployer.name || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Company</label>
+                    <p>{displayData.employment_history.recentEmployer.company || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Position</label>
+                    <p>{displayData.employment_history.recentEmployer.position || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Email</label>
+                    <p>{displayData.employment_history.recentEmployer.email || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Phone</label>
+                    <p>{displayData.employment_history.recentEmployer.telephone || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Address</label>
+                    <p>
+                      {[
+                        displayData.employment_history.recentEmployer.address,
+                        displayData.employment_history.recentEmployer.town,
+                        displayData.employment_history.recentEmployer.postcode
+                      ].filter(Boolean).join(', ') || 'Not provided'}
+                    </p>
                   </div>
                 </div>
-              )}
-              
-              {/* Reference 2 */}
-              {displayData.personal_info?.references?.reference2 && (
-                <div className="border p-4 rounded-lg">
-                  <h4 className="font-medium mb-3">Reference 2</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-400">Name</label>
-                      <p>{displayData.personal_info.references.reference2.name}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400">Company</label>
-                      <p>{displayData.personal_info.references.reference2.company}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400">Job Title</label>
-                      <p>{displayData.personal_info.references.reference2.jobTitle}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400">Email</label>
-                      <p>{displayData.personal_info.references.reference2.email}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400">Contact Number</label>
-                      <p>{displayData.personal_info.references.reference2.contactNumber}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400">Address</label>
-                      <p>
-                        {[
-                          displayData.personal_info.references.reference2.address,
-                          displayData.personal_info.references.reference2.address2,
-                          displayData.personal_info.references.reference2.town,
-                          displayData.personal_info.references.reference2.postcode
-                        ].filter(Boolean).join(', ')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              ) : (
+                <p className="text-gray-500">No recent employer information available</p>
               )}
             </div>
-          )}
+            
+            {/* Reference 2 - Previous Employment */}
+            <div className="border p-4 rounded-lg">
+              <h4 className="font-medium mb-3">Reference 2 - Previous Employment</h4>
+              {displayData.employment_history?.employments?.[0] ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-400">Company</label>
+                    <p>{displayData.employment_history.employments[0].company || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Position</label>
+                    <p>{displayData.employment_history.employments[0].position || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Email</label>
+                    <p>{displayData.employment_history.employments[0].email || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Phone</label>
+                    <p>{displayData.employment_history.employments[0].telephone || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Address</label>
+                    <p>
+                      {[
+                        displayData.employment_history.employments[0].address,
+                        displayData.employment_history.employments[0].town,
+                        displayData.employment_history.employments[0].postcode
+                      ].filter(Boolean).join(', ') || 'Not provided'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500">No previous employment information available</p>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
