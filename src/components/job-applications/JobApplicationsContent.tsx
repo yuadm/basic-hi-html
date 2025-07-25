@@ -491,6 +491,18 @@ function ApplicationDetails({
               <label className="text-sm font-medium text-gray-500">Has Car & License</label>
               <p>{displayData.personal_info?.hasCarAndLicense || displayData.personal_info?.hasCarLicense || 'Not specified'}</p>
             </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Confirm Email</label>
+              <p>{displayData.personal_info?.confirmEmail || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Password Field</label>
+              <p>{displayData.personal_info?.password ? '***Password Set***' : 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-500">Confirm Password Field</label>
+              <p>{displayData.personal_info?.confirmPassword ? '***Confirm Password Set***' : 'Not provided'}</p>
+            </div>
           </div>
         </CardContent>
       </Card>
