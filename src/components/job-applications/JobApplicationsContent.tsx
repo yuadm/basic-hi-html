@@ -690,7 +690,7 @@ function ApplicationDetails({
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* Reference 1 - Recent Employer */}
+            {/* Reference 1 */}
             <div className="border p-4 rounded-lg">
               <h4 className="font-medium mb-3">Reference 1 - Recent Employer</h4>
               {displayData.employment_history?.recentEmployer ? (
@@ -731,7 +731,7 @@ function ApplicationDetails({
               )}
             </div>
             
-            {/* Reference 2 - Previous Employment */}
+            {/* Reference 2 */}
             <div className="border p-4 rounded-lg">
               <h4 className="font-medium mb-3">Reference 2 - Previous Employment</h4>
               {displayData.employment_history?.previousEmployers?.[0] ? (
@@ -768,7 +768,7 @@ function ApplicationDetails({
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-500">No previous employment information available</p>
+                <p className="text-gray-500">Only one employer on record - second reference needed from applicant</p>
               )}
             </div>
           </div>
