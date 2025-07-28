@@ -601,78 +601,79 @@ export function EmployeesContent() {
                   <TableRow>
                     <TableHead>Employee</TableHead>
                     <TableHead>Employee Code</TableHead>
-                    <TableHead>Job Title</TableHead>
-                    <TableHead>Type</TableHead>
                     <TableHead>Branch</TableHead>
                     <TableHead>Working Hours</TableHead>
                     <TableHead>Leave Balance</TableHead>
-                    <TableHead>Contact</TableHead>
+                    <TableHead className="w-20">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredEmployees.map((employee) => (
-                    <TableRow key={employee.id} className="hover:bg-muted/50 transition-colors">
-                      <TableCell>
-                        <div className="space-y-1">
+                  {filteredEmployees.map((employee) => {
+                    const leaveUsage = employee.leave_allowance 
+                      ? Math.round((Number(employee.leave_taken) / employee.leave_allowance) * 100)
+                      : 0;
+                    
+                    return (
+                      <TableRow key={employee.id} className="hover:bg-muted/50 transition-colors">
+                        <TableCell>
                           <div className="font-medium">{employee.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {employee.email}
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-mono text-sm">
+                            {employee.employee_code}
                           </div>
-                          {employee.hours_restriction && getHoursRestrictionBadge(employee.hours_restriction)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-mono text-sm">
-                          {employee.employee_code}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {employee.job_title || 'Not specified'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getEmployeeTypeColor(employee.employee_type || 'regular')}>
-                          {employee.employee_type || 'regular'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Building className="w-3 h-3" />
-                          {employee.branch}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                         <div className="text-sm">
-                           {employee.working_hours ? `${employee.working_hours}h/week` : 'N/A'}
-                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-sm">
+                            <Building className="w-3 h-3" />
+                            {employee.branch}
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           <div className="text-sm">
-                            {(employee.remaining_leave_days || 0)} / {(employee.leave_allowance || 0)} days
+                            {employee.working_hours ? `${employee.working_hours}h/week` : 'N/A'}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            Used: {String(employee.leave_taken || 0)} days
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-xs">
-                            <Mail className="w-3 h-3" />
-                            <span className="truncate max-w-[120px]">{employee.email}</span>
-                          </div>
-                          {employee.phone && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Phone className="w-3 h-3" />
-                              {employee.phone}
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-3 min-w-[200px]">
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground">Remaining:</span>
+                              <span className="font-semibold">{employee.remaining_leave_days || 0} days</span>
                             </div>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <div className="space-y-1">
+                              <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full transition-all duration-300"
+                                  style={{ 
+                                    width: `${Math.max(100 - leaveUsage, 0)}%`,
+                                    backgroundColor: leaveUsage > 80 ? 'hsl(var(--destructive))' : 
+                                                   leaveUsage > 60 ? 'hsl(var(--warning) / 0.8)' : 
+                                                   'hsl(var(--primary))'
+                                  }}
+                                />
+                              </div>
+                              <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>{employee.leave_taken || 0} used</span>
+                                <span>{employee.leave_allowance || 0} total</span>
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // TODO: Open employee details modal
+                              console.log('View employee:', employee.id);
+                            }}
+                          >
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
