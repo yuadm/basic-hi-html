@@ -125,7 +125,9 @@ export function JobApplicationPortal() {
         .insert([{
           personal_info: formData.personalInfo,
           availability: formData.availability,
+          emergency_contact: formData.emergencyContact,
           employment_history: formData.employmentHistory,
+          reference_info: formData.references,
           skills_experience: formData.skillsExperience,
           declarations: formData.declaration,
           consent: formData.termsPolicy,

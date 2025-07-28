@@ -16,7 +16,9 @@ interface JobApplication {
   id: string;
   personal_info: any;
   availability: any;
+  emergency_contact: any;
   employment_history: any;
+  reference_info: any;
   skills_experience: any;
   declarations: any;
   consent: any;
@@ -535,7 +537,7 @@ function ApplicationDetails({
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">How Did You Hear About Us</label>
-                  <p>{displayData.availability?.howDidYouHear || displayData.availability?.howHeard || 'Not specified'}</p>
+                  <p>{displayData.emergency_contact?.howDidYouHear || 'Not specified'}</p>
                 </div>
               </div>
             </div>
@@ -544,15 +546,15 @@ function ApplicationDetails({
               <div className="space-y-2">
                 <div>
                   <label className="text-sm font-medium text-gray-500">Name</label>
-                  <p>{displayData.availability?.emergencyName || 'Not provided'}</p>
+                  <p>{displayData.emergency_contact?.fullName || 'Not provided'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Relationship</label>
-                  <p>{displayData.availability?.emergencyRelationship || 'Not provided'}</p>
+                  <p>{displayData.emergency_contact?.relationship || 'Not provided'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Phone</label>
-                  <p>{displayData.availability?.emergencyPhone || 'Not provided'}</p>
+                  <p>{displayData.emergency_contact?.contactNumber || 'Not provided'}</p>
                 </div>
               </div>
             </div>
@@ -692,83 +694,85 @@ function ApplicationDetails({
           <div className="space-y-6">
             {/* Reference 1 */}
             <div className="border p-4 rounded-lg">
-              <h4 className="font-medium mb-3">Reference 1 - Recent Employer</h4>
-              {displayData.employment_history?.recentEmployer ? (
+              <h4 className="font-medium mb-3">Reference 1</h4>
+              {displayData.reference_info?.reference1 ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-gray-400">Name</label>
-                    <p>{displayData.employment_history.recentEmployer.name || 'Not provided'}</p>
+                    <p>{displayData.reference_info.reference1.name || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Company</label>
-                    <p>{displayData.employment_history.recentEmployer.company || 'Not provided'}</p>
+                    <p>{displayData.reference_info.reference1.company || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400">Position</label>
-                    <p>{displayData.employment_history.recentEmployer.position || 'Not provided'}</p>
+                    <label className="text-xs text-gray-400">Job Title</label>
+                    <p>{displayData.reference_info.reference1.jobTitle || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Email</label>
-                    <p>{displayData.employment_history.recentEmployer.email || 'Not provided'}</p>
+                    <p>{displayData.reference_info.reference1.email || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Phone</label>
-                    <p>{displayData.employment_history.recentEmployer.telephone || 'Not provided'}</p>
+                    <p>{displayData.reference_info.reference1.contactNumber || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Address</label>
                     <p>
                       {[
-                        displayData.employment_history.recentEmployer.address,
-                        displayData.employment_history.recentEmployer.town,
-                        displayData.employment_history.recentEmployer.postcode
+                        displayData.reference_info.reference1.address,
+                        displayData.reference_info.reference1.address2,
+                        displayData.reference_info.reference1.town,
+                        displayData.reference_info.reference1.postcode
                       ].filter(Boolean).join(', ') || 'Not provided'}
                     </p>
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-500">No recent employer information available</p>
+                <p className="text-gray-500">No reference 1 information available</p>
               )}
             </div>
             
             {/* Reference 2 */}
             <div className="border p-4 rounded-lg">
-              <h4 className="font-medium mb-3">Reference 2 - Previous Employment</h4>
-              {displayData.employment_history?.previousEmployers?.[0] ? (
+              <h4 className="font-medium mb-3">Reference 2</h4>
+              {displayData.reference_info?.reference2 ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <label className="text-xs text-gray-400">Name</label>
+                    <p>{displayData.reference_info.reference2.name || 'Not provided'}</p>
+                  </div>
+                  <div>
                     <label className="text-xs text-gray-400">Company</label>
-                    <p>{displayData.employment_history.previousEmployers[0].company || 'Not provided'}</p>
+                    <p>{displayData.reference_info.reference2.company || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400">Position</label>
-                    <p>{displayData.employment_history.previousEmployers[0].position || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">Contact Name</label>
-                    <p>{displayData.employment_history.previousEmployers[0].name || 'Not provided'}</p>
+                    <label className="text-xs text-gray-400">Job Title</label>
+                    <p>{displayData.reference_info.reference2.jobTitle || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Email</label>
-                    <p>{displayData.employment_history.previousEmployers[0].email || 'Not provided'}</p>
+                    <p>{displayData.reference_info.reference2.email || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Phone</label>
-                    <p>{displayData.employment_history.previousEmployers[0].telephone || 'Not provided'}</p>
+                    <p>{displayData.reference_info.reference2.contactNumber || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Address</label>
                     <p>
                       {[
-                        displayData.employment_history.previousEmployers[0].address,
-                        displayData.employment_history.previousEmployers[0].town,
-                        displayData.employment_history.previousEmployers[0].postcode
+                        displayData.reference_info.reference2.address,
+                        displayData.reference_info.reference2.address2,
+                        displayData.reference_info.reference2.town,
+                        displayData.reference_info.reference2.postcode
                       ].filter(Boolean).join(', ') || 'Not provided'}
                     </p>
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-500">Only one employer on record - second reference needed from applicant</p>
+                <p className="text-gray-500">No reference 2 information available</p>
               )}
             </div>
           </div>

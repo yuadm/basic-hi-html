@@ -553,10 +553,12 @@ export type Database = {
           consent: Json | null
           created_at: string
           declarations: Json | null
+          emergency_contact: Json | null
           employment_history: Json | null
           id: string
           personal_info: Json
           position_id: string | null
+          reference_info: Json | null
           skills_experience: Json | null
           status: string
           updated_at: string
@@ -566,10 +568,12 @@ export type Database = {
           consent?: Json | null
           created_at?: string
           declarations?: Json | null
+          emergency_contact?: Json | null
           employment_history?: Json | null
           id?: string
           personal_info: Json
           position_id?: string | null
+          reference_info?: Json | null
           skills_experience?: Json | null
           status?: string
           updated_at?: string
@@ -579,10 +583,12 @@ export type Database = {
           consent?: Json | null
           created_at?: string
           declarations?: Json | null
+          emergency_contact?: Json | null
           employment_history?: Json | null
           id?: string
           personal_info?: Json
           position_id?: string | null
+          reference_info?: Json | null
           skills_experience?: Json | null
           status?: string
           updated_at?: string
