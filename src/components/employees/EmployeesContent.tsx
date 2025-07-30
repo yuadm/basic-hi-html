@@ -92,6 +92,8 @@ export function EmployeesContent() {
     employee_type: "regular",
     working_hours: 40,
     leave_allowance: 28,
+    leave_taken: 0,
+    remaining_leave_days: 28,
     hours_restriction: ""
   });
   const { toast } = useToast();
@@ -209,6 +211,8 @@ export function EmployeesContent() {
       employee_type: employee.employee_type || "regular",
       working_hours: employee.working_hours || 40,
       leave_allowance: employee.leave_allowance || 28,
+      leave_taken: employee.leave_taken || 0,
+      remaining_leave_days: employee.remaining_leave_days || 28,
       hours_restriction: employee.hours_restriction || ""
     });
     setEditMode(false);
@@ -231,7 +235,8 @@ export function EmployeesContent() {
           employee_type: editedEmployee.employee_type,
           working_hours: editedEmployee.working_hours,
           leave_allowance: editedEmployee.leave_allowance,
-          remaining_leave_days: editedEmployee.leave_allowance - (selectedEmployee.leave_taken || 0),
+          leave_taken: editedEmployee.leave_taken,
+          remaining_leave_days: editedEmployee.remaining_leave_days,
           hours_restriction: editedEmployee.hours_restriction || null
         })
         .eq('id', selectedEmployee.id);
@@ -1350,7 +1355,7 @@ export function EmployeesContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="view_leave_allowance">Annual Leave Allowance</Label>
                   {editMode ? (
@@ -1359,19 +1364,56 @@ export function EmployeesContent() {
                       type="number"
                       value={editedEmployee.leave_allowance}
                       onChange={(e) => setEditedEmployee({...editedEmployee, leave_allowance: parseInt(e.target.value) || 28})}
+                      placeholder="28"
                     />
                   ) : (
                     <div className="p-2 bg-muted rounded text-sm">{selectedEmployee.leave_allowance || 28} days</div>
                   )}
                 </div>
+                
                 <div className="space-y-2">
                   <Label>Leave Status</Label>
-                  <div className="p-2 bg-muted rounded text-sm">
-                    <div className="flex justify-between mb-1">
-                      <span>Taken: {selectedEmployee.leave_taken || 0} days</span>
-                      <span>Remaining: {selectedEmployee.remaining_leave_days || 0} days</span>
+                  {editMode ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="view_leave_taken">Days Taken</Label>
+                        <Input
+                          id="view_leave_taken"
+                          type="number"
+                          min="0"
+                          value={editedEmployee.leave_taken}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const numValue = value === '' ? 0 : parseInt(value) || 0;
+                            setEditedEmployee({...editedEmployee, leave_taken: numValue});
+                          }}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="view_remaining_days">Days Remaining</Label>
+                        <Input
+                          id="view_remaining_days"
+                          type="number"
+                          min="0"
+                          value={editedEmployee.remaining_leave_days}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const numValue = value === '' ? 0 : parseInt(value) || 0;
+                            setEditedEmployee({...editedEmployee, remaining_leave_days: numValue});
+                          }}
+                          placeholder="0"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm">
+                      <div className="flex justify-between mb-1">
+                        <span>Taken: {selectedEmployee.leave_taken === 0 || selectedEmployee.leave_taken ? selectedEmployee.leave_taken : 'N/A'} days</span>
+                        <span>Remaining: {selectedEmployee.remaining_leave_days === 0 || selectedEmployee.remaining_leave_days ? selectedEmployee.remaining_leave_days : 'N/A'} days</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
