@@ -594,13 +594,17 @@ export function EmployeesContent() {
     
     const matchesBranch = branchFilter === 'all' || employee.branch === branchFilter;
     
-    // For non-admin users, filter by accessible branches
+  // For non-admin users, filter by accessible branches
     const accessibleBranches = getAccessibleBranches();
-    const hasAccess = isAdmin || accessibleBranches.length === 0 || accessibleBranches.some(branchId => {
-      // Find the branch name for this branch ID
-      const branch = branches.find(b => b.id === branchId);
-      return branch?.name === employee.branch;
-    });
+    console.log('Employee filtering - isAdmin:', isAdmin, 'accessibleBranches:', accessibleBranches, 'employee.branch:', employee.branch);
+    
+    let hasAccess = true;
+    if (!isAdmin && accessibleBranches.length > 0) {
+      // Check if employee's branch_id is in accessible branches  
+      // Map branch name to branch ID since employee uses branch name
+      const employeeBranchId = branches.find(b => b.name === employee.branch)?.id;
+      hasAccess = accessibleBranches.includes(employeeBranchId || '');
+    }
     
     return matchesSearch && matchesBranch && hasAccess;
   });

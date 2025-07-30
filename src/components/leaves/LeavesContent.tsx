@@ -46,18 +46,27 @@ export function LeavesContent() {
   } = useLeaveActions({ leaves, employees, leaveTypes, refetchData });
 
   // Get permissions context
-  const { isAdmin } = usePermissions();
+  const { isAdmin, getAccessibleBranches } = usePermissions();
 
   const filteredLeaves = leaves.filter(leave => {
     const matchesSearch = leave.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          leave.leave_type_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || leave.status === statusFilter;
-    // Admin sees all branches, non-admin only sees their assigned branches
-    const matchesBranch = isAdmin || branchFilter === 'all' || leave.employee_branch_id === branchFilter;
+    const matchesBranch = branchFilter === 'all' || leave.employee_branch_id === branchFilter;
     const matchesLeaveType = leaveTypeFilter === 'all' || leave.leave_type_id === leaveTypeFilter;
     
-    return matchesSearch && matchesStatus && matchesBranch && matchesLeaveType;
+    // For non-admin users, filter by accessible branches
+    const accessibleBranches = getAccessibleBranches();
+    console.log('Leave filtering - isAdmin:', isAdmin, 'accessibleBranches:', accessibleBranches, 'leave.employee_branch_id:', leave.employee_branch_id);
+    
+    let hasAccess = true;
+    if (!isAdmin && accessibleBranches.length > 0) {
+      // Check if leave's employee branch_id is in accessible branches
+      hasAccess = accessibleBranches.includes(leave.employee_branch_id);
+    }
+    
+    return matchesSearch && matchesStatus && matchesBranch && matchesLeaveType && hasAccess;
   });
 
   // Sort leaves
