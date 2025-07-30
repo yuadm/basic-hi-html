@@ -63,7 +63,10 @@ export function LeavesContent() {
     let hasAccess = true;
     if (!isAdmin && accessibleBranches.length > 0) {
       // Check if leave's employee branch_id is in accessible branches
-      hasAccess = accessibleBranches.includes(leave.employee_branch_id);
+      // Use the employee's branch_id directly
+      hasAccess = accessibleBranches.includes(leave.employee_branch_id) || 
+                  // Also check by branch name if branch_id fails
+                  (leave.employee?.branch && accessibleBranches.includes(branches.find(b => b.name === leave.employee.branch)?.id || ''));
     }
     
     return matchesSearch && matchesStatus && matchesBranch && matchesLeaveType && hasAccess;

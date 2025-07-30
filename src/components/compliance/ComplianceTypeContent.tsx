@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Calendar, Users, CheckCircle, AlertTriangle, Clock, Shield, Eye, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +59,12 @@ interface Employee {
   id: string;
   name: string;
   branch: string;
+  branch_id?: string;
+}
+
+interface Branch {
+  id: string;
+  name: string;
 }
 
 interface ComplianceRecord {
@@ -87,11 +94,13 @@ export function ComplianceTypeContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { getAccessibleBranches, isAdmin } = usePermissions();
   
   const [complianceType, setComplianceType] = useState<ComplianceType | null>(
     location.state?.complianceType || null
   );
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [records, setRecords] = useState<ComplianceRecord[]>([]);
   const [employeeStatusList, setEmployeeStatusList] = useState<EmployeeComplianceStatus[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +128,17 @@ export function ComplianceTypeContent() {
     // Apply branch filter
     if (branchFilter !== 'all') {
       filtered = filtered.filter(item => item.employee.branch === branchFilter);
+    }
+
+    // For non-admin users, filter by accessible branches
+    const accessibleBranches = getAccessibleBranches();
+    if (!isAdmin && accessibleBranches.length > 0) {
+      // Filter employees by accessible branches
+      filtered = filtered.filter(item => {
+        // Map branch name to branch ID and check if it's in accessible branches
+        const employeeBranchId = branches.find(b => b.name === item.employee.branch)?.id;
+        return accessibleBranches.includes(employeeBranchId || '');
+      });
     }
 
     // Apply sorting
@@ -230,10 +250,18 @@ export function ComplianceTypeContent() {
       // Fetch all employees
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
-        .select('id, name, branch')
+        .select('id, name, branch, branch_id')
         .order('name');
 
       if (employeesError) throw employeesError;
+
+      // Fetch branches
+      const { data: branchesData, error: branchesError } = await supabase
+        .from('branches')
+        .select('id, name')
+        .order('name');
+
+      if (branchesError) throw branchesError;
 
       // Fetch compliance records for this type
       const { data: recordsData, error: recordsError } = await supabase
@@ -245,6 +273,7 @@ export function ComplianceTypeContent() {
       if (recordsError) throw recordsError;
 
       setEmployees(employeesData || []);
+      setBranches(branchesData || []);
       setRecords(recordsData || []);
       
       // Fetch user details for completed_by
@@ -736,13 +765,24 @@ export function ComplianceTypeContent() {
                           <SelectTrigger className="w-40">
                             <SelectValue placeholder="Filter by branch" />
                           </SelectTrigger>
-                          <SelectContent>
+                         <SelectContent>
                             <SelectItem value="all">All Branches</SelectItem>
-                            {uniqueBranches.map((branch) => (
-                              <SelectItem key={branch} value={branch}>
-                                {branch}
-                              </SelectItem>
-                            ))}
+                            {/* Only show branches that the user has access to */}
+                            {(() => {
+                              const accessibleBranches = getAccessibleBranches();
+                              const branchesToShow = isAdmin 
+                                ? uniqueBranches 
+                                : uniqueBranches.filter(branchName => {
+                                    const branchId = branches.find(b => b.name === branchName)?.id;
+                                    return accessibleBranches.includes(branchId || '');
+                                  });
+                              
+                              return branchesToShow.map((branch) => (
+                                <SelectItem key={branch} value={branch}>
+                                  {branch}
+                                </SelectItem>
+                              ));
+                            })()}
                           </SelectContent>
                         </Select>
                       </div>
