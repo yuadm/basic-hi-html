@@ -16,7 +16,8 @@ export default function PublicHome() {
       if (userRole === 'admin') {
         navigate('/admin');
       } else if (userRole === 'user') {
-        navigate('/employee-dashboard');
+        // For regular users, redirect to admin panel as they should have access to basic features
+        navigate('/admin');
       }
     }
   }, [user, userRole, loading, navigate]);
