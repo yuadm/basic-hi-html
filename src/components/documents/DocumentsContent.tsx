@@ -18,6 +18,7 @@ import { DocumentViewDialog } from "./DocumentViewDialog";
 import { DocumentEditDialog } from "./DocumentEditDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 
@@ -84,6 +85,7 @@ export function DocumentsContent() {
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
+  const { getAccessibleBranches, isAdmin } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
@@ -423,7 +425,15 @@ export function DocumentsContent() {
       matchesCategory = employee?.twenty_hours === true;
     }
     
-    return matchesSearch && matchesStatus && matchesBranch && matchesCategory;
+    // For non-admin users, filter by accessible branches
+    const accessibleBranches = getAccessibleBranches();
+    const hasAccess = isAdmin || accessibleBranches.length === 0 || accessibleBranches.some(branchId => {
+      // Find the branch name for this branch ID
+      const branch = branches.find(b => b.id === branchId);
+      return branch?.name === document.employees?.branch;
+    });
+    
+    return matchesSearch && matchesStatus && matchesBranch && matchesCategory && hasAccess;
   });
 
   // Count unique employees instead of total documents for the grouped view

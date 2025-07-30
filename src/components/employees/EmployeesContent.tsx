@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 
@@ -55,6 +56,7 @@ export function EmployeesContent() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { getAccessibleBranches, isAdmin } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [branchFilter, setBranchFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -592,7 +594,15 @@ export function EmployeesContent() {
     
     const matchesBranch = branchFilter === 'all' || employee.branch === branchFilter;
     
-    return matchesSearch && matchesBranch;
+    // For non-admin users, filter by accessible branches
+    const accessibleBranches = getAccessibleBranches();
+    const hasAccess = isAdmin || accessibleBranches.length === 0 || accessibleBranches.some(branchId => {
+      // Find the branch name for this branch ID
+      const branch = branches.find(b => b.id === branchId);
+      return branch?.name === employee.branch;
+    });
+    
+    return matchesSearch && matchesBranch && hasAccess;
   });
 
   // Calculate stats

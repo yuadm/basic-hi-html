@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { usePermissions } from "@/contexts/PermissionsContext";
 
 interface ComplianceType {
   id: string;
@@ -19,6 +20,7 @@ export function ComplianceContent() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { hasPageAccess } = usePermissions();
 
   useEffect(() => {
     fetchComplianceTypes();
