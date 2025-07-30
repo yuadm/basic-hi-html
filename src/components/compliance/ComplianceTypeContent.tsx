@@ -110,11 +110,21 @@ export function ComplianceTypeContent() {
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [completedByUsers, setCompletedByUsers] = useState<{ [key: string]: { name: string; created_at: string } }>({});
 
-  // Get unique branches for filter
+  // Get unique branches for filter - filtered by user access
   const uniqueBranches = useMemo(() => {
-    const branches = [...new Set(employeeStatusList.map(emp => emp.employee.branch))];
-    return branches.sort();
-  }, [employeeStatusList]);
+    const accessibleBranches = getAccessibleBranches();
+    let branchNames = [...new Set(employeeStatusList.map(emp => emp.employee.branch))];
+    
+    // Filter branches based on user permissions
+    if (!isAdmin && accessibleBranches.length > 0) {
+      branchNames = branchNames.filter(branchName => {
+        const branchId = branches.find(b => b.name === branchName)?.id;
+        return accessibleBranches.includes(branchId || '');
+      });
+    }
+    
+    return branchNames.sort();
+  }, [employeeStatusList, branches, getAccessibleBranches, isAdmin]);
 
   // Filtered and sorted employees
   const filteredAndSortedEmployees = useMemo(() => {
@@ -539,11 +549,24 @@ export function ComplianceTypeContent() {
     );
   }
 
-  // Calculate stats from employee status list
-  const compliantCount = employeeStatusList.filter(item => item.status === 'compliant').length;
-  const overdueCount = employeeStatusList.filter(item => item.status === 'overdue').length;
-  const dueCount = employeeStatusList.filter(item => item.status === 'due').length;
-  const pendingCount = employeeStatusList.filter(item => item.status === 'pending').length;
+  // Filter employee status list based on user permissions for stats calculation
+  const filteredEmployeeStatusForStats = useMemo(() => {
+    const accessibleBranches = getAccessibleBranches();
+    if (!isAdmin && accessibleBranches.length > 0) {
+      return employeeStatusList.filter(item => {
+        const employeeBranchId = branches.find(b => b.name === item.employee.branch)?.id;
+        return accessibleBranches.includes(employeeBranchId || '');
+      });
+    }
+    return employeeStatusList;
+  }, [employeeStatusList, branches, getAccessibleBranches, isAdmin]);
+
+  // Calculate stats from filtered employee status list
+  const compliantCount = filteredEmployeeStatusForStats.filter(item => item.status === 'compliant').length;
+  const overdueCount = filteredEmployeeStatusForStats.filter(item => item.status === 'overdue').length;
+  const dueCount = filteredEmployeeStatusForStats.filter(item => item.status === 'due').length;
+  const pendingCount = filteredEmployeeStatusForStats.filter(item => item.status === 'pending').length;
+  const totalEmployeeCount = filteredEmployeeStatusForStats.length;
 
   return (
     <div className="space-y-8">
@@ -599,10 +622,10 @@ export function ComplianceTypeContent() {
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Employee Compliance</h3>
                 <p className="text-2xl font-bold text-foreground">
-                  {compliantCount}/{employees.length}
+                  {compliantCount}/{totalEmployeeCount}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {employees.length > 0 ? Math.round((compliantCount / employees.length) * 100) : 0}% compliant
+                  {totalEmployeeCount > 0 ? Math.round((compliantCount / totalEmployeeCount) * 100) : 0}% compliant
                 </p>
               </div>
               
@@ -610,7 +633,7 @@ export function ComplianceTypeContent() {
                 <h3 className="font-semibold text-foreground mb-2">Branch Completion</h3>
                 <div className="space-y-2">
                   {uniqueBranches.map((branch) => {
-                    const branchEmployees = employeeStatusList.filter(item => item.employee.branch === branch);
+                    const branchEmployees = filteredEmployeeStatusForStats.filter(item => item.employee.branch === branch);
                     const branchCompliant = branchEmployees.filter(item => item.status === 'compliant').length;
                     const branchTotal = branchEmployees.length;
                     const percentage = branchTotal > 0 ? Math.round((branchCompliant / branchTotal) * 100) : 0;
