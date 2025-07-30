@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle } from "lucide-react";
+import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle, Eye, Edit3, Trash2, Check, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Papa from 'papaparse';
@@ -58,11 +60,29 @@ export function EmployeesContent() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [batchDeleteDialogOpen, setBatchDeleteDialogOpen] = useState(false);
   const [importData, setImportData] = useState<ImportEmployee[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newEmployee, setNewEmployee] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    branch: "",
+    employee_code: "",
+    job_title: "",
+    employee_type: "regular",
+    working_hours: 40,
+    leave_allowance: 28,
+    hours_restriction: ""
+  });
+  const [editedEmployee, setEditedEmployee] = useState({
     name: "",
     email: "",
     phone: "",
@@ -174,6 +194,135 @@ export function EmployeesContent() {
         description: "Could not add employee. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const openViewDialog = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setEditedEmployee({
+      name: employee.name || "",
+      email: employee.email || "",
+      phone: employee.phone || "",
+      branch: employee.branch || "",
+      employee_code: employee.employee_code || "",
+      job_title: employee.job_title || "",
+      employee_type: employee.employee_type || "regular",
+      working_hours: employee.working_hours || 40,
+      leave_allowance: employee.leave_allowance || 28,
+      hours_restriction: employee.hours_restriction || ""
+    });
+    setEditMode(false);
+    setViewDialogOpen(true);
+  };
+
+  const updateEmployee = async () => {
+    if (!selectedEmployee) return;
+    
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          name: editedEmployee.name,
+          email: editedEmployee.email,
+          phone: editedEmployee.phone || null,
+          branch: editedEmployee.branch,
+          employee_code: editedEmployee.employee_code,
+          job_title: editedEmployee.job_title || null,
+          employee_type: editedEmployee.employee_type,
+          working_hours: editedEmployee.working_hours,
+          leave_allowance: editedEmployee.leave_allowance,
+          remaining_leave_days: editedEmployee.leave_allowance - (selectedEmployee.leave_taken || 0),
+          hours_restriction: editedEmployee.hours_restriction || null
+        })
+        .eq('id', selectedEmployee.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Employee updated",
+        description: "The employee has been updated successfully.",
+      });
+
+      setEditMode(false);
+      setViewDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      toast({
+        title: "Error updating employee",
+        description: "Could not update employee. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteEmployee = async (employeeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', employeeId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Employee deleted",
+        description: "The employee has been deleted successfully.",
+      });
+
+      setDeleteDialogOpen(false);
+      setSelectedEmployee(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      toast({
+        title: "Error deleting employee",
+        description: "Could not delete employee. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const batchDeleteEmployees = async () => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .in('id', selectedEmployees);
+
+      if (error) throw error;
+
+      toast({
+        title: "Employees deleted",
+        description: `Successfully deleted ${selectedEmployees.length} employees.`,
+      });
+
+      setBatchDeleteDialogOpen(false);
+      setSelectedEmployees([]);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting employees:', error);
+      toast({
+        title: "Error deleting employees",
+        description: "Could not delete employees. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleSelectEmployee = (employeeId: string) => {
+    setSelectedEmployees(prev => 
+      prev.includes(employeeId) 
+        ? prev.filter(id => id !== employeeId)
+        : [...prev, employeeId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedEmployees.length === filteredEmployees.length) {
+      setSelectedEmployees([]);
+    } else {
+      setSelectedEmployees(filteredEmployees.map(emp => emp.id));
     }
   };
 
@@ -474,6 +623,15 @@ export function EmployeesContent() {
         </div>
         
         <div className="flex items-center gap-3">
+          {selectedEmployees.length > 0 && (
+            <Button 
+              variant="destructive"
+              onClick={() => setBatchDeleteDialogOpen(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Selected ({selectedEmployees.length})
+            </Button>
+          )}
           <Button 
             variant="outline"
             onClick={() => setImportDialogOpen(true)}
@@ -599,12 +757,19 @@ export function EmployeesContent() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all employees"
+                      />
+                    </TableHead>
                     <TableHead>Employee</TableHead>
                     <TableHead>Employee Code</TableHead>
                     <TableHead>Branch</TableHead>
                     <TableHead>Working Hours</TableHead>
                     <TableHead>Leave Balance</TableHead>
-                    <TableHead className="w-20">Actions</TableHead>
+                    <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -615,6 +780,13 @@ export function EmployeesContent() {
                     
                     return (
                       <TableRow key={employee.id} className="hover:bg-muted/50 transition-colors">
+                        <TableCell>
+                          <Checkbox 
+                            checked={selectedEmployees.includes(employee.id)}
+                            onCheckedChange={() => toggleSelectEmployee(employee.id)}
+                            aria-label={`Select ${employee.name}`}
+                          />
+                        </TableCell>
                         <TableCell>
                           <div className="font-medium">{employee.name}</div>
                         </TableCell>
@@ -660,16 +832,25 @@ export function EmployeesContent() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              // TODO: Open employee details modal
-                              console.log('View employee:', employee.id);
-                            }}
-                          >
-                            View
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => openViewDialog(employee)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEmployee(employee);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -1010,6 +1191,268 @@ export function EmployeesContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View/Edit Employee Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setEditMode(false);
+        }
+        setViewDialogOpen(open);
+      }}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{editMode ? 'Edit Employee' : 'Employee Details'}</span>
+              {!editMode && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setEditMode(true)}
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {editMode ? 'Update employee information' : 'View employee details'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedEmployee && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="view_name">Full Name</Label>
+                  {editMode ? (
+                    <Input
+                      id="view_name"
+                      value={editedEmployee.name}
+                      onChange={(e) => setEditedEmployee({...editedEmployee, name: e.target.value})}
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm">{selectedEmployee.name}</div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="view_email">Email</Label>
+                  {editMode ? (
+                    <Input
+                      id="view_email"
+                      type="email"
+                      value={editedEmployee.email}
+                      onChange={(e) => setEditedEmployee({...editedEmployee, email: e.target.value})}
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm">{selectedEmployee.email || 'N/A'}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="view_employee_code">Employee Code</Label>
+                  {editMode ? (
+                    <Input
+                      id="view_employee_code"
+                      value={editedEmployee.employee_code}
+                      onChange={(e) => setEditedEmployee({...editedEmployee, employee_code: e.target.value})}
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm font-mono">{selectedEmployee.employee_code}</div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="view_phone">Phone</Label>
+                  {editMode ? (
+                    <Input
+                      id="view_phone"
+                      value={editedEmployee.phone}
+                      onChange={(e) => setEditedEmployee({...editedEmployee, phone: e.target.value})}
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm">{selectedEmployee.phone || 'N/A'}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="view_branch">Branch</Label>
+                  {editMode ? (
+                    <Select
+                      value={editedEmployee.branch}
+                      onValueChange={(value) => setEditedEmployee({...editedEmployee, branch: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select branch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {branches.map((branch: any) => (
+                          <SelectItem key={branch.id} value={branch.name}>
+                            {branch.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm">{selectedEmployee.branch}</div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="view_job_title">Job Title</Label>
+                  {editMode ? (
+                    <Input
+                      id="view_job_title"
+                      value={editedEmployee.job_title}
+                      onChange={(e) => setEditedEmployee({...editedEmployee, job_title: e.target.value})}
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm">{selectedEmployee.job_title || 'N/A'}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="view_employee_type">Employee Type</Label>
+                  {editMode ? (
+                    <Select
+                      value={editedEmployee.employee_type}
+                      onValueChange={(value) => setEditedEmployee({...editedEmployee, employee_type: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="regular">Regular</SelectItem>
+                        <SelectItem value="part-time">Part-time</SelectItem>
+                        <SelectItem value="contract">Contract</SelectItem>
+                        <SelectItem value="intern">Intern</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm capitalize">{selectedEmployee.employee_type || 'Regular'}</div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="view_working_hours">Working Hours/Week</Label>
+                  {editMode ? (
+                    <Input
+                      id="view_working_hours"
+                      type="number"
+                      value={editedEmployee.working_hours}
+                      onChange={(e) => setEditedEmployee({...editedEmployee, working_hours: parseInt(e.target.value) || 40})}
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm">{selectedEmployee.working_hours || 'N/A'}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="view_leave_allowance">Annual Leave Allowance</Label>
+                  {editMode ? (
+                    <Input
+                      id="view_leave_allowance"
+                      type="number"
+                      value={editedEmployee.leave_allowance}
+                      onChange={(e) => setEditedEmployee({...editedEmployee, leave_allowance: parseInt(e.target.value) || 28})}
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm">{selectedEmployee.leave_allowance || 28} days</div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Leave Status</Label>
+                  <div className="p-2 bg-muted rounded text-sm">
+                    <div className="flex justify-between mb-1">
+                      <span>Taken: {selectedEmployee.leave_taken || 0} days</span>
+                      <span>Remaining: {selectedEmployee.remaining_leave_days || 0} days</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {(editedEmployee.hours_restriction || editMode) && (
+                <div className="space-y-2">
+                  <Label htmlFor="view_hours_restriction">Hours Restriction</Label>
+                  {editMode ? (
+                    <Input
+                      id="view_hours_restriction"
+                      value={editedEmployee.hours_restriction}
+                      onChange={(e) => setEditedEmployee({...editedEmployee, hours_restriction: e.target.value})}
+                      placeholder="e.g., 20 hours max"
+                    />
+                  ) : (
+                    <div className="p-2 bg-muted rounded text-sm">{selectedEmployee.hours_restriction || 'None'}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            {editMode ? (
+              <>
+                <Button variant="outline" onClick={() => setEditMode(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={updateEmployee} className="bg-gradient-primary hover:opacity-90">
+                  Save Changes
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+                Close
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Employee Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete {selectedEmployee?.name}'s record from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => selectedEmployee && deleteEmployee(selectedEmployee.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Batch Delete Dialog */}
+      <AlertDialog open={batchDeleteDialogOpen} onOpenChange={setBatchDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Employees</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete {selectedEmployees.length} employee(s) from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={batchDeleteEmployees}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete {selectedEmployees.length} Employee(s)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
