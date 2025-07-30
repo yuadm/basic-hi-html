@@ -78,7 +78,7 @@ export function EmployeesContent() {
     employee_code: "",
     job_title: "",
     employee_type: "regular",
-    working_hours: 40,
+    working_hours: "N/A",
     leave_allowance: 28,
     hours_restriction: ""
   });
@@ -90,7 +90,7 @@ export function EmployeesContent() {
     employee_code: "",
     job_title: "",
     employee_type: "regular",
-    working_hours: 40,
+    working_hours: "N/A",
     leave_allowance: 28,
     leave_taken: 0,
     remaining_leave_days: 28,
@@ -157,7 +157,7 @@ export function EmployeesContent() {
           employee_code: newEmployee.employee_code,
           job_title: newEmployee.job_title || null,
           employee_type: newEmployee.employee_type,
-          working_hours: newEmployee.working_hours,
+          working_hours: newEmployee.working_hours === "N/A" ? null : parseInt(newEmployee.working_hours) || null,
           leave_allowance: newEmployee.leave_allowance,
           leave_taken: 0,
           remaining_leave_days: newEmployee.leave_allowance,
@@ -184,7 +184,7 @@ export function EmployeesContent() {
         employee_code: "",
         job_title: "",
         employee_type: "regular",
-        working_hours: 40,
+        working_hours: "N/A",
         leave_allowance: 28,
         hours_restriction: ""
       });
@@ -209,7 +209,7 @@ export function EmployeesContent() {
       employee_code: employee.employee_code || "",
       job_title: employee.job_title || "",
       employee_type: employee.employee_type || "regular",
-      working_hours: employee.working_hours || 40,
+      working_hours: employee.working_hours ? employee.working_hours.toString() : "N/A",
       leave_allowance: employee.leave_allowance || 28,
       leave_taken: employee.leave_taken || 0,
       remaining_leave_days: employee.remaining_leave_days || 28,
@@ -233,7 +233,7 @@ export function EmployeesContent() {
           employee_code: editedEmployee.employee_code,
           job_title: editedEmployee.job_title || null,
           employee_type: editedEmployee.employee_type,
-          working_hours: editedEmployee.working_hours,
+          working_hours: editedEmployee.working_hours === "N/A" ? null : parseInt(editedEmployee.working_hours) || null,
           leave_allowance: editedEmployee.leave_allowance,
           leave_taken: editedEmployee.leave_taken,
           remaining_leave_days: editedEmployee.remaining_leave_days,
@@ -972,10 +972,9 @@ export function EmployeesContent() {
                 <Label htmlFor="working_hours">Working Hours/Week</Label>
                 <Input
                   id="working_hours"
-                  type="number"
                   value={newEmployee.working_hours}
-                  onChange={(e) => setNewEmployee({...newEmployee, working_hours: parseInt(e.target.value) || 40})}
-                  placeholder="40"
+                  onChange={(e) => setNewEmployee({...newEmployee, working_hours: e.target.value})}
+                  placeholder="N/A"
                 />
               </div>
             </div>
@@ -1345,9 +1344,9 @@ export function EmployeesContent() {
                   {editMode ? (
                     <Input
                       id="view_working_hours"
-                      type="number"
                       value={editedEmployee.working_hours}
-                      onChange={(e) => setEditedEmployee({...editedEmployee, working_hours: parseInt(e.target.value) || 40})}
+                      onChange={(e) => setEditedEmployee({...editedEmployee, working_hours: e.target.value})}
+                      placeholder="N/A"
                     />
                   ) : (
                     <div className="p-2 bg-muted rounded text-sm">{selectedEmployee.working_hours || 'N/A'}</div>
