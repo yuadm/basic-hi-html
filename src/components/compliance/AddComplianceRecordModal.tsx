@@ -66,6 +66,7 @@ export function AddComplianceRecordModal({
 
   const fetchEmployees = async () => {
     try {
+      console.log('Fetching employees for compliance modal...');
       // Fetch employees
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
@@ -84,15 +85,22 @@ export function AddComplianceRecordModal({
 
       // Filter employees based on branch access for non-admin users
       const accessibleBranches = getAccessibleBranches();
+      console.log('Accessible branches for compliance modal:', accessibleBranches);
+      console.log('Is admin:', isAdmin);
+      console.log('All employees before filtering:', employeesData?.length);
+      
       let filteredEmployees = employeesData || [];
       
       if (!isAdmin && accessibleBranches.length > 0) {
         filteredEmployees = employeesData?.filter(employee => {
           const employeeBranchId = branchesData?.find(b => b.name === employee.branch)?.id;
-          return accessibleBranches.includes(employeeBranchId || '');
+          const hasAccess = accessibleBranches.includes(employeeBranchId || '');
+          console.log(`Employee ${employee.name} (branch: ${employee.branch}, branchId: ${employeeBranchId}) - hasAccess: ${hasAccess}`);
+          return hasAccess;
         }) || [];
       }
 
+      console.log('Filtered employees for compliance modal:', filteredEmployees?.length);
       setEmployees(filteredEmployees);
       setBranches(branchesData || []);
     } catch (error) {
