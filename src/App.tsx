@@ -45,6 +45,18 @@ function ProtectedRoute({ children, requiredPage }: { children: React.ReactNode;
   return <>{children}</>;
 }
 
+// Employee routes wrapper with EmployeeAuthProvider
+function EmployeeRoutes() {
+  return (
+    <EmployeeAuthProvider>
+      <Routes>
+        <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
+        <Route path="/employee-change-password" element={<EmployeeChangePassword />} />
+      </Routes>
+    </EmployeeAuthProvider>
+  );
+}
+
 // App content with permissions
 function AppContent() {
   return (
@@ -57,8 +69,18 @@ function AppContent() {
       {/* Legacy redirects */}
       <Route path="/auth" element={<Navigate to="/login" replace />} />
       <Route path="/employee-login" element={<Navigate to="/login" replace />} />
-      <Route path="/employee-change-password" element={<EmployeeChangePassword />} />
-      <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
+      
+      {/* Employee routes with their own provider */}
+      <Route path="/employee-dashboard" element={
+        <EmployeeAuthProvider>
+          <EmployeeDashboard />
+        </EmployeeAuthProvider>
+      } />
+      <Route path="/employee-change-password" element={
+        <EmployeeAuthProvider>
+          <EmployeeChangePassword />
+        </EmployeeAuthProvider>
+      } />
       
       {/* Admin routes */}
       <Route path="/admin" element={
