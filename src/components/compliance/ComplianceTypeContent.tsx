@@ -522,6 +522,18 @@ export function ComplianceTypeContent() {
     return filteredAndSortedEmployees;
   };
 
+  // Filter employee status list based on user permissions for stats calculation
+  const filteredEmployeeStatusForStats = useMemo(() => {
+    const accessibleBranches = getAccessibleBranches();
+    if (!isAdmin && accessibleBranches.length > 0) {
+      return employeeStatusList.filter(item => {
+        const employeeBranchId = branches.find(b => b.name === item.employee.branch)?.id;
+        return accessibleBranches.includes(employeeBranchId || '');
+      });
+    }
+    return employeeStatusList;
+  }, [employeeStatusList, branches, getAccessibleBranches, isAdmin]);
+
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -548,18 +560,6 @@ export function ComplianceTypeContent() {
       </div>
     );
   }
-
-  // Filter employee status list based on user permissions for stats calculation
-  const filteredEmployeeStatusForStats = useMemo(() => {
-    const accessibleBranches = getAccessibleBranches();
-    if (!isAdmin && accessibleBranches.length > 0) {
-      return employeeStatusList.filter(item => {
-        const employeeBranchId = branches.find(b => b.name === item.employee.branch)?.id;
-        return accessibleBranches.includes(employeeBranchId || '');
-      });
-    }
-    return employeeStatusList;
-  }, [employeeStatusList, branches, getAccessibleBranches, isAdmin]);
 
   // Calculate stats from filtered employee status list
   const compliantCount = filteredEmployeeStatusForStats.filter(item => item.status === 'compliant').length;
