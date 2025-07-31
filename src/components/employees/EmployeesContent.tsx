@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle, Eye, Edit3, Trash2, Check, Square } from "lucide-react";
+import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle, Eye, Edit3, Trash2, Check, Square, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +71,8 @@ export function EmployeesContent() {
   const [importData, setImportData] = useState<ImportEmployee[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newEmployee, setNewEmployee] = useState({
     name: "",
@@ -103,6 +105,49 @@ export function EmployeesContent() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const hashDefaultPassword = async () => {
+    try {
+      const { data: hashedPassword, error } = await supabase
+        .rpc('hash_password', { password: '123456' });
+      
+      if (error) throw error;
+      return hashedPassword;
+    } catch (error) {
+      console.error('Error hashing password:', error);
+      throw error;
+    }
+  };
+
+  const resetEmployeePassword = async () => {
+    if (!selectedEmployee) return;
+    
+    try {
+      setResettingPassword(true);
+      
+      const { data, error } = await supabase.functions.invoke('admin-reset-employee-password', {
+        body: { employeeId: selectedEmployee.id }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Reset",
+        description: "Employee password has been reset to 123456. They will be prompted to change it on next login.",
+      });
+
+      setResetPasswordDialogOpen(false);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: "Error resetting password",
+        description: "Could not reset employee password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setResettingPassword(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -164,7 +209,7 @@ export function EmployeesContent() {
           leave_taken: 0,
           remaining_leave_days: newEmployee.leave_allowance,
           hours_restriction: newEmployee.hours_restriction || null,
-          password_hash: 'temp',
+          password_hash: await hashDefaultPassword(),
           must_change_password: true,
           is_active: true,
           failed_login_attempts: 0
@@ -1233,14 +1278,24 @@ export function EmployeesContent() {
             <DialogTitle className="flex items-center justify-between">
               <span>{editMode ? 'Edit Employee' : 'Employee Details'}</span>
               {!editMode && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setEditMode(true)}
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setResetPasswordDialogOpen(true)}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset Password
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setEditMode(true)}
+                  >
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                </div>
               )}
             </DialogTitle>
             <DialogDescription>
@@ -1515,6 +1570,35 @@ export function EmployeesContent() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete {selectedEmployees.length} Employee(s)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Password Dialog */}
+      <AlertDialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Employee Password</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset {selectedEmployee?.name}'s password to the default "123456" and require them to change it on their next login. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resettingPassword}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={resetEmployeePassword}
+              disabled={resettingPassword}
+              className="bg-gradient-primary hover:opacity-90"
+            >
+              {resettingPassword ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Resetting...
+                </>
+              ) : (
+                'Reset Password'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
