@@ -166,8 +166,19 @@ export function DocumentsContent() {
       console.log('Document Types fetched:', documentTypesData);
       console.log('Employees fetched:', employeesData);
 
+      // Filter employees based on branch access for non-admin users
+      const accessibleBranches = getAccessibleBranches();
+      let filteredEmployees = employeesData || [];
+      
+      if (!isAdmin && accessibleBranches.length > 0) {
+        filteredEmployees = employeesData?.filter(employee => {
+          const employeeBranchId = branchesData?.find(b => b.name === employee.branch)?.id;
+          return accessibleBranches.includes(employeeBranchId || '');
+        }) || [];
+      }
+
       setDocuments(documentsData || []);
-      setEmployees(employeesData || []);
+      setEmployees(filteredEmployees);
       setDocumentTypes(documentTypesData || []);
       setBranches(branchesData || []);
     } catch (error) {

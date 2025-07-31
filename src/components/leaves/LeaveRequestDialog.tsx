@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { differenceInDays, parseISO, format } from "date-fns";
 
 interface Employee {
@@ -32,6 +33,7 @@ interface LeaveRequestDialogProps {
 
 export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveRequestDialogProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedLeaveType, setSelectedLeaveType] = useState("");
@@ -40,6 +42,7 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { getAccessibleBranches, isAdmin } = usePermissions();
 
   useEffect(() => {
     if (open) {
@@ -57,6 +60,14 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
 
       if (employeesError) throw employeesError;
 
+      // Fetch branches
+      const { data: branchesData, error: branchesError } = await supabase
+        .from('branches')
+        .select('id, name')
+        .order('name');
+
+      if (branchesError) throw branchesError;
+
       // Fetch leave types
       const { data: leaveTypesData, error: leaveTypesError } = await supabase
         .from('leave_types')
@@ -65,7 +76,19 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
 
       if (leaveTypesError) throw leaveTypesError;
 
-      setEmployees(employeesData || []);
+      // Filter employees based on branch access for non-admin users
+      const accessibleBranches = getAccessibleBranches();
+      let filteredEmployees = employeesData || [];
+      
+      if (!isAdmin && accessibleBranches.length > 0) {
+        filteredEmployees = employeesData?.filter(employee => {
+          const employeeBranchId = branchesData?.find(b => b.name === employee.branch)?.id;
+          return accessibleBranches.includes(employeeBranchId || '');
+        }) || [];
+      }
+
+      setEmployees(filteredEmployees);
+      setBranches(branchesData || []);
       setLeaveTypes(leaveTypesData || []);
     } catch (error) {
       console.error('Error fetching data:', error);

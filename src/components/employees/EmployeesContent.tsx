@@ -945,11 +945,22 @@ export function EmployeesContent() {
                     <SelectValue placeholder="Select branch" />
                   </SelectTrigger>
                   <SelectContent>
-                    {branches.map((branch: any) => (
-                      <SelectItem key={branch.id} value={branch.name}>
-                        {branch.name}
-                      </SelectItem>
-                    ))}
+                    {(() => {
+                      const accessibleBranches = getAccessibleBranches();
+                      let filteredBranches = branches;
+                      
+                      if (!isAdmin && accessibleBranches.length > 0) {
+                        filteredBranches = branches.filter((branch: any) => 
+                          accessibleBranches.includes(branch.id)
+                        );
+                      }
+                      
+                      return filteredBranches.map((branch: any) => (
+                        <SelectItem key={branch.id} value={branch.name}>
+                          {branch.name}
+                        </SelectItem>
+                      ));
+                    })()}
                   </SelectContent>
                 </Select>
               </div>

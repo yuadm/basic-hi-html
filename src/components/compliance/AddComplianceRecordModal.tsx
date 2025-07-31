@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { format, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/contexts/PermissionsContext";
 
 interface AddComplianceRecordModalProps {
   employeeId?: string;
@@ -52,7 +53,9 @@ export function AddComplianceRecordModal({
   const [selectedEmployeeName, setSelectedEmployeeName] = useState(employeeName || '');
   const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurrentPeriodIdentifier(frequency));
   const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
+  const [branches, setBranches] = useState<Array<{id: string, name: string}>>([]);
   const { toast } = useToast();
+  const { getAccessibleBranches, isAdmin } = usePermissions();
 
   // Fetch employees if not provided
   useEffect(() => {
@@ -63,13 +66,35 @@ export function AddComplianceRecordModal({
 
   const fetchEmployees = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch employees
+      const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
+        .select('id, name, branch')
+        .order('name');
+      
+      if (employeesError) throw employeesError;
+
+      // Fetch branches
+      const { data: branchesData, error: branchesError } = await supabase
+        .from('branches')
         .select('id, name')
         .order('name');
       
-      if (error) throw error;
-      setEmployees(data || []);
+      if (branchesError) throw branchesError;
+
+      // Filter employees based on branch access for non-admin users
+      const accessibleBranches = getAccessibleBranches();
+      let filteredEmployees = employeesData || [];
+      
+      if (!isAdmin && accessibleBranches.length > 0) {
+        filteredEmployees = employeesData?.filter(employee => {
+          const employeeBranchId = branchesData?.find(b => b.name === employee.branch)?.id;
+          return accessibleBranches.includes(employeeBranchId || '');
+        }) || [];
+      }
+
+      setEmployees(filteredEmployees);
+      setBranches(branchesData || []);
     } catch (error) {
       console.error('Error fetching employees:', error);
     }
