@@ -47,7 +47,7 @@ export function AddComplianceRecordModal({
   const [isLoading, setIsLoading] = useState(false);
   const [completionDate, setCompletionDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
-  const [recordType, setRecordType] = useState<'date' | 'new'>('date');
+  const [recordType, setRecordType] = useState<'date' | 'new' | 'questionnaire'>('date');
   const [newText, setNewText] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeId || '');
   const [selectedEmployeeName, setSelectedEmployeeName] = useState(employeeName || '');
@@ -225,7 +225,7 @@ export function AddComplianceRecordModal({
         });
         return;
       }
-    } else {
+    } else if (recordType === 'new') {
       // For "new" type, validate that text is entered
       if (!newText.trim()) {
         toast({
@@ -235,6 +235,14 @@ export function AddComplianceRecordModal({
         });
         return;
       }
+    } else if (recordType === 'questionnaire') {
+      // For questionnaire, we'll handle submission differently
+      toast({
+        title: "Questionnaire Mode",
+        description: "Questionnaire functionality is coming soon! For now, please use Date or Text entry.",
+        variant: "default",
+      });
+      return;
     }
 
     setIsLoading(true);
@@ -248,6 +256,7 @@ export function AddComplianceRecordModal({
         completion_date: recordType === 'date' 
           ? format(completionDate, 'yyyy-MM-dd') 
           : newText, // Store text directly in completion_date
+        completion_method: recordType === 'date' ? 'date_entry' : recordType === 'new' ? 'text_entry' : 'questionnaire',
         notes: notes.trim() || null,
         status: recordType === 'new' ? 'compliant' : 'completed',
         created_at: new Date().toISOString(),
@@ -349,13 +358,14 @@ export function AddComplianceRecordModal({
 
           <div className="space-y-2">
             <Label>Record Type</Label>
-            <Select value={recordType} onValueChange={(value: 'date' | 'new') => setRecordType(value)}>
+            <Select value={recordType} onValueChange={(value: 'date' | 'new' | 'questionnaire') => setRecordType(value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="date">Date</SelectItem>
                 <SelectItem value="new">New (before employee joined)</SelectItem>
+                <SelectItem value="questionnaire">Complete Questionnaire</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -408,6 +418,15 @@ export function AddComplianceRecordModal({
             </div>
           )}
 
+          {recordType === 'questionnaire' && (
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                You will be guided through a questionnaire to complete this compliance record. 
+                The completion date will be automatically set to today's date.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="notes">Notes (Optional)</Label>
             <Textarea
@@ -429,7 +448,7 @@ export function AddComplianceRecordModal({
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Adding..." : "Add Record"}
+              {isLoading ? "Adding..." : recordType === 'questionnaire' ? "Start Questionnaire" : "Add Record"}
             </Button>
           </div>
         </form>
