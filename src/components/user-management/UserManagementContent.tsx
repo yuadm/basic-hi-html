@@ -150,20 +150,32 @@ export function UserManagementContent() {
 
   const deleteUser = async (userId: string) => {
     try {
-      // Delete user role
-      const { error } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`https://vfzyodedgtefvxcrqdtc.supabase.co/functions/v1/admin-delete-user`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId
+        })
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete user');
+      }
 
       toast({
         title: "User deleted",
-        description: "User has been removed successfully",
+        description: "User and their authentication account have been removed successfully",
       });
       fetchUsers();
     } catch (error: any) {
+      console.error('Error deleting user:', error);
       toast({
         title: "Error deleting user",
         description: error.message,
