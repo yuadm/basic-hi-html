@@ -22,14 +22,6 @@ export function MainLayout({ children }: MainLayoutProps) {
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="lg:hidden" />
                 
-                {/* Search Bar */}
-                <div className="relative hidden sm:block">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search employees, documents..."
-                    className="pl-10 w-80 bg-muted/50 border-input-border focus:bg-card transition-colors"
-                  />
-                </div>
               </div>
 
               <div className="flex items-center gap-2">
