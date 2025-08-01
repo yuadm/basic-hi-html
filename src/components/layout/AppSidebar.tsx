@@ -153,8 +153,16 @@ export function AppSidebar() {
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center overflow-hidden">
+                {companySettings.logo ? (
+                  <img
+                    src={companySettings.logo}
+                    alt="Company Logo"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <Shield className="w-5 h-5 text-white" />
+                )}
               </div>
               <div>
                 <h1 className="text-lg font-bold text-sidebar-foreground">
