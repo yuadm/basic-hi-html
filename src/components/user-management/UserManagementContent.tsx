@@ -597,7 +597,7 @@ export function UserManagementContent() {
                         </div>
                         <div>
                           <p className="font-medium">
-                            {user.id.slice(0, 8)}...
+                            {user.email.split('@')[0]}
                             {isCurrentUser(user.id) && (
                               <Badge variant="outline" className="ml-2">You</Badge>
                             )}
