@@ -88,7 +88,6 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
     let initialized = false;
-    let employeeSubscription: any = null;
 
     const initializeAuth = async () => {
       if (initialized) return;
@@ -133,29 +132,6 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Set up real-time listener for employee record deletions
-    const setupEmployeeListener = (employeeId: string) => {
-      if (employeeSubscription) {
-        employeeSubscription.unsubscribe();
-      }
-
-      employeeSubscription = supabase
-        .channel('employee-changes')
-        .on('postgres_changes', 
-          { 
-            event: 'DELETE', 
-            schema: 'public', 
-            table: 'employees',
-            filter: `id=eq.${employeeId}`
-          }, 
-          async (payload) => {
-            console.log('Employee record deleted for current user, forcing sign out');
-            await signOut();
-          }
-        )
-        .subscribe();
-    };
-
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -166,21 +142,12 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
         // Handle different events appropriately
         if (event === 'SIGNED_OUT') {
           cleanupAuthState();
-          if (employeeSubscription) {
-            employeeSubscription.unsubscribe();
-            employeeSubscription = null;
-          }
           setEmployee(null);
           setLoading(false);
           setInitialCheckComplete(true);
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           // Only process if this is an employee session
           if (session?.user?.user_metadata?.role === 'employee') {
-            const employeeId = session.user?.user_metadata?.employee_id;
-            if (employeeId) {
-              setupEmployeeListener(employeeId);
-            }
-            
             // Defer async operations to prevent deadlocks
             setTimeout(async () => {
               const success = await fetchEmployeeData(session.user);
@@ -191,10 +158,6 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
               }
             }, 0);
           } else {
-            if (employeeSubscription) {
-              employeeSubscription.unsubscribe();
-              employeeSubscription = null;
-            }
             setEmployee(null);
             setLoading(false);
             setInitialCheckComplete(true);
@@ -220,9 +183,6 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      if (employeeSubscription) {
-        employeeSubscription.unsubscribe();
-      }
     };
   }, []);
 
