@@ -19,6 +19,16 @@ export function CompanySettings() {
 
   useEffect(() => {
     setFormData(companySettings);
+    
+    // Apply favicon immediately if logo exists or restore from localStorage
+    if (companySettings.logo) {
+      updateFavicon(companySettings.logo);
+    } else {
+      const storedFavicon = localStorage.getItem('companyFavicon');
+      if (storedFavicon) {
+        updateFavicon(storedFavicon);
+      }
+    }
   }, [companySettings]);
 
   const handleSave = async () => {
@@ -205,6 +215,9 @@ export function CompanySettings() {
     link.type = 'image/png';
     link.href = logoUrl;
     document.head.appendChild(link);
+    
+    // Store in localStorage to persist across refreshes
+    localStorage.setItem('companyFavicon', logoUrl);
   };
 
   const removeLogo = () => {
@@ -219,6 +232,9 @@ export function CompanySettings() {
     link.type = 'image/x-icon';
     link.href = '/favicon.ico';
     document.head.appendChild(link);
+    
+    // Remove from localStorage
+    localStorage.removeItem('companyFavicon');
   };
 
   if (loading) {
@@ -243,7 +259,7 @@ export function CompanySettings() {
                 <img
                   src={formData.logo}
                   alt="Company Logo"
-                  className="w-16 h-16 object-contain rounded-lg border border-border bg-card p-2"
+                  className="w-16 h-16 object-contain rounded-lg bg-card p-2"
                 />
                 <Button
                   variant="destructive"
