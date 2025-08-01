@@ -44,7 +44,14 @@ export default function EmployeeChangePassword() {
 
       if (hashError) throw hashError;
 
-      // Update employee password
+      // Update Supabase Auth password
+      const { error: authUpdateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (authUpdateError) throw authUpdateError;
+
+      // Update employee password hash in database
       const { error: updateError } = await supabase
         .from('employees')
         .update({
