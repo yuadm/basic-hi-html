@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ComplianceTaskManagement } from "./ComplianceTaskManagement";
 import { ComplianceTypeManagement } from "./ComplianceTypeManagement";
 
 interface ComplianceSettingsData {
@@ -179,8 +178,6 @@ export function ComplianceSettings() {
         </div>
 
         <ComplianceTypeManagement />
-        
-        <ComplianceTaskManagement />
 
         <div className="flex justify-end">
           <Button onClick={handleSave} className="bg-gradient-primary hover:opacity-90">
