@@ -73,6 +73,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          logo: string | null
           name: string
           phone: string | null
           tagline: string | null
@@ -83,6 +84,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          logo?: string | null
           name: string
           phone?: string | null
           tagline?: string | null
@@ -93,6 +95,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          logo?: string | null
           name?: string
           phone?: string | null
           tagline?: string | null
@@ -154,6 +157,7 @@ export type Database = {
         Row: {
           completed_by: string | null
           completion_date: string
+          completion_method: string | null
           compliance_type_id: string
           created_at: string
           employee_id: string
@@ -167,6 +171,7 @@ export type Database = {
         Insert: {
           completed_by?: string | null
           completion_date: string
+          completion_method?: string | null
           compliance_type_id: string
           created_at?: string
           employee_id: string
@@ -180,6 +185,7 @@ export type Database = {
         Update: {
           completed_by?: string | null
           completion_date?: string
+          completion_method?: string | null
           compliance_type_id?: string
           created_at?: string
           employee_id?: string
@@ -213,6 +219,164 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      compliance_questionnaire_questions: {
+        Row: {
+          created_at: string
+          id: string
+          order_index: number
+          question_id: string
+          questionnaire_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          question_id: string
+          questionnaire_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          question_id?: string
+          questionnaire_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_questionnaire_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_questionnaire_questions_questionnaire_id_fkey"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_questionnaires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_questionnaire_responses: {
+        Row: {
+          completed_at: string
+          completed_by: string | null
+          compliance_record_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          questionnaire_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string
+          completed_by?: string | null
+          compliance_record_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          questionnaire_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string
+          completed_by?: string | null
+          compliance_record_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          questionnaire_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_questionnaire_responses_compliance_record_id_fkey"
+            columns: ["compliance_record_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_period_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_questionnaire_responses_questionnaire_id_fkey"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_questionnaires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_questionnaires: {
+        Row: {
+          compliance_type_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          compliance_type_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          compliance_type_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_questionnaires_compliance_type_id_fkey"
+            columns: ["compliance_type_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_questions: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean
+          options: Json | null
+          order_index: number
+          question_text: string
+          question_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          options?: Json | null
+          order_index?: number
+          question_text: string
+          question_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          options?: Json | null
+          order_index?: number
+          question_text?: string
+          question_type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       compliance_records: {
         Row: {
@@ -258,6 +422,48 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_responses: {
+        Row: {
+          created_at: string
+          id: string
+          question_id: string
+          questionnaire_response_id: string
+          response_value: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          question_id: string
+          questionnaire_response_id: string
+          response_value?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          question_id?: string
+          questionnaire_response_id?: string
+          response_value?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_responses_questionnaire_response_id_fkey"
+            columns: ["questionnaire_response_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_questionnaire_responses"
             referencedColumns: ["id"]
           },
         ]
@@ -320,6 +526,7 @@ export type Database = {
           frequency: string
           id: string
           name: string
+          questionnaire_id: string | null
           updated_at: string
         }
         Insert: {
@@ -328,6 +535,7 @@ export type Database = {
           frequency: string
           id?: string
           name: string
+          questionnaire_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -336,9 +544,18 @@ export type Database = {
           frequency?: string
           id?: string
           name?: string
+          questionnaire_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "compliance_types_questionnaire_id_fkey"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_questionnaires"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_settings: {
         Row: {
@@ -366,6 +583,39 @@ export type Database = {
           expiry_threshold_days?: number
           id?: string
           reminder_frequency?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      document_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_path: string
+          file_type: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_path: string
+          file_type: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_path?: string
+          file_type?: string
+          id?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
@@ -540,6 +790,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "employees_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_employees_branch_id"
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
@@ -829,6 +1086,142 @@ export type Database = {
           },
         ]
       }
+      signed_documents: {
+        Row: {
+          completed_at: string
+          completion_data: Json | null
+          created_at: string
+          final_document_path: string
+          id: string
+          signing_request_id: string
+        }
+        Insert: {
+          completed_at?: string
+          completion_data?: Json | null
+          created_at?: string
+          final_document_path: string
+          id?: string
+          signing_request_id: string
+        }
+        Update: {
+          completed_at?: string
+          completion_data?: Json | null
+          created_at?: string
+          final_document_path?: string
+          id?: string
+          signing_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signed_documents_signing_request_id_fkey"
+            columns: ["signing_request_id"]
+            isOneToOne: false
+            referencedRelation: "signing_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signing_request_recipients: {
+        Row: {
+          access_token: string
+          created_at: string
+          employee_id: string | null
+          id: string
+          recipient_email: string
+          recipient_name: string
+          signed_at: string | null
+          signing_order: number
+          signing_request_id: string
+          status: string
+        }
+        Insert: {
+          access_token?: string
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          recipient_email: string
+          recipient_name: string
+          signed_at?: string | null
+          signing_order?: number
+          signing_request_id: string
+          status?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          recipient_email?: string
+          recipient_name?: string
+          signed_at?: string | null
+          signing_order?: number
+          signing_request_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signing_request_recipients_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_request_recipients_signing_request_id_fkey"
+            columns: ["signing_request_id"]
+            isOneToOne: false
+            referencedRelation: "signing_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signing_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          message: string | null
+          signing_token: string
+          status: string
+          template_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          message?: string | null
+          signing_token?: string
+          status?: string
+          template_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          message?: string | null
+          signing_token?: string
+          status?: string
+          template_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signing_requests_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           created_at: string
@@ -855,6 +1248,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      template_fields: {
+        Row: {
+          created_at: string
+          field_name: string
+          field_type: string
+          height: number
+          id: string
+          is_required: boolean
+          page_number: number
+          placeholder_text: string | null
+          properties: Json | null
+          template_id: string
+          width: number
+          x_position: number
+          y_position: number
+        }
+        Insert: {
+          created_at?: string
+          field_name: string
+          field_type: string
+          height: number
+          id?: string
+          is_required?: boolean
+          page_number?: number
+          placeholder_text?: string | null
+          properties?: Json | null
+          template_id: string
+          width: number
+          x_position: number
+          y_position: number
+        }
+        Update: {
+          created_at?: string
+          field_name?: string
+          field_type?: string
+          height?: number
+          id?: string
+          is_required?: boolean
+          page_number?: number
+          placeholder_text?: string | null
+          properties?: Json | null
+          template_id?: string
+          width?: number
+          x_position?: number
+          y_position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_fields_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       test_compliance_records: {
         Row: {
@@ -992,18 +1441,21 @@ export type Database = {
       user_roles: {
         Row: {
           created_at: string | null
+          email: string | null
           id: string
           role: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          email?: string | null
           id?: string
           role: string
           user_id: string
         }
         Update: {
           created_at?: string | null
+          email?: string | null
           id?: string
           role?: string
           user_id?: string

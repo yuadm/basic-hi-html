@@ -15,6 +15,7 @@ import {
   ChevronRight,
   LogOut,
   Briefcase,
+  FileSignature,
 } from "lucide-react";
 import {
   Sidebar,
@@ -63,6 +64,13 @@ const navigationItems = [
     icon: FileText,
     description: "Document Tracking",
     requiredPage: "/documents"
+  },
+  {
+    title: "Document Signing",
+    url: "/document-signing",
+    icon: FileSignature,
+    description: "Digital Signatures",
+    requiredPage: "/document-signing"
   },
   {
     title: "Compliance",
