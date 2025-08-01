@@ -65,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    let roleSubscription: any = null;
 
     const initializeAuth = async () => {
       try {
@@ -94,6 +95,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Set up real-time listener for user role deletions
+    const setupRoleListener = (userId: string) => {
+      if (roleSubscription) {
+        roleSubscription.unsubscribe();
+      }
+
+      roleSubscription = supabase
+        .channel('user-role-changes')
+        .on('postgres_changes', 
+          { 
+            event: 'DELETE', 
+            schema: 'public', 
+            table: 'user_roles',
+            filter: `user_id=eq.${userId}`
+          }, 
+          async (payload) => {
+            console.log('User role deleted for current user, forcing sign out');
+            await signOut();
+          }
+        )
+        .subscribe();
+    };
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -103,6 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (event === 'SIGNED_OUT') {
           cleanupAuthState();
+          if (roleSubscription) {
+            roleSubscription.unsubscribe();
+            roleSubscription = null;
+          }
           setSession(null);
           setUser(null);
           setUserRole(null);
@@ -113,8 +141,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(session);
           setUser(session?.user ?? null);
           
-          // Defer async operations
+          // Set up role listener for the current user
           if (session?.user) {
+            setupRoleListener(session.user.id);
+            
             setTimeout(async () => {
               try {
                 const role = await fetchUserRole(session.user.id);
@@ -125,6 +155,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             }, 0);
           } else {
+            if (roleSubscription) {
+              roleSubscription.unsubscribe();
+              roleSubscription = null;
+            }
             setUserRole(null);
           }
           
@@ -140,6 +174,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      if (roleSubscription) {
+        roleSubscription.unsubscribe();
+      }
     };
   }, []);
 
