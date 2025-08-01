@@ -61,12 +61,14 @@ export function LeavesContent() {
     console.log('Leave filtering - isAdmin:', isAdmin, 'accessibleBranches:', accessibleBranches, 'leave.employee_branch_id:', leave.employee_branch_id);
     
     let hasAccess = true;
-    if (!isAdmin && accessibleBranches.length > 0) {
-      // Check if leave's employee branch_id is in accessible branches
-      // Use the employee's branch_id directly
-      hasAccess = accessibleBranches.includes(leave.employee_branch_id) || 
-                  // Also check by branch name if branch_id fails
-                  (leave.employee?.branch && accessibleBranches.includes(branches.find(b => b.name === leave.employee.branch)?.id || ''));
+    if (!isAdmin) {
+      // If user has specific branch access, only show leaves from those branches
+      if (accessibleBranches.length > 0) {
+        hasAccess = accessibleBranches.includes(leave.employee_branch_id || '');
+      } else {
+        // If no specific branch access is set, user has no access to any leaves
+        hasAccess = false;
+      }
     }
     
     return matchesSearch && matchesStatus && matchesBranch && matchesLeaveType && hasAccess;
