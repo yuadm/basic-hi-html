@@ -171,10 +171,6 @@ export function ComplianceContent() {
             <Shield className="w-4 h-4 mr-2" />
             Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={handleViewOverdue}>
-            <AlertTriangle className="w-4 h-4 mr-2" />
-            View Overdue
-          </Button>
           <Button className="bg-gradient-primary hover:opacity-90" onClick={handleAddType}>
             <Plus className="w-4 h-4 mr-2" />
             Add Type
