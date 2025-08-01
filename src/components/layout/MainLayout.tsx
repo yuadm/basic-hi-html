@@ -1,9 +1,9 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Bell, Search, User } from "lucide-react";
+import { ProfileDropdown } from "./ProfileDropdown";
+import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -32,9 +32,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 </Button>
 
                 {/* Profile */}
-                <Button variant="ghost" size="sm">
-                  <User className="w-5 h-5" />
-                </Button>
+                <ProfileDropdown />
               </div>
             </div>
           </header>

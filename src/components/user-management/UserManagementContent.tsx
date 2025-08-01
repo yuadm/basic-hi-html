@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { UserCog, Plus, Shield, Key, Users, Trash2, Edit, RotateCcw } from "lucide-react";
+import { UserCog, Plus, Shield, Users, Trash2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,8 +35,6 @@ export function UserManagementContent() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resettingPassword, setResettingPassword] = useState(false);
-  const [selfPasswordResetOpen, setSelfPasswordResetOpen] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
   const { toast } = useToast();
   const { user: currentUser, userRole } = useAuth();
 
@@ -245,63 +243,6 @@ export function UserManagementContent() {
     }
   };
 
-  const resetOwnPassword = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please ensure both new passwords are identical",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setResettingPassword(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Password updated successfully",
-        description: "Your password has been changed",
-      });
-      
-      setSelfPasswordResetOpen(false);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (error: any) {
-      console.error('Error updating password:', error);
-      toast({
-        title: "Error updating password",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setResettingPassword(false);
-    }
-  };
-
   const openResetPasswordDialog = (userId: string) => {
     setSelectedUserId(userId);
     setResetPasswordOpen(true);
@@ -382,71 +323,6 @@ export function UserManagementContent() {
         </div>
         
         <div className="flex items-center gap-3">
-          <Dialog open={selfPasswordResetOpen} onOpenChange={setSelfPasswordResetOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Key className="w-4 h-4 mr-2" />
-                Change Password
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Change Your Password</DialogTitle>
-                <DialogDescription>
-                  Update your account password. You'll need to sign in again after changing it.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
-                  <Input
-                    id="current-password"
-                    type="password"
-                    placeholder="Enter current password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    placeholder="Enter new password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-new-password">Confirm New Password</Label>
-                  <Input
-                    id="confirm-new-password"
-                    type="password"
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
-                <div className="flex justify-end gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSelfPasswordResetOpen(false);
-                      setCurrentPassword("");
-                      setNewPassword("");
-                      setConfirmPassword("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={resetOwnPassword} disabled={resettingPassword}>
-                    {resettingPassword ? "Updating..." : "Update Password"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
           {userRole === 'admin' && (
             <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
               <DialogTrigger asChild>
