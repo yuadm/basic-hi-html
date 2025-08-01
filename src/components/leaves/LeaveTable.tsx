@@ -142,7 +142,12 @@ export function LeaveTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{leave.leave_type?.name}</Badge>
+                      <div className="space-y-1">
+                        <Badge variant="outline">{leave.leave_type?.name}</Badge>
+                        <div className="text-xs text-muted-foreground">
+                          {leave.employee?.branch || 'No Branch'}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
