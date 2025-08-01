@@ -48,7 +48,7 @@ export function UserManagementContent() {
     try {
       setLoading(true);
       
-      // Get all user roles
+      // Get all user roles with emails
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('*')
@@ -56,24 +56,10 @@ export function UserManagementContent() {
 
       if (rolesError) throw rolesError;
 
-      // Try to get user emails, but fallback gracefully if admin access is not available
-      let userEmailMap = new Map<string, string>();
-      
-      try {
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-        if (authUsers?.users) {
-          authUsers.users.forEach((user: any) => {
-            userEmailMap.set(user.id, user.email);
-          });
-        }
-      } catch (error) {
-        console.log('Cannot access auth.users admin API, using fallback');
-      }
-
       // Combine role data with email data
-      const usersWithRoles: UserWithRole[] = (userRoles || []).map((userRole) => ({
+      const usersWithRoles: UserWithRole[] = (userRoles || []).map((userRole: any) => ({
         id: userRole.user_id,
-        email: userEmailMap.get(userRole.user_id) || 
+        email: userRole.email || 
                (userRole.user_id === currentUser?.id ? currentUser.email || 'current@user.com' : 'user@example.com'),
         created_at: userRole.created_at,
         role: userRole.role

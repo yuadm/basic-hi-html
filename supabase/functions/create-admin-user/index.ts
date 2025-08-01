@@ -44,12 +44,13 @@ serve(async (req) => {
 
     console.log('User created:', userData.user?.id)
 
-    // Assign role
+    // Assign role and store email
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
         user_id: userData.user?.id,
-        role: role
+        role: role,
+        email: email
       })
 
     if (roleError) {
