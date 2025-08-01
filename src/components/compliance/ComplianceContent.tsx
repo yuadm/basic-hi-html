@@ -171,10 +171,6 @@ export function ComplianceContent() {
             <Shield className="w-4 h-4 mr-2" />
             Refresh
           </Button>
-          <Button className="bg-gradient-primary hover:opacity-90" onClick={handleAddType}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Type
-          </Button>
         </div>
       </div>
 
@@ -225,12 +221,8 @@ export function ComplianceContent() {
           <Shield className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
           <h3 className="text-lg font-semibold mb-2">No compliance types found</h3>
           <p className="text-muted-foreground mb-4">
-            Get started by creating your first compliance type.
+            Get started by creating your first compliance type in Settings.
           </p>
-          <Button className="bg-gradient-primary hover:opacity-90" onClick={handleAddType}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Compliance Type
-          </Button>
         </div>
       )}
     </div>
