@@ -10,6 +10,7 @@ interface CompanySettings {
   address: string;
   phone: string;
   email: string;
+  logo?: string;
 }
 
 interface CompanyContextType {
@@ -78,7 +79,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
             tagline: updatedSettings.tagline,
             address: updatedSettings.address,
             phone: updatedSettings.phone,
-            email: updatedSettings.email
+            email: updatedSettings.email,
+            logo: updatedSettings.logo
           })
           .eq('id', companySettings.id);
 
@@ -117,7 +119,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
               tagline: updatedSettings.tagline,
               address: updatedSettings.address,
               phone: updatedSettings.phone,
-              email: updatedSettings.email
+              email: updatedSettings.email,
+              logo: updatedSettings.logo
             })
             .eq('id', existingData.id);
 
@@ -141,7 +144,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
               tagline: updatedSettings.tagline,
               address: updatedSettings.address,
               phone: updatedSettings.phone,
-              email: updatedSettings.email
+              email: updatedSettings.email,
+              logo: updatedSettings.logo
             }])
             .select()
             .single();

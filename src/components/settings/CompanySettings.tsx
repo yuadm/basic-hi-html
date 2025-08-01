@@ -29,6 +29,75 @@ export function CompanySettings() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const resizeImage = (file: File, maxSizeKB: number = 5000): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions
+        let { width, height } = img;
+        const aspectRatio = width / height;
+        
+        // Start with reasonable max dimensions
+        const maxWidth = 1920;
+        const maxHeight = 1920;
+        
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            width = maxWidth;
+            height = maxWidth / aspectRatio;
+          } else {
+            height = maxHeight;
+            width = maxHeight * aspectRatio;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Function to resize with quality adjustment
+        const tryQuality = (quality: number): void => {
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error('Failed to create blob'));
+              return;
+            }
+            
+            // Check file size (convert to KB)
+            const sizeKB = blob.size / 1024;
+            
+            if (sizeKB <= maxSizeKB || quality <= 0.1) {
+              // Create a new File from the blob
+              const resizedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(resizedFile);
+            } else {
+              // Try with lower quality
+              tryQuality(quality - 0.1);
+            }
+          }, 'image/jpeg', quality);
+        };
+        
+        // Start with high quality and reduce if needed
+        tryQuality(0.9);
+      };
+      
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -44,27 +113,53 @@ export function CompanySettings() {
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please upload an image smaller than 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setLogoUploading(true);
 
+      let fileToUpload = file;
+
+      // Check if file is larger than 5MB and resize if needed (skip SVG files)
+      if (file.size > 5 * 1024 * 1024 && file.type !== 'image/svg+xml') {
+        toast({
+          title: "Resizing image",
+          description: "Image is large, resizing automatically...",
+        });
+        
+        try {
+          fileToUpload = await resizeImage(file);
+          toast({
+            title: "Image resized",
+            description: `Original: ${(file.size / 1024 / 1024).toFixed(1)}MB → Resized: ${(fileToUpload.size / 1024 / 1024).toFixed(1)}MB`,
+          });
+        } catch (resizeError) {
+          console.error('Error resizing image:', resizeError);
+          toast({
+            title: "Resize failed",
+            description: "Could not resize image. Please use a smaller file.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      // Final size check for SVG files
+      if (fileToUpload.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please upload an image smaller than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Create a unique filename
-      const fileExt = file.name.split('.').pop();
+      const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `logo-${Date.now()}.${fileExt}`;
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('company-assets')
-        .upload(fileName, file, {
+        .upload(fileName, fileToUpload, {
           cacheControl: '3600',
           upsert: false
         });
@@ -176,7 +271,7 @@ export function CompanySettings() {
                 {logoUploading ? "Uploading..." : "Upload Logo"}
               </Button>
               <p className="text-sm text-muted-foreground mt-1">
-                Upload a logo that will appear in the sidebar and as favicon. Supports JPEG, PNG, WebP, SVG (max 5MB)
+                Upload a logo that will appear in the sidebar and as favicon. Supports JPEG, PNG, WebP, SVG. Large images will be automatically resized.
               </p>
               <input
                 ref={fileInputRef}
