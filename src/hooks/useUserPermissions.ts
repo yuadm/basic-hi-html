@@ -66,11 +66,39 @@ export function useUserPermissions() {
   };
 
   const hasPageAccess = (pagePath: string): boolean => {
-    return hasPermission('page_access', pagePath);
+    // For backwards compatibility, check old page_access format first
+    const oldPageAccess = hasPermission('page_access', pagePath);
+    if (permissions.some(p => p.permission_type === 'page_access' && p.permission_key === pagePath)) {
+      return oldPageAccess;
+    }
+    
+    // New format: check if user has 'view' permission for the page module
+    const moduleKey = getModuleKeyFromPath(pagePath);
+    return hasPageAction(moduleKey, 'view');
   };
 
   const hasFeatureAccess = (feature: string): boolean => {
     return hasPermission('feature_access', feature);
+  };
+
+  const hasPageAction = (moduleKey: string, action: string): boolean => {
+    return hasPermission('page_action', `${moduleKey}:${action}`);
+  };
+
+  const getModuleKeyFromPath = (path: string): string => {
+    const pathModuleMap: Record<string, string> = {
+      '/': 'dashboard',
+      '/employees': 'employees',
+      '/leaves': 'leaves',
+      '/documents': 'documents',
+      '/document-signing': 'document-signing',
+      '/compliance': 'compliance',
+      '/reports': 'reports',
+      '/job-applications': 'job-applications',
+      '/settings': 'settings',
+      '/user-management': 'user-management'
+    };
+    return pathModuleMap[path] || 'dashboard';
   };
 
   const getAccessibleBranches = (): string[] => {
@@ -84,6 +112,7 @@ export function useUserPermissions() {
     hasPermission,
     hasPageAccess,
     hasFeatureAccess,
+    hasPageAction,
     getAccessibleBranches,
     refetch: fetchUserPermissions
   };

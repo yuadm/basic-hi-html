@@ -40,21 +40,87 @@ export function UserPermissionsDialog({ user, onSuccess }: UserPermissionsDialog
   const [branchAccess, setBranchAccess] = useState<BranchAccess[]>([]);
   const { toast } = useToast();
 
-  const defaultPermissions = [
-    { type: 'page_access', key: '/', label: 'Dashboard Page' },
-    { type: 'page_access', key: '/employees', label: 'Employees Page' },
-    { type: 'page_access', key: '/leaves', label: 'Leaves Page' },
-    { type: 'page_access', key: '/documents', label: 'Documents Page' },
-    { type: 'page_access', key: '/document-signing', label: 'Document Signing Page' },
-    { type: 'page_access', key: '/compliance', label: 'Compliance Page' },
-    { type: 'page_access', key: '/reports', label: 'Reports Page' },
-    { type: 'page_access', key: '/job-applications', label: 'Job Applications Page' },
-    { type: 'page_access', key: '/settings', label: 'Settings Page' },
-    { type: 'page_access', key: '/user-management', label: 'User Management Page' },
-    { type: 'feature_access', key: 'can_create', label: 'Create Records' },
-    { type: 'feature_access', key: 'can_edit', label: 'Edit Records' },
-    { type: 'feature_access', key: 'can_delete', label: 'Delete Records' },
+  const pageModules = [
+    {
+      name: 'Dashboard',
+      key: 'dashboard',
+      path: '/',
+      actions: ['view']
+    },
+    {
+      name: 'Employees',
+      key: 'employees', 
+      path: '/employees',
+      actions: ['view', 'create', 'edit', 'delete']
+    },
+    {
+      name: 'Leaves',
+      key: 'leaves',
+      path: '/leaves', 
+      actions: ['view', 'create', 'edit', 'delete', 'approve']
+    },
+    {
+      name: 'Documents',
+      key: 'documents',
+      path: '/documents',
+      actions: ['view', 'create', 'edit', 'delete', 'upload']
+    },
+    {
+      name: 'Document Signing',
+      key: 'document-signing',
+      path: '/document-signing',
+      actions: ['view', 'create', 'edit', 'delete', 'sign']
+    },
+    {
+      name: 'Compliance',
+      key: 'compliance',
+      path: '/compliance',
+      actions: ['view', 'create', 'edit', 'delete']
+    },
+    {
+      name: 'Reports',
+      key: 'reports',
+      path: '/reports',
+      actions: ['view', 'generate', 'export']
+    },
+    {
+      name: 'Job Applications',
+      key: 'job-applications',
+      path: '/job-applications',
+      actions: ['view', 'create', 'edit', 'delete', 'review']
+    },
+    {
+      name: 'Settings',
+      key: 'settings',
+      path: '/settings',
+      actions: ['view', 'edit']
+    },
+    {
+      name: 'User Management',
+      key: 'user-management',
+      path: '/user-management',
+      actions: ['view', 'create', 'edit', 'delete']
+    }
   ];
+
+  const generateDefaultPermissions = () => {
+    const permissions: Permission[] = [];
+    
+    pageModules.forEach(module => {
+      module.actions.forEach(action => {
+        permissions.push({
+          type: 'page_action',
+          key: `${module.key}:${action}`,
+          label: `${module.name} - ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+          granted: true
+        });
+      });
+    });
+    
+    return permissions;
+  };
+
+  const defaultPermissions = generateDefaultPermissions();
 
   useEffect(() => {
     if (open) {
@@ -222,49 +288,46 @@ export function UserPermissionsDialog({ user, onSuccess }: UserPermissionsDialog
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Page Access Permissions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Page Access</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {permissions.filter(p => p.type === 'page_access').map((perm, index) => {
-                const actualIndex = permissions.findIndex(p => p === perm);
-                return (
-                  <div key={`${perm.type}-${perm.key}`} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`page-${actualIndex}`}
-                      checked={perm.granted}
-                      onCheckedChange={(checked) => handlePermissionChange(actualIndex, !!checked)}
-                    />
-                    <Label htmlFor={`page-${actualIndex}`}>{perm.label}</Label>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-
-          {/* Feature Access Permissions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Feature Access</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {permissions.filter(p => p.type === 'feature_access').map((perm, index) => {
-                const actualIndex = permissions.findIndex(p => p === perm);
-                return (
-                  <div key={`${perm.type}-${perm.key}`} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`feature-${actualIndex}`}
-                      checked={perm.granted}
-                      onCheckedChange={(checked) => handlePermissionChange(actualIndex, !!checked)}
-                    />
-                    <Label htmlFor={`feature-${actualIndex}`}>{perm.label}</Label>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+          {/* Page-Specific Permissions */}
+          {pageModules.map((module) => (
+            <Card key={module.key}>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {module.name}
+                  <span className="text-sm text-muted-foreground font-normal">
+                    ({module.path})
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {module.actions.map((action) => {
+                    const permKey = `${module.key}:${action}`;
+                    const permission = permissions.find(p => p.key === permKey);
+                    const permIndex = permissions.findIndex(p => p.key === permKey);
+                    
+                    if (!permission) return null;
+                    
+                    return (
+                      <div key={action} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`${module.key}-${action}`}
+                          checked={permission.granted}
+                          onCheckedChange={(checked) => handlePermissionChange(permIndex, !!checked)}
+                        />
+                        <Label 
+                          htmlFor={`${module.key}-${action}`}
+                          className="text-sm capitalize cursor-pointer"
+                        >
+                          {action}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
 
           {/* Branch Access */}
           <Card>
