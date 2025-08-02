@@ -128,6 +128,7 @@ export function LeavesContent() {
     leave_type_id: string;
     start_date: string;
     end_date: string;
+    days_requested: number;
     notes: string;
   }) => {
     if (selectedLeave) {

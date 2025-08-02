@@ -28,7 +28,7 @@ interface LeaveDialogsProps {
     leave_type_id: string;
     start_date: string;
     end_date: string;
-    days: number;
+    days_requested: number;
     notes: string;
     manager_notes: string;
   }) => void;
@@ -90,16 +90,23 @@ export function LeaveDialogs({
     }
   };
 
+  const formatDateForDB = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleUpdateLeave = () => {
     if (!startDate || !endDate) return;
 
-    const days = calculateDays(startDate, endDate);
+    const days_requested = calculateDays(startDate, endDate);
     
     onUpdateLeave({
       ...editData,
-      start_date: format(startDate, 'yyyy-MM-dd'),
-      end_date: format(endDate, 'yyyy-MM-dd'),
-      days
+      start_date: formatDateForDB(startDate),
+      end_date: formatDateForDB(endDate),
+      days_requested
     });
   };
 
@@ -136,7 +143,7 @@ export function LeaveDialogs({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Days</Label>
-                  <p className="font-medium">{selectedLeave.days} days</p>
+                  <p className="font-medium">{selectedLeave.days_requested || selectedLeave.days} days</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Status</Label>

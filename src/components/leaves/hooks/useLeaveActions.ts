@@ -83,6 +83,7 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
     leave_type_id: string;
     start_date: string;
     end_date: string;
+    days_requested: number;
     notes: string;
   }) => {
     try {
