@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,7 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
   const [endDate, setEndDate] = useState<Date>();
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const { toast } = useToast();
   const { getAccessibleBranches, isAdmin } = usePermissions();
 
@@ -141,19 +143,8 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Leave request submitted successfully",
-      });
-
-      // Reset form
-      setSelectedEmployee("");
-      setSelectedLeaveType("");
-      setStartDate(undefined);
-      setEndDate(undefined);
-      setNotes("");
-      onOpenChange(false);
-      onSuccess();
+      // Show confirmation popup instead of success toast
+      setShowConfirmation(true);
     } catch (error) {
       console.error('Error submitting leave request:', error);
       toast({
@@ -166,8 +157,29 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
     }
   };
 
+  const handleConfirmationOk = () => {
+    setShowConfirmation(false);
+    
+    // Reset form
+    setSelectedEmployee("");
+    setSelectedLeaveType("");
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setNotes("");
+    
+    // Close dialog and refresh
+    onOpenChange(false);
+    onSuccess();
+    
+    toast({
+      title: "Success",
+      description: "Leave request submitted successfully",
+    });
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Request Leave</DialogTitle>
@@ -250,5 +262,29 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Leave Request Submitted</AlertDialogTitle>
+          <AlertDialogDescription className="space-y-3 text-sm">
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="font-medium text-yellow-800 mb-2">
+                <strong>Important:</strong> Submitting this form does not guarantee approval. You must call the office to have your leave/holiday officially approved.
+              </p>
+              <p className="text-yellow-700 text-xs">
+                <strong>Muhiim:</strong> Soo gudbinta foomkan ma micnaheedu waa in fasaxa la oggolaaday. Waa inaad xafiiska soo wacdaa si si rasmi ah loogu ansixiyo fasaxaaga.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction onClick={handleConfirmationOk}>
+            OK
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
