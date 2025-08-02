@@ -196,8 +196,8 @@ export function LeaveRequestDialog({ open, onOpenChange, employeeId, onSuccess }
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) => date < new Date()}
                         initialFocus
+                        className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
@@ -236,8 +236,8 @@ export function LeaveRequestDialog({ open, onOpenChange, employeeId, onSuccess }
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) => date < new Date()}
                         initialFocus
+                        className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
@@ -245,6 +245,26 @@ export function LeaveRequestDialog({ open, onOpenChange, employeeId, onSuccess }
                 </FormItem>
               )}
             />
+
+            {/* Duration Display */}
+            {form.watch('start_date') && form.watch('end_date') && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Duration: <span className="font-medium">
+                    {(() => {
+                      const startDate = form.watch('start_date');
+                      const endDate = form.watch('end_date');
+                      if (startDate && endDate) {
+                        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                        return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+                      }
+                      return '0 days';
+                    })()}
+                  </span>
+                </p>
+              </div>
+            )}
 
             <FormField
               control={form.control}
@@ -262,6 +282,7 @@ export function LeaveRequestDialog({ open, onOpenChange, employeeId, onSuccess }
                 </FormItem>
               )}
             />
+
 
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
