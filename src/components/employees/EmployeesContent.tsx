@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle, Eye, Edit3, Trash2, Check, Square, RotateCcw } from "lucide-react";
+import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle, Eye, Edit3, Trash2, Check, Square, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +53,9 @@ interface ImportEmployee {
   error?: string;
 }
 
+export type EmployeeSortField = 'name' | 'employee_code' | 'branch' | 'working_hours' | 'remaining_leave_days';
+export type EmployeeSortDirection = 'asc' | 'desc';
+
 export function EmployeesContent() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [branches, setBranches] = useState([]);
@@ -61,6 +64,8 @@ export function EmployeesContent() {
   const { canViewEmployees, canCreateEmployees, canEditEmployees, canDeleteEmployees } = usePagePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [branchFilter, setBranchFilter] = useState("all");
+  const [sortField, setSortField] = useState<EmployeeSortField>('name');
+  const [sortDirection, setSortDirection] = useState<EmployeeSortDirection>('asc');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
@@ -416,6 +421,20 @@ export function EmployeesContent() {
     }
   };
 
+  const handleSort = (field: EmployeeSortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: EmployeeSortField) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
+  };
+
   // Import functionality
   const downloadTemplate = () => {
     const template = [
@@ -690,6 +709,43 @@ export function EmployeesContent() {
     }
     
     return matchesSearch && matchesBranch && hasAccess;
+  }).sort((a, b) => {
+    let aVal: any;
+    let bVal: any;
+    
+    switch (sortField) {
+      case 'name':
+        aVal = a.name || '';
+        bVal = b.name || '';
+        break;
+      case 'employee_code':
+        aVal = a.employee_code || '';
+        bVal = b.employee_code || '';
+        break;
+      case 'branch':
+        aVal = a.branch || '';
+        bVal = b.branch || '';
+        break;
+      case 'working_hours':
+        // Treat null/undefined as 0 for sorting, so N/A entries go to the bottom in ascending order
+        aVal = a.working_hours ?? 0;
+        bVal = b.working_hours ?? 0;
+        break;
+      case 'remaining_leave_days':
+        aVal = a.remaining_leave_days || 0;
+        bVal = b.remaining_leave_days || 0;
+        break;
+      default:
+        return 0;
+    }
+    
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      const comparison = aVal.localeCompare(bVal);
+      return sortDirection === 'asc' ? comparison : -comparison;
+    } else {
+      const comparison = aVal - bVal;
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
   });
 
   // Calculate stats
@@ -870,11 +926,51 @@ export function EmployeesContent() {
                         aria-label="Select all employees"
                       />
                     </TableHead>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Employee Code</TableHead>
-                    <TableHead>Branch</TableHead>
-                    <TableHead>Working Hours</TableHead>
-                    <TableHead>Leave Balance</TableHead>
+                    <TableHead>
+                      <Button 
+                        variant="ghost" 
+                        className="p-0 h-auto font-medium hover:bg-transparent"
+                        onClick={() => handleSort('name')}
+                      >
+                        Employee {getSortIcon('name')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button 
+                        variant="ghost" 
+                        className="p-0 h-auto font-medium hover:bg-transparent"
+                        onClick={() => handleSort('employee_code')}
+                      >
+                        Employee Code {getSortIcon('employee_code')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button 
+                        variant="ghost" 
+                        className="p-0 h-auto font-medium hover:bg-transparent"
+                        onClick={() => handleSort('branch')}
+                      >
+                        Branch {getSortIcon('branch')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button 
+                        variant="ghost" 
+                        className="p-0 h-auto font-medium hover:bg-transparent"
+                        onClick={() => handleSort('working_hours')}
+                      >
+                        Working Hours {getSortIcon('working_hours')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button 
+                        variant="ghost" 
+                        className="p-0 h-auto font-medium hover:bg-transparent"
+                        onClick={() => handleSort('remaining_leave_days')}
+                      >
+                        Leave Balance {getSortIcon('remaining_leave_days')}
+                      </Button>
+                    </TableHead>
                     <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
