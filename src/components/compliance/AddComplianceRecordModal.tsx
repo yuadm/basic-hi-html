@@ -21,6 +21,7 @@ import { format, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { QuestionnaireForm } from "./QuestionnaireForm";
 
 interface AddComplianceRecordModalProps {
   employeeId?: string;
@@ -236,12 +237,7 @@ export function AddComplianceRecordModal({
         return;
       }
     } else if (recordType === 'questionnaire') {
-      // For questionnaire, we'll handle submission differently
-      toast({
-        title: "Questionnaire Mode",
-        description: "Questionnaire functionality is coming soon! For now, please use Date or Text entry.",
-        variant: "default",
-      });
+      // For questionnaire, we don't submit here - the QuestionnaireForm handles submission
       return;
     }
 
@@ -297,6 +293,36 @@ export function AddComplianceRecordModal({
       Add Compliance Record
     </Button>
   );
+
+  // If questionnaire mode is selected, show the questionnaire form in a larger dialog
+  if (recordType === 'questionnaire') {
+    return (
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          {trigger || defaultTrigger}
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Complete Compliance Questionnaire</DialogTitle>
+            <DialogDescription>
+              Complete the questionnaire for {complianceTypeName}
+            </DialogDescription>
+          </DialogHeader>
+          <QuestionnaireForm
+            complianceTypeId={complianceTypeId}
+            complianceTypeName={complianceTypeName}
+            employeeId={selectedEmployeeId}
+            employeeName={selectedEmployeeName}
+            periodIdentifier={selectedPeriod}
+            onComplete={() => {
+              setIsOpen(false);
+              onRecordAdded();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -403,7 +429,7 @@ export function AddComplianceRecordModal({
                 </PopoverContent>
               </Popover>
             </div>
-          ) : (
+          ) : recordType === 'new' ? (
             <div className="space-y-2">
               <Label htmlFor="newText">Text</Label>
               <Input
@@ -416,16 +442,8 @@ export function AddComplianceRecordModal({
                 This text will be stored as the completion date.
               </p>
             </div>
-          )}
+          ) : null}
 
-          {recordType === 'questionnaire' && (
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                You will be guided through a questionnaire to complete this compliance record. 
-                The completion date will be automatically set to today's date.
-              </p>
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes (Optional)</Label>
@@ -448,7 +466,7 @@ export function AddComplianceRecordModal({
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Adding..." : recordType === 'questionnaire' ? "Start Questionnaire" : "Add Record"}
+              {isLoading ? "Adding..." : "Add Record"}
             </Button>
           </div>
         </form>
