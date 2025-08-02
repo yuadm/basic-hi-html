@@ -319,7 +319,7 @@ export function LeaveRequestDialog({ open, onOpenChange, employeeId, onSuccess }
               <p className="font-medium text-yellow-800 mb-2">
                 <strong>Important:</strong> Submitting this form does not guarantee approval. You must call the office to have your leave/holiday officially approved.
               </p>
-              <p className="text-yellow-700 text-xs">
+              <p className="font-medium text-yellow-800 text-sm">
                 <strong>Muhiim:</strong> Soo gudbinta foomkan ma micnaheedu waa in fasaxa la oggolaaday. Waa inaad xafiiska soo wacdaa si si rasmi ah loogu ansixiyo fasaxaaga.
               </p>
             </div>
