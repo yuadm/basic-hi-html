@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, Eye, FileText, Edit, Trash2, Send } from "lucide-react";
+import { Search, Eye, FileText, Edit, Trash2, Send, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface JobApplication {
@@ -27,11 +27,16 @@ interface JobApplication {
   updated_at: string;
 }
 
+export type JobApplicationSortField = 'applicant_name' | 'position' | 'created_at' | 'postcode' | 'english_proficiency';
+export type JobApplicationSortDirection = 'asc' | 'desc';
+
 export function JobApplicationsContent() {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sortField, setSortField] = useState<JobApplicationSortField>('created_at');
+  const [sortDirection, setSortDirection] = useState<JobApplicationSortDirection>('desc');
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
   const { toast } = useToast();
 
@@ -147,12 +152,62 @@ Please complete and return this reference as soon as possible.`;
     window.location.href = mailtoLink;
   };
 
+  const handleSort = (field: JobApplicationSortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: JobApplicationSortField) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
+  };
+
   const filteredApplications = applications.filter(app => {
     const matchesSearch = app.personal_info?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          app.personal_info?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          app.personal_info?.positionAppliedFor?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     return matchesSearch && matchesStatus;
+  }).sort((a, b) => {
+    let aVal: any;
+    let bVal: any;
+    
+    switch (sortField) {
+      case 'applicant_name':
+        aVal = a.personal_info?.fullName || '';
+        bVal = b.personal_info?.fullName || '';
+        break;
+      case 'position':
+        aVal = a.personal_info?.positionAppliedFor || '';
+        bVal = b.personal_info?.positionAppliedFor || '';
+        break;
+      case 'created_at':
+        aVal = new Date(a.created_at).getTime();
+        bVal = new Date(b.created_at).getTime();
+        break;
+      case 'postcode':
+        aVal = a.personal_info?.postcode || '';
+        bVal = b.personal_info?.postcode || '';
+        break;
+      case 'english_proficiency':
+        aVal = a.personal_info?.englishProficiency || '';
+        bVal = b.personal_info?.englishProficiency || '';
+        break;
+      default:
+        return 0;
+    }
+    
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      const comparison = aVal.localeCompare(bVal);
+      return sortDirection === 'asc' ? comparison : -comparison;
+    } else {
+      const comparison = aVal - bVal;
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
   });
 
   if (loading) {
@@ -210,16 +265,56 @@ Please complete and return this reference as soon as possible.`;
         <CardContent>
           <div className="rounded-md border">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Applicant</TableHead>
-                  <TableHead>Position Applied</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Postcode</TableHead>
-                  <TableHead>Proficiency In English</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+               <TableHeader>
+                 <TableRow>
+                   <TableHead>
+                     <Button 
+                       variant="ghost" 
+                       className="p-0 h-auto font-medium hover:bg-transparent"
+                       onClick={() => handleSort('applicant_name')}
+                     >
+                       Applicant {getSortIcon('applicant_name')}
+                     </Button>
+                   </TableHead>
+                   <TableHead>
+                     <Button 
+                       variant="ghost" 
+                       className="p-0 h-auto font-medium hover:bg-transparent"
+                       onClick={() => handleSort('position')}
+                     >
+                       Position Applied {getSortIcon('position')}
+                     </Button>
+                   </TableHead>
+                   <TableHead>
+                     <Button 
+                       variant="ghost" 
+                       className="p-0 h-auto font-medium hover:bg-transparent"
+                       onClick={() => handleSort('created_at')}
+                     >
+                       Date {getSortIcon('created_at')}
+                     </Button>
+                   </TableHead>
+                   <TableHead>
+                     <Button 
+                       variant="ghost" 
+                       className="p-0 h-auto font-medium hover:bg-transparent"
+                       onClick={() => handleSort('postcode')}
+                     >
+                       Postcode {getSortIcon('postcode')}
+                     </Button>
+                   </TableHead>
+                   <TableHead>
+                     <Button 
+                       variant="ghost" 
+                       className="p-0 h-auto font-medium hover:bg-transparent"
+                       onClick={() => handleSort('english_proficiency')}
+                     >
+                       Proficiency In English {getSortIcon('english_proficiency')}
+                     </Button>
+                   </TableHead>
+                   <TableHead>Actions</TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
                 {filteredApplications.map((application) => (
                   <TableRow key={application.id}>
