@@ -32,34 +32,26 @@ export default function PublicHome() {
 
   // Show both job application and employee login for non-authenticated users
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-foreground mb-6">
-            Welcome to Our Company
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Your gateway to career opportunities and employee services
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-12 pt-8">
+          <h1 className="text-4xl font-bold mb-4">Welcome to Our Company</h1>
+          <p className="text-lg text-muted-foreground">Choose what you need to do today</p>
         </div>
         
-        {/* Cards */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Job Application Portal */}
-          <Card className="p-8 hover:shadow-lg transition-all duration-300 border border-border">
-            <div className="text-center space-y-6">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <Briefcase className="w-8 h-8 text-primary" />
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                <Briefcase className="w-6 h-6 text-primary" />
               </div>
-              
-              <div>
-                <h2 className="text-2xl font-semibold mb-3">Apply for a Job</h2>
-                <p className="text-muted-foreground">
-                  Join our team! Submit your application through our comprehensive application process.
-                </p>
-              </div>
-              
+              <CardTitle className="text-2xl">Apply for a Job</CardTitle>
+              <CardDescription>
+                Join our team! Submit your application and we'll review it promptly
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <Button 
                 onClick={() => navigate('/job-application')} 
                 className="w-full"
@@ -67,52 +59,37 @@ export default function PublicHome() {
               >
                 Start Application
               </Button>
-              
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p>• Personal & contact information</p>
-                <p>• Employment history & references</p>
-                <p>• Skills assessment & availability</p>
-              </div>
-            </div>
+              <p className="text-sm text-muted-foreground text-center">
+                Complete our multi-step application form with your details, experience, and skills
+              </p>
+            </CardContent>
           </Card>
 
           {/* Employee Portal */}
-          <Card className="p-8 hover:shadow-lg transition-all duration-300 border border-border">
-            <div className="text-center space-y-6">
-              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto">
-                <Badge className="w-8 h-8 text-secondary" />
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
+                <Badge className="w-6 h-6 text-secondary" />
               </div>
-              
-              <div>
-                <h2 className="text-2xl font-semibold mb-3">Employee Portal</h2>
-                <p className="text-muted-foreground">
-                  Access your employee dashboard to manage leave requests and view your information.
-                </p>
-              </div>
-              
+              <CardTitle className="text-2xl">Employee Portal</CardTitle>
+              <CardDescription>
+                Current employees: Login to manage your leave requests and view your information
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <Button 
                 onClick={() => navigate('/login')} 
-                variant="secondary"
                 className="w-full"
                 size="lg"
               >
-                Employee Login
+                Login
               </Button>
-              
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p>• Submit & track leave requests</p>
-                <p>• View leave history & balances</p>
-                <p>• Manage personal documents</p>
-              </div>
-            </div>
+              <p className="text-sm text-muted-foreground text-center">
+                Access your dashboard to request leaves, view leave history, and manage your documents. 
+                The system will automatically detect your account type.
+              </p>
+            </CardContent>
           </Card>
-        </div>
-        
-        {/* Footer */}
-        <div className="text-center mt-16">
-          <p className="text-muted-foreground">
-            Need assistance? Contact our HR team for support.
-          </p>
         </div>
       </div>
     </div>
