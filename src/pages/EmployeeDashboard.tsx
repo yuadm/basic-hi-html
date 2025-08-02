@@ -6,9 +6,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, FileText, User, LogOut, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, FileText, User, LogOut, Clock, CheckCircle, XCircle, Shield } from 'lucide-react';
 import { LeaveRequestDialog } from '@/components/employee/LeaveRequestDialog';
 import { DocumentUploadDialog } from '@/components/employee/DocumentUploadDialog';
+import { CompanyProvider, useCompany } from '@/contexts/CompanyContext';
 
 interface LeaveRequest {
   id: string;
@@ -20,8 +21,9 @@ interface LeaveRequest {
   created_at: string;
 }
 
-export default function EmployeeDashboard() {
+function EmployeeDashboardContent() {
   const { employee, loading, signOut } = useEmployeeAuth();
+  const { companySettings } = useCompany();
   const navigate = useNavigate();
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
@@ -107,9 +109,28 @@ export default function EmployeeDashboard() {
       {/* Header */}
       <header className="bg-white border-b border-border/50 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Employee Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, {employee.name}!</p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {companySettings.logo ? (
+                <img
+                  src={companySettings.logo}
+                  alt={companySettings.name}
+                  className="h-10 w-10 object-contain"
+                />
+              ) : (
+                <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Shield className="h-6 w-6 text-primary" />
+                </div>
+              )}
+              <div>
+                <h1 className="text-xl font-bold">{companySettings.name}</h1>
+                <p className="text-sm text-muted-foreground">{companySettings.tagline}</p>
+              </div>
+            </div>
+            <div className="border-l pl-4 ml-4">
+              <h2 className="text-lg font-semibold">Employee Dashboard</h2>
+              <p className="text-sm text-muted-foreground">Welcome back, {employee.name}!</p>
+            </div>
           </div>
           <Button variant="outline" onClick={handleSignOut}>
             <LogOut className="w-4 h-4 mr-2" />
@@ -265,5 +286,13 @@ export default function EmployeeDashboard() {
         employeeId={employee.id}
       />
     </div>
+  );
+}
+
+export default function EmployeeDashboard() {
+  return (
+    <CompanyProvider>
+      <EmployeeDashboardContent />
+    </CompanyProvider>
   );
 }
