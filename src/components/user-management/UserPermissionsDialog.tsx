@@ -41,11 +41,14 @@ export function UserPermissionsDialog({ user, onSuccess }: UserPermissionsDialog
   const { toast } = useToast();
 
   const defaultPermissions = [
+    { type: 'page_access', key: '/', label: 'Dashboard Page' },
     { type: 'page_access', key: '/employees', label: 'Employees Page' },
     { type: 'page_access', key: '/leaves', label: 'Leaves Page' },
     { type: 'page_access', key: '/documents', label: 'Documents Page' },
+    { type: 'page_access', key: '/document-signing', label: 'Document Signing Page' },
     { type: 'page_access', key: '/compliance', label: 'Compliance Page' },
     { type: 'page_access', key: '/reports', label: 'Reports Page' },
+    { type: 'page_access', key: '/job-applications', label: 'Job Applications Page' },
     { type: 'page_access', key: '/settings', label: 'Settings Page' },
     { type: 'page_access', key: '/user-management', label: 'User Management Page' },
     { type: 'feature_access', key: 'can_create', label: 'Create Records' },

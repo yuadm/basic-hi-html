@@ -85,7 +85,7 @@ function AppContent() {
       
       {/* Admin routes */}
       <Route path="/admin" element={
-        <ProtectedRoute>
+        <ProtectedRoute requiredPage="/">
           <Index />
         </ProtectedRoute>
       } />
