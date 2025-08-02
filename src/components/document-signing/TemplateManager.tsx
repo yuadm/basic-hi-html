@@ -9,6 +9,7 @@ import { Plus, FileText, Edit, Trash2, Eye } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { FieldDesigner } from "./FieldDesigner";
 
 interface DocumentTemplate {
   id: string;
@@ -26,6 +27,8 @@ export function TemplateManager() {
     description: "",
     file: null as File | null
   });
+  const [fieldDesignerOpen, setFieldDesignerOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch templates
@@ -223,8 +226,8 @@ export function TemplateManager() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        // TODO: Open field designer
-                        toast.info("Field designer coming soon");
+                        setSelectedTemplate(template);
+                        setFieldDesignerOpen(true);
                       }}
                     >
                       <Edit className="w-4 h-4 mr-1" />
@@ -257,6 +260,19 @@ export function TemplateManager() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Field Designer Dialog */}
+      {selectedTemplate && (
+        <FieldDesigner
+          isOpen={fieldDesignerOpen}
+          onClose={() => {
+            setFieldDesignerOpen(false);
+            setSelectedTemplate(null);
+          }}
+          templateId={selectedTemplate.id}
+          templateUrl={getFileUrl(selectedTemplate.file_path)}
+        />
       )}
     </div>
   );

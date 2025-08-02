@@ -1,7 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,11 +33,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending signing request email to:", recipientEmail);
 
-    const emailResponse = await resend.emails.send({
-      from: "Document Signing <onboarding@resend.dev>",
-      to: [recipientEmail],
-      subject: `Document Signing Request: ${documentTitle}`,
-      html: `
+    const emailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": Deno.env.get("BREVO_API_KEY") || "",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        sender: {
+          name: "Document Signing System",
+          email: "noreply@yourdomain.com"
+        },
+        to: [{ email: recipientEmail, name: recipientName }],
+        subject: `Document Signing Request: ${documentTitle}`,
+        htmlContent: `
         <!DOCTYPE html>
         <html>
         <head>
@@ -100,12 +107,19 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
         </body>
         </html>
-      `,
+        `
+      })
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    if (!emailResponse.ok) {
+      throw new Error(`Brevo API error: ${emailResponse.status}`);
+    }
 
-    return new Response(JSON.stringify(emailResponse), {
+    const result = await emailResponse.json();
+
+    console.log("Email sent successfully:", result);
+
+    return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         "Content-Type": "application/json",

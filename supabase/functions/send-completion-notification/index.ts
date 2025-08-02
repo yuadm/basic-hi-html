@@ -1,7 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,11 +36,21 @@ const handler = async (req: Request): Promise<Response> => {
     const emails = [];
 
     // Send notification to admin
-    const adminEmailResponse = await resend.emails.send({
-      from: "Document Signing <onboarding@resend.dev>",
-      to: [adminEmail],
-      subject: `Document Completed: ${documentTitle}`,
-      html: `
+    const adminEmailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": Deno.env.get("BREVO_API_KEY") || "",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        sender: {
+          name: "Document Signing System",
+          email: "noreply@yourdomain.com"
+        },
+        to: [{ email: adminEmail, name: adminName }],
+        subject: `Document Completed: ${documentTitle}`,
+        htmlContent: `
         <!DOCTYPE html>
         <html>
         <head>
@@ -105,18 +112,34 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
         </body>
         </html>
-      `,
+        `
+      })
     });
 
-    emails.push(adminEmailResponse);
+    if (!adminEmailResponse.ok) {
+      throw new Error(`Brevo API error: ${adminEmailResponse.status}`);
+    }
+
+    const adminResult = await adminEmailResponse.json();
+    emails.push(adminResult);
 
     // Send copy to signer if email provided
     if (signerEmail) {
-      const signerEmailResponse = await resend.emails.send({
-        from: "Document Signing <onboarding@resend.dev>",
-        to: [signerEmail],
-        subject: `Thank you for signing: ${documentTitle}`,
-        html: `
+      const signerEmailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "accept": "application/json",
+          "api-key": Deno.env.get("BREVO_API_KEY") || "",
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          sender: {
+            name: "Document Signing System",
+            email: "noreply@yourdomain.com"
+          },
+          to: [{ email: signerEmail, name: "Signer" }],
+          subject: `Thank you for signing: ${documentTitle}`,
+          htmlContent: `
           <!DOCTYPE html>
           <html>
           <head>
@@ -164,10 +187,14 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
           </body>
           </html>
-        `,
+          `
+        })
       });
 
-      emails.push(signerEmailResponse);
+      if (signerEmailResponse.ok) {
+        const signerResult = await signerEmailResponse.json();
+        emails.push(signerResult);
+      }
     }
 
     console.log("All completion emails sent successfully");
