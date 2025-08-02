@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { usePagePermissions } from "@/hooks/usePagePermissions";
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 
@@ -57,6 +58,7 @@ export function EmployeesContent() {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const { getAccessibleBranches, isAdmin } = usePermissions();
+  const { canViewEmployees, canCreateEmployees, canEditEmployees, canDeleteEmployees } = usePagePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [branchFilter, setBranchFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -184,6 +186,15 @@ export function EmployeesContent() {
   };
 
   const addEmployee = async () => {
+    if (!canCreateEmployees()) {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to create employees.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       if (!newEmployee.name || !newEmployee.email || !newEmployee.branch || !newEmployee.employee_code) {
         toast({
@@ -267,6 +278,15 @@ export function EmployeesContent() {
   };
 
   const updateEmployee = async () => {
+    if (!canEditEmployees()) {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to edit employees.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!selectedEmployee) return;
     
     try {
@@ -309,6 +329,15 @@ export function EmployeesContent() {
   };
 
   const deleteEmployee = async (employeeId: string) => {
+    if (!canDeleteEmployees()) {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to delete employees.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('employees')
@@ -336,6 +365,15 @@ export function EmployeesContent() {
   };
 
   const batchDeleteEmployees = async () => {
+    if (!canDeleteEmployees()) {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to delete employees.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('employees')
@@ -687,7 +725,7 @@ export function EmployeesContent() {
         </div>
         
         <div className="flex items-center gap-3">
-          {selectedEmployees.length > 0 && (
+          {selectedEmployees.length > 0 && canDeleteEmployees() && (
             <Button 
               variant="destructive"
               onClick={() => setBatchDeleteDialogOpen(true)}
@@ -696,20 +734,24 @@ export function EmployeesContent() {
               Delete Selected ({selectedEmployees.length})
             </Button>
           )}
-          <Button 
-            variant="outline"
-            onClick={() => setImportDialogOpen(true)}
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Import
-          </Button>
-          <Button 
-            className="bg-gradient-primary hover:opacity-90"
-            onClick={() => setDialogOpen(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Employee
-          </Button>
+          {canCreateEmployees() && (
+            <Button 
+              variant="outline"
+              onClick={() => setImportDialogOpen(true)}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import
+            </Button>
+          )}
+          {canCreateEmployees() && (
+            <Button 
+              className="bg-gradient-primary hover:opacity-90"
+              onClick={() => setDialogOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Employee
+            </Button>
+          )}
         </div>
       </div>
 
@@ -897,23 +939,27 @@ export function EmployeesContent() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => openViewDialog(employee)}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedEmployee(employee);
-                                setDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {canViewEmployees() && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openViewDialog(employee)}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {canDeleteEmployees() && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedEmployee(employee);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1287,14 +1333,16 @@ export function EmployeesContent() {
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Reset Password
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setEditMode(true)}
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
+                  {canEditEmployees() && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setEditMode(true)}
+                    >
+                      <Edit3 className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
               )}
             </DialogTitle>
