@@ -92,13 +92,21 @@ export function LeaveRequestDialog({ open, onOpenChange, employeeId, onSuccess }
   const onSubmit = async (data: LeaveRequestFormData) => {
     setLoading(true);
     try {
+      // Format dates properly to avoid timezone issues
+      const formatDateForDB = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const { error } = await supabase
         .from('leave_requests')
         .insert({
           employee_id: employeeId,
           leave_type_id: data.leave_type_id,
-          start_date: data.start_date.toISOString().split('T')[0],
-          end_date: data.end_date.toISOString().split('T')[0],
+          start_date: formatDateForDB(data.start_date),
+          end_date: formatDateForDB(data.end_date),
           notes: data.notes || null,
           status: 'pending',
         });
