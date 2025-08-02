@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Briefcase, Users } from 'lucide-react';
+import { Briefcase, Badge } from 'lucide-react';
 
 export default function PublicHome() {
   const { user, userRole, loading } = useAuth();
@@ -69,7 +69,7 @@ export default function PublicHome() {
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-secondary" />
+                <Badge className="w-6 h-6 text-secondary" />
               </div>
               <CardTitle className="text-2xl">Employee Portal</CardTitle>
               <CardDescription>
