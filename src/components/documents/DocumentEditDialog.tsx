@@ -133,9 +133,16 @@ export function DocumentEditDialog({
   };
 
   const handleDocumentTypeChange = async (documentTypeId: string) => {
+    // First, clear all fields and update document type immediately
     setEditDocument(prev => ({
       ...prev,
-      document_type_id: documentTypeId
+      document_type_id: documentTypeId,
+      document_number: "",
+      issue_date: null,
+      expiry_date: null,
+      country: "",
+      nationality_status: "",
+      notes: ""
     }));
     
     // Auto-populate fields from existing document of same type for this employee
@@ -162,18 +169,6 @@ export function DocumentEditDialog({
             country: existingDoc.country || prev.country,
             nationality_status: existingDoc.nationality_status || prev.nationality_status,
             notes: existingDoc.notes || prev.notes
-          }));
-        } else {
-          // Clear fields when no existing document of this type is found
-          setEditDocument(prev => ({
-            ...prev,
-            document_type_id: documentTypeId,
-            document_number: "",
-            issue_date: null,
-            expiry_date: null,
-            country: "",
-            nationality_status: "",
-            notes: ""
           }));
         }
       } catch (error) {
