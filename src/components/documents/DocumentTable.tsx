@@ -110,7 +110,25 @@ export function DocumentTable({ documents, employees, documentTypes, selectedDoc
   };
 
   const getExpiryInfo = (document: Document) => {
+    // Check if expiry_date is a valid date
     const expiryDate = new Date(document.expiry_date);
+    const isValidDate = !isNaN(expiryDate.getTime()) && document.expiry_date !== 'N/A' && document.expiry_date !== 'NOT REQUIRED';
+    
+    if (!isValidDate) {
+      // For text values, just show the text as-is with valid status
+      return {
+        badge: (
+          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Valid
+          </Badge>
+        ),
+        daysText: document.expiry_date, // Show the text as-is
+        sortValue: 0 // Neutral sort value for text entries
+      };
+    }
+
+    // Only calculate days for valid dates
     const today = new Date();
     const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
 
@@ -122,7 +140,7 @@ export function DocumentTable({ documents, employees, documentTypes, selectedDoc
             Expired
           </Badge>
         ),
-        daysText: `${daysUntilExpiry} days left`,
+        daysText: `${Math.abs(daysUntilExpiry)} days ago`,
         sortValue: daysUntilExpiry
       };
     } else if (daysUntilExpiry <= 30) {
@@ -269,6 +287,12 @@ export function DocumentTable({ documents, employees, documentTypes, selectedDoc
               const getWorstStatus = (docs: Document[]) => {
                 const statuses = docs.map(doc => {
                   const expiryDate = new Date(doc.expiry_date);
+                  const isValidDate = !isNaN(expiryDate.getTime()) && doc.expiry_date !== 'N/A' && doc.expiry_date !== 'NOT REQUIRED';
+                  
+                  if (!isValidDate) {
+                    return { priority: 1, doc }; // Text values get lowest priority (valid)
+                  }
+                  
                   const today = new Date();
                   const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
                   
@@ -354,19 +378,39 @@ export function DocumentTable({ documents, employees, documentTypes, selectedDoc
                         {docForType ? (
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span>{new Date(docForType.expiry_date).toLocaleDateString('en-GB')}</span>
-                              <Badge 
-                                className={`text-xs ${
-                                  getExpiryInfo(docForType).sortValue < 0 
-                                    ? 'bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-200' :
-                                  getExpiryInfo(docForType).sortValue <= 30 
-                                    ? 'bg-orange-100 text-orange-800 hover:bg-orange-100 dark:bg-orange-900 dark:text-orange-200' 
-                                    : 'bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-200'
-                                }`}
-                              >
-                                {getExpiryInfo(docForType).sortValue < 0 ? 'expired' :
-                                 getExpiryInfo(docForType).sortValue <= 30 ? 'expiring soon' : 'valid'}
-                              </Badge>
+                              {(() => {
+                                const expiryDate = new Date(docForType.expiry_date);
+                                const isValidDate = !isNaN(expiryDate.getTime()) && docForType.expiry_date !== 'N/A' && docForType.expiry_date !== 'NOT REQUIRED';
+                                
+                                if (isValidDate) {
+                                  return (
+                                    <>
+                                      <span>{expiryDate.toLocaleDateString('en-GB')}</span>
+                                      <Badge 
+                                        className={`text-xs ${
+                                          getExpiryInfo(docForType).sortValue < 0 
+                                            ? 'bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900 dark:text-red-200' :
+                                          getExpiryInfo(docForType).sortValue <= 30 && getExpiryInfo(docForType).sortValue > 0
+                                            ? 'bg-orange-100 text-orange-800 hover:bg-orange-100 dark:bg-orange-900 dark:text-orange-200' 
+                                            : 'bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-200'
+                                        }`}
+                                      >
+                                        {getExpiryInfo(docForType).sortValue < 0 ? 'expired' :
+                                         getExpiryInfo(docForType).sortValue <= 30 && getExpiryInfo(docForType).sortValue > 0 ? 'expiring soon' : 'valid'}
+                                      </Badge>
+                                    </>
+                                  );
+                                } else {
+                                  return (
+                                    <>
+                                      <span>{docForType.expiry_date}</span>
+                                      <Badge className="text-xs bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-200">
+                                        valid
+                                      </Badge>
+                                    </>
+                                  );
+                                }
+                              })()}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {getExpiryInfo(docForType).daysText}
