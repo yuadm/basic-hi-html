@@ -309,6 +309,7 @@ export type Database = {
       }
       compliance_questionnaires: {
         Row: {
+          branch_id: string | null
           compliance_type_id: string | null
           created_at: string
           description: string | null
@@ -318,6 +319,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          branch_id?: string | null
           compliance_type_id?: string | null
           created_at?: string
           description?: string | null
@@ -327,6 +329,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          branch_id?: string | null
           compliance_type_id?: string | null
           created_at?: string
           description?: string | null
@@ -336,6 +339,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "compliance_questionnaires_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "compliance_questionnaires_compliance_type_id_fkey"
             columns: ["compliance_type_id"]
@@ -524,6 +534,7 @@ export type Database = {
           created_at: string
           description: string | null
           frequency: string
+          has_questionnaire: boolean | null
           id: string
           name: string
           questionnaire_id: string | null
@@ -533,6 +544,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           frequency: string
+          has_questionnaire?: boolean | null
           id?: string
           name: string
           questionnaire_id?: string | null
@@ -542,6 +554,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           frequency?: string
+          has_questionnaire?: boolean | null
           id?: string
           name?: string
           questionnaire_id?: string | null
