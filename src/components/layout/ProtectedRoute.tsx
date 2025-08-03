@@ -40,6 +40,26 @@ export function ProtectedRoute({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Prevent employees from accessing admin routes
+  if (user.user_metadata?.role === 'employee') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-subtle">
+        <Card className="w-96">
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <AlertTriangle className="w-8 h-8 text-destructive mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
+            <p className="text-sm text-muted-foreground text-center mb-4">
+              Employee accounts cannot access the admin portal. Please use the employee login.
+            </p>
+            <Button onClick={() => window.location.href = '/employee-login'}>
+              Go to Employee Portal
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Show error state if there's a permissions error
   if (error && !isAdmin) {
     return (

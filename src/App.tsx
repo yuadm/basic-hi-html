@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { EmployeeAuthProvider } from "@/contexts/EmployeeAuthContext";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
+import { EmployeeProtectedRoute } from "@/components/layout/EmployeeProtectedRoute";
 import PublicHome from "./pages/PublicHome";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
@@ -53,17 +54,21 @@ function AppContent() {
       
       {/* Legacy redirects */}
       <Route path="/auth" element={<Navigate to="/login" replace />} />
-      <Route path="/employee-login" element={<Navigate to="/login" replace />} />
+      <Route path="/employee-login" element={<UnifiedAuth />} />
       
-      {/* Employee routes with their own provider */}
+      {/* Employee routes with their own provider and protection */}
       <Route path="/employee-dashboard" element={
         <EmployeeAuthProvider>
-          <EmployeeDashboard />
+          <EmployeeProtectedRoute>
+            <EmployeeDashboard />
+          </EmployeeProtectedRoute>
         </EmployeeAuthProvider>
       } />
       <Route path="/employee-change-password" element={
         <EmployeeAuthProvider>
-          <EmployeeChangePassword />
+          <EmployeeProtectedRoute>
+            <EmployeeChangePassword />
+          </EmployeeProtectedRoute>
         </EmployeeAuthProvider>
       } />
       
