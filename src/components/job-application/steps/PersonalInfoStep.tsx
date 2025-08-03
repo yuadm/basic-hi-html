@@ -1,21 +1,63 @@
+import { useState, useEffect } from 'react';
 import { PersonalInfo } from '../types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PersonalInfoStepProps {
   data: PersonalInfo;
   updateData: (field: keyof PersonalInfo, value: string | string[]) => void;
 }
 
+interface JobPosition {
+  id: string;
+  title: string;
+  is_active: boolean;
+}
+
 const titles = ['Mr', 'Mrs', 'Miss', 'Ms', 'Dr', 'Prof'];
 const boroughs = ['Westminster', 'Camden', 'Islington', 'Hackney', 'Tower Hamlets', 'Greenwich', 'Lewisham', 'Southwark', 'Lambeth', 'Wandsworth', 'Hammersmith and Fulham', 'Kensington and Chelsea', 'Other'];
 const englishLevels = ['Native', 'Fluent', 'Intermediate', 'Basic'];
 const languages = ['Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Arabic', 'Mandarin', 'Hindi', 'Polish', 'Romanian', 'Other'];
-const positions = ['Care Assistant', 'Senior Care Assistant', 'Care Coordinator', 'Registered Nurse', 'Activities Coordinator', 'Kitchen Assistant', 'Domestic Assistant', 'Other'];
 
 export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
+  const [positions, setPositions] = useState<JobPosition[]>([]);
+  const [loadingPositions, setLoadingPositions] = useState(true);
+
+  useEffect(() => {
+    fetchJobPositions();
+  }, []);
+
+  const fetchJobPositions = async () => {
+    try {
+      const { data: positionsData, error } = await supabase
+        .from('job_positions')
+        .select('id, title, is_active')
+        .eq('is_active', true)
+        .order('title');
+
+      if (error) throw error;
+      setPositions(positionsData || []);
+    } catch (error) {
+      console.error('Error fetching job positions:', error);
+      // Fallback to default positions if database fetch fails
+      setPositions([
+        { id: '1', title: 'Care Assistant', is_active: true },
+        { id: '2', title: 'Senior Care Assistant', is_active: true },
+        { id: '3', title: 'Care Coordinator', is_active: true },
+        { id: '4', title: 'Registered Nurse', is_active: true },
+        { id: '5', title: 'Activities Coordinator', is_active: true },
+        { id: '6', title: 'Kitchen Assistant', is_active: true },
+        { id: '7', title: 'Domestic Assistant', is_active: true },
+        { id: '8', title: 'Other', is_active: true }
+      ]);
+    } finally {
+      setLoadingPositions(false);
+    }
+  };
+
   const handleLanguageToggle = (language: string, checked: boolean) => {
     const currentLanguages = data.otherLanguages || [];
     if (checked) {
@@ -171,11 +213,11 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
           <Label htmlFor="positionAppliedFor">Position applied for *</Label>
           <Select value={data.positionAppliedFor} onValueChange={(value) => updateData('positionAppliedFor', value)}>
             <SelectTrigger>
-              <SelectValue placeholder="Select" />
+              <SelectValue placeholder={loadingPositions ? "Loading positions..." : "Select position"} />
             </SelectTrigger>
             <SelectContent>
               {positions.map(position => (
-                <SelectItem key={position} value={position}>{position}</SelectItem>
+                <SelectItem key={position.id} value={position.title}>{position.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
