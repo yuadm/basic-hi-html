@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, User, Lock, Shield } from 'lucide-react';
+import { Loader2, User, Lock, Shield, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CompanyProvider, useCompany } from '@/contexts/CompanyContext';
 
@@ -15,7 +15,7 @@ function EmployeeLoginContent() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { companySettings } = useCompany();
+  const { companySettings, loading: companyLoading } = useCompany();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -146,10 +146,18 @@ function EmployeeLoginContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4">
+      <Button
+        variant="ghost"
+        onClick={() => navigate('/')}
+        className="absolute top-4 left-4 flex items-center gap-2"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Home
+      </Button>
       <Card className="w-full max-w-md shadow-glow">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-            {companySettings.logo ? (
+            {!companyLoading && companySettings.logo ? (
               <img
                 src={companySettings.logo}
                 alt={companySettings.name}
