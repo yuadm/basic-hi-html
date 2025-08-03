@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ComplianceTypeManagement } from "./ComplianceTypeManagement";
 import { QuestionnaireManagement } from "./QuestionnaireManagement";
+import { SpotCheckFormManagement } from "./SpotCheckFormManagement";
 
 interface ComplianceSettingsData {
   id?: string;
@@ -180,6 +181,7 @@ export function ComplianceSettings() {
 
         <ComplianceTypeManagement />
         <QuestionnaireManagement />
+        <SpotCheckFormManagement />
 
         <div className="flex justify-end">
           <Button onClick={handleSave} className="bg-gradient-primary hover:opacity-90">
