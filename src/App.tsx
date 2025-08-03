@@ -24,6 +24,7 @@ import UnifiedAuth from "./pages/UnifiedAuth";
 import JobApplication from "./pages/JobApplication";
 import JobApplications from "./pages/JobApplications";
 import DocumentSigning from "./pages/DocumentSigning";
+import DocumentSigningView from "./pages/DocumentSigningView";
 import NotFound from "./pages/NotFound";
 
 // Protected Route component with permission checking
@@ -66,6 +67,7 @@ function AppContent() {
       <Route path="/" element={<PublicHome />} />
       <Route path="/login" element={<UnifiedAuth />} />
       <Route path="/job-application" element={<JobApplication />} />
+      <Route path="/sign/:token" element={<DocumentSigningView />} />
       
       {/* Legacy redirects */}
       <Route path="/auth" element={<Navigate to="/login" replace />} />
