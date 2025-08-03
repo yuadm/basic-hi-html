@@ -163,6 +163,18 @@ export function DocumentEditDialog({
             nationality_status: existingDoc.nationality_status || prev.nationality_status,
             notes: existingDoc.notes || prev.notes
           }));
+        } else {
+          // Clear fields when no existing document of this type is found
+          setEditDocument(prev => ({
+            ...prev,
+            document_type_id: documentTypeId,
+            document_number: "",
+            issue_date: null,
+            expiry_date: null,
+            country: "",
+            nationality_status: "",
+            notes: ""
+          }));
         }
       } catch (error) {
         console.error('Error fetching existing document:', error);
