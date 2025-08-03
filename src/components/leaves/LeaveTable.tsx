@@ -12,10 +12,10 @@ interface LeaveTableProps {
   sortField: SortField;
   sortDirection: SortDirection;
   onSort: (field: SortField) => void;
-  onViewLeave: (leave: Leave) => void;
-  onEditLeave: (leave: Leave) => void;
-  onDeleteLeave: (leave: Leave) => void;
-  onUpdateStatus: (leaveId: string, status: 'approved' | 'rejected' | 'pending', managerNotes?: string) => void;
+  onViewLeave?: (leave: Leave) => void;
+  onEditLeave?: (leave: Leave) => void;
+  onDeleteLeave?: (leave: Leave) => void;
+  onUpdateStatus?: (leaveId: string, status: 'approved' | 'rejected' | 'pending', managerNotes?: string) => void;
 }
 
 export function LeaveTable({ 
@@ -166,29 +166,35 @@ export function LeaveTable({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => onViewLeave(leave)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => onEditLeave(leave)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => onDeleteLeave(leave)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        {leave.status === 'pending' && (
+                        {onViewLeave && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => onViewLeave(leave)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onEditLeave && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => onEditLeave(leave)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onDeleteLeave && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => onDeleteLeave(leave)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onUpdateStatus && leave.status === 'pending' && (
                           <>
                             <Button 
                               size="sm" 
@@ -208,7 +214,7 @@ export function LeaveTable({
                             </Button>
                           </>
                         )}
-                        {(leave.status === 'approved' || leave.status === 'rejected') && (
+                        {onUpdateStatus && (leave.status === 'approved' || leave.status === 'rejected') && (
                           <Button 
                             size="sm" 
                             variant="outline"

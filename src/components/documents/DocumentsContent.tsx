@@ -19,6 +19,7 @@ import { DocumentEditDialog } from "./DocumentEditDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { usePagePermissions } from "@/hooks/usePagePermissions";
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 
@@ -86,6 +87,13 @@ export function DocumentsContent() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const { getAccessibleBranches, isAdmin } = usePermissions();
+  const { 
+    canViewDocuments,
+    canCreateDocuments,
+    canEditDocuments,
+    canDeleteDocuments,
+    canUploadDocuments
+  } = usePagePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
@@ -886,20 +894,24 @@ export function DocumentsContent() {
         </div>
         
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline"
-            onClick={() => setImportDialogOpen(true)}
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Import Documents
-          </Button>
-          <Button 
-            className="bg-gradient-primary hover:opacity-90"
-            onClick={() => setDialogOpen(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Document
-          </Button>
+          {canUploadDocuments() && (
+            <Button 
+              variant="outline"
+              onClick={() => setImportDialogOpen(true)}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import Documents
+            </Button>
+          )}
+          {canCreateDocuments() && (
+            <Button 
+              className="bg-gradient-primary hover:opacity-90"
+              onClick={() => setDialogOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Document
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1058,9 +1070,9 @@ export function DocumentsContent() {
           documents={filteredDocuments}
           employees={employees}
           documentTypes={documentTypes}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onView={canViewDocuments() ? handleView : undefined}
+          onEdit={canEditDocuments() ? handleEdit : undefined}
+          onDelete={canDeleteDocuments() ? handleDelete : undefined}
         />
               )}
             </TabsContent>
