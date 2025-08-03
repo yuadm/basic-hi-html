@@ -19,6 +19,11 @@ function EmployeeLoginContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Debug logging
+  console.log('Company settings:', companySettings);
+  console.log('Company loading:', companyLoading);
+  console.log('Logo URL:', companySettings.logo);
+
   const handleEmployeeLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
