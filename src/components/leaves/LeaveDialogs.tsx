@@ -164,6 +164,31 @@ export function LeaveDialogs({
                   <p className="mt-1 text-sm">{selectedLeave.manager_notes}</p>
                 </div>
               )}
+              {(selectedLeave.approved_date || selectedLeave.rejected_date) && (
+                <div className="border-t pt-4">
+                  <Label className="text-sm font-medium text-muted-foreground">Approval History</Label>
+                  <div className="mt-2 space-y-2">
+                    {selectedLeave.approved_date && (
+                      <div className="text-sm">
+                        <span className="font-medium text-green-700">Approved:</span>{' '}
+                        {format(new Date(selectedLeave.approved_date), 'PPP')}
+                        {selectedLeave.approved_by_user?.email && (
+                          <span className="text-muted-foreground"> by {selectedLeave.approved_by_user.email}</span>
+                        )}
+                      </div>
+                    )}
+                    {selectedLeave.rejected_date && (
+                      <div className="text-sm">
+                        <span className="font-medium text-red-700">Rejected:</span>{' '}
+                        {format(new Date(selectedLeave.rejected_date), 'PPP')}
+                        {selectedLeave.approved_by_user?.email && (
+                          <span className="text-muted-foreground"> by {selectedLeave.approved_by_user.email}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

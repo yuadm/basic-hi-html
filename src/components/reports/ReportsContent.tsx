@@ -148,7 +148,7 @@ export function ReportsContent() {
       name: "Leaves Report", 
       description: "Leave requests and balances",
       icon: "🌴",
-      fields: ["Employee", "Employee Code", "Branch", "Type", "Start Date", "End Date", "Duration", "Days Remaining", "Status", "Reason", "Submitted Date", "Manager Notes", "Approved By", "Approved Date", "Rejected Date"]
+      fields: ["Employee", "Employee Code", "Branch", "Type", "Start Date", "End Date", "Duration", "Days Remaining", "Status", "Reason", "Submitted Date", "Manager Notes", "Approved/Rejected By", "Approved Date", "Rejected Date"]
     },
     {
       id: "documents",
@@ -430,23 +430,40 @@ export function ReportsContent() {
           
           if (leavesError) throw leavesError;
           
-          const transformedLeavesData = (leavesData || []).map(leave => ({
-            Employee: leave.employees?.name || '',
-            'Employee Code': leave.employees?.employee_code || '',
-            Branch: leave.employees?.branch || '',
-            Type: leave.leave_types?.name || '',
-            'Start Date': new Date(leave.start_date).toLocaleDateString('en-GB'),
-            'End Date': new Date(leave.end_date).toLocaleDateString('en-GB'),
-            Duration: leave.days_requested || 0,
-            'Days Remaining': leave.employees?.remaining_leave_days || 0,
-            Status: leave.status || '',
-            Reason: leave.notes || '',
-            'Submitted Date': new Date(leave.created_at).toLocaleDateString('en-GB'),
-            'Manager Notes': leave.manager_notes || '',
-            'Approved By': leave.approved_by || '',
-            'Approved Date': leave.approved_date ? new Date(leave.approved_date).toLocaleDateString('en-GB') : '',
-            'Rejected Date': leave.rejected_date ? new Date(leave.rejected_date).toLocaleDateString('en-GB') : ''
-          }));
+          // Fetch user roles to get emails for approved_by IDs
+          const approvedByIds = (leavesData || [])
+            .map(leave => leave.approved_by)
+            .filter(id => id) as string[];
+          
+          let userRoles: any[] = [];
+          if (approvedByIds.length > 0) {
+            const { data: userRolesData } = await supabase
+              .from('user_roles')
+              .select('user_id, email')
+              .in('user_id', approvedByIds);
+            userRoles = userRolesData || [];
+          }
+          
+          const transformedLeavesData = (leavesData || []).map(leave => {
+            const approvedByUser = userRoles.find(ur => ur.user_id === leave.approved_by);
+            return {
+              Employee: leave.employees?.name || '',
+              'Employee Code': leave.employees?.employee_code || '',
+              Branch: leave.employees?.branch || '',
+              Type: leave.leave_types?.name || '',
+              'Start Date': new Date(leave.start_date).toLocaleDateString('en-GB'),
+              'End Date': new Date(leave.end_date).toLocaleDateString('en-GB'),
+              Duration: leave.days_requested || 0,
+              'Days Remaining': leave.employees?.remaining_leave_days || 0,
+              Status: leave.status || '',
+              Reason: leave.notes || '',
+              'Submitted Date': new Date(leave.created_at).toLocaleDateString('en-GB'),
+              'Manager Notes': leave.manager_notes || '',
+              'Approved/Rejected By': approvedByUser?.email || '',
+              'Approved Date': leave.approved_date ? new Date(leave.approved_date).toLocaleDateString('en-GB') : '',
+              'Rejected Date': leave.rejected_date ? new Date(leave.rejected_date).toLocaleDateString('en-GB') : ''
+            };
+          });
           
           const csvContentLeaves = convertToCSV(transformedLeavesData, selectedColumns[selectedReport]);
           filename = `leaves_report_${new Date().toISOString().split('T')[0]}`;

@@ -36,6 +36,10 @@ export interface Leave {
   employee_name?: string;
   leave_type_name?: string;
   employee_branch_id?: string;
+  approved_by_user?: {
+    user_id: string;
+    email: string;
+  };
 }
 
 export type SortField = 'employee_name' | 'leave_type' | 'start_date' | 'days' | 'status' | 'created_at';
