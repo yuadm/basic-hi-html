@@ -52,6 +52,10 @@ const handler = async (req: Request): Promise<Response> => {
           name: "Document Signing System",
           email: "yuadm3@gmail.com"
         },
+        replyTo: {
+          name: "Document Signing System", 
+          email: "yuadm3@gmail.com"
+        },
         to: [{ email: recipientEmail, name: recipientName }],
         subject: `Document Signing Request: ${documentTitle}`,
         htmlContent: `
