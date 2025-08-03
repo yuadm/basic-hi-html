@@ -145,9 +145,14 @@ export function DocumentEditDialog({
       notes: ""
     }));
     
+    console.log('Document type changing to:', documentTypeId);
+    console.log('Current editDocument state before clearing:', editDocument);
+    
     // Auto-populate fields from existing document of same type for this employee
     if (editDocument.employee_id && documentTypeId) {
       try {
+        console.log('Searching for existing document with employee_id:', editDocument.employee_id, 'document_type_id:', documentTypeId);
+        
         const { data: existingDoc, error } = await supabase
           .from('document_tracker')
           .select('*')
@@ -157,6 +162,8 @@ export function DocumentEditDialog({
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
+
+        console.log('Database query result:', { existingDoc, error });
 
         if (error) throw error;
 
