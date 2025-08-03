@@ -5,9 +5,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CompanyProvider } from "@/contexts/CompanyContext";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { PermissionsProvider, usePermissions } from "@/contexts/PermissionsContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { EmployeeAuthProvider } from "@/contexts/EmployeeAuthContext";
+import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import PublicHome from "./pages/PublicHome";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
@@ -27,25 +28,6 @@ import DocumentSigning from "./pages/DocumentSigning";
 import DocumentSigningView from "./pages/DocumentSigningView";
 import NotFound from "./pages/NotFound";
 
-// Protected Route component with permission checking
-function ProtectedRoute({ children, requiredPage }: { children: React.ReactNode; requiredPage?: string }) {
-  const { user, loading: authLoading } = useAuth();
-  const { hasPageAccess, loading: permissionsLoading } = usePermissions();
-  
-  if (authLoading || permissionsLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-  
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (requiredPage && !hasPageAccess(requiredPage)) {
-    return <Navigate to="/admin" replace />;
-  }
-  
-  return <>{children}</>;
-}
 
 // Employee routes wrapper with EmployeeAuthProvider
 function EmployeeRoutes() {

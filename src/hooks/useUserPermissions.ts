@@ -18,17 +18,23 @@ export function useUserPermissions() {
   const [permissions, setPermissions] = useState<UserPermission[]>([]);
   const [branchAccess, setBranchAccess] = useState<UserBranchAccess[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchUserPermissions();
     } else {
       setLoading(false);
+      setPermissions([]);
+      setBranchAccess([]);
     }
   }, [user]);
 
-  const fetchUserPermissions = async () => {
+  const fetchUserPermissions = async (retryCount = 0) => {
+    setError(null);
     try {
+      const maxRetries = 3;
+      
       // Fetch user permissions
       const { data: permData, error: permError } = await supabase
         .from('user_permissions')
@@ -47,9 +53,20 @@ export function useUserPermissions() {
 
       setPermissions(permData || []);
       setBranchAccess(branchData || []);
-    } catch (error) {
+      setError(null);
+    } catch (error: any) {
       console.error('Error fetching user permissions:', error);
-      // Set empty arrays if there's an error
+      setError(error.message);
+      
+      // Retry logic for transient errors
+      if (retryCount < 3) {
+        setTimeout(() => {
+          fetchUserPermissions(retryCount + 1);
+        }, 1000 * (retryCount + 1)); // Exponential backoff
+        return;
+      }
+      
+      // Set empty arrays if there's an error and no more retries
       setPermissions([]);
       setBranchAccess([]);
     } finally {
@@ -66,13 +83,16 @@ export function useUserPermissions() {
   };
 
   const hasPageAccess = (pagePath: string): boolean => {
-    // For backwards compatibility, check old page_access format first
-    const oldPageAccess = hasPermission('page_access', pagePath);
-    if (permissions.some(p => p.permission_type === 'page_access' && p.permission_key === pagePath)) {
-      return oldPageAccess;
+    // Check for explicit page_access permission first
+    const pageAccessPermission = permissions.find(
+      p => p.permission_type === 'page_access' && p.permission_key === pagePath
+    );
+    
+    if (pageAccessPermission) {
+      return pageAccessPermission.granted;
     }
     
-    // New format: check if user has 'view' permission for the page module
+    // Fallback to page_action view permission
     const moduleKey = getModuleKeyFromPath(pagePath);
     return hasPageAction(moduleKey, 'view');
   };
@@ -109,6 +129,7 @@ export function useUserPermissions() {
     permissions,
     branchAccess,
     loading,
+    error,
     hasPermission,
     hasPageAccess,
     hasFeatureAccess,
