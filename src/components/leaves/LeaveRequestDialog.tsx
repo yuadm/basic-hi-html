@@ -145,13 +145,15 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
         title: "Success",
         description: "Leave request submitted successfully",
       });
-
+      
       // Reset form
       setSelectedEmployee("");
       setSelectedLeaveType("");
       setStartDate(undefined);
       setEndDate(undefined);
       setNotes("");
+      
+      // Close dialog and refresh
       onOpenChange(false);
       onSuccess();
     } catch (error) {

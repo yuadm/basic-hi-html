@@ -103,6 +103,39 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_automation_settings: {
+        Row: {
+          auto_archive_completed: boolean
+          auto_generate_records: boolean
+          created_at: string
+          escalation_days: number
+          grace_period_days: number
+          id: string
+          notification_days_before: number
+          updated_at: string
+        }
+        Insert: {
+          auto_archive_completed?: boolean
+          auto_generate_records?: boolean
+          created_at?: string
+          escalation_days?: number
+          grace_period_days?: number
+          id?: string
+          notification_days_before?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_archive_completed?: boolean
+          auto_generate_records?: boolean
+          created_at?: string
+          escalation_days?: number
+          grace_period_days?: number
+          id?: string
+          notification_days_before?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       compliance_data_retention: {
         Row: {
           archive_due_date: string | null
@@ -155,13 +188,17 @@ export type Database = {
       }
       compliance_period_records: {
         Row: {
+          auto_generated: boolean | null
           completed_by: string | null
           completion_date: string
           completion_method: string | null
           compliance_type_id: string
           created_at: string
           employee_id: string
+          grace_period_end: string | null
           id: string
+          is_overdue: boolean | null
+          last_notification_sent: string | null
           next_due_date: string | null
           notes: string | null
           period_identifier: string
@@ -169,13 +206,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_generated?: boolean | null
           completed_by?: string | null
           completion_date: string
           completion_method?: string | null
           compliance_type_id: string
           created_at?: string
           employee_id: string
+          grace_period_end?: string | null
           id?: string
+          is_overdue?: boolean | null
+          last_notification_sent?: string | null
           next_due_date?: string | null
           notes?: string | null
           period_identifier: string
@@ -183,13 +224,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_generated?: boolean | null
           completed_by?: string | null
           completion_date?: string
           completion_method?: string | null
           compliance_type_id?: string
           created_at?: string
           employee_id?: string
+          grace_period_end?: string | null
           id?: string
+          is_overdue?: boolean | null
+          last_notification_sent?: string | null
           next_due_date?: string | null
           notes?: string | null
           period_identifier?: string
@@ -309,6 +354,7 @@ export type Database = {
       }
       compliance_questionnaires: {
         Row: {
+          branch_id: string | null
           compliance_type_id: string | null
           created_at: string
           description: string | null
@@ -318,6 +364,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          branch_id?: string | null
           compliance_type_id?: string | null
           created_at?: string
           description?: string | null
@@ -327,6 +374,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          branch_id?: string | null
           compliance_type_id?: string | null
           created_at?: string
           description?: string | null
@@ -336,6 +384,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "compliance_questionnaires_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "compliance_questionnaires_compliance_type_id_fkey"
             columns: ["compliance_type_id"]
@@ -524,6 +579,7 @@ export type Database = {
           created_at: string
           description: string | null
           frequency: string
+          has_questionnaire: boolean | null
           id: string
           name: string
           questionnaire_id: string | null
@@ -533,6 +589,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           frequency: string
+          has_questionnaire?: boolean | null
           id?: string
           name: string
           questionnaire_id?: string | null
@@ -542,6 +599,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           frequency?: string
+          has_questionnaire?: boolean | null
           id?: string
           name?: string
           questionnaire_id?: string | null
@@ -940,13 +998,6 @@ export type Database = {
           status?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "leave_requests_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "leave_requests_employee_id_fkey"
             columns: ["employee_id"]
@@ -1490,6 +1541,10 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_compliance_records_for_period: {
+        Args: { p_compliance_type_id: string; p_period_identifier: string }
+        Returns: number
+      }
       generate_employee_accounts: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1530,6 +1585,10 @@ export type Database = {
       is_admin_user: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      update_compliance_statuses: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       user_has_permission: {
         Args: { user_id: string; perm_type: string; perm_key: string }

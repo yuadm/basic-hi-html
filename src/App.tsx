@@ -5,9 +5,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CompanyProvider } from "@/contexts/CompanyContext";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { PermissionsProvider, usePermissions } from "@/contexts/PermissionsContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { EmployeeAuthProvider } from "@/contexts/EmployeeAuthContext";
+import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
+import { EmployeeProtectedRoute } from "@/components/layout/EmployeeProtectedRoute";
 import PublicHome from "./pages/PublicHome";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
@@ -24,27 +26,9 @@ import UnifiedAuth from "./pages/UnifiedAuth";
 import JobApplication from "./pages/JobApplication";
 import JobApplications from "./pages/JobApplications";
 import DocumentSigning from "./pages/DocumentSigning";
+import DocumentSigningView from "./pages/DocumentSigningView";
 import NotFound from "./pages/NotFound";
 
-// Protected Route component with permission checking
-function ProtectedRoute({ children, requiredPage }: { children: React.ReactNode; requiredPage?: string }) {
-  const { user, loading: authLoading } = useAuth();
-  const { hasPageAccess, loading: permissionsLoading } = usePermissions();
-  
-  if (authLoading || permissionsLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-  
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (requiredPage && !hasPageAccess(requiredPage)) {
-    return <Navigate to="/admin" replace />;
-  }
-  
-  return <>{children}</>;
-}
 
 // Employee routes wrapper with EmployeeAuthProvider
 function EmployeeRoutes() {
@@ -66,20 +50,25 @@ function AppContent() {
       <Route path="/" element={<PublicHome />} />
       <Route path="/login" element={<UnifiedAuth />} />
       <Route path="/job-application" element={<JobApplication />} />
+      <Route path="/sign/:token" element={<DocumentSigningView />} />
       
       {/* Legacy redirects */}
       <Route path="/auth" element={<Navigate to="/login" replace />} />
-      <Route path="/employee-login" element={<Navigate to="/login" replace />} />
+      <Route path="/employee-login" element={<UnifiedAuth />} />
       
-      {/* Employee routes with their own provider */}
+      {/* Employee routes with their own provider and protection */}
       <Route path="/employee-dashboard" element={
         <EmployeeAuthProvider>
-          <EmployeeDashboard />
+          <EmployeeProtectedRoute>
+            <EmployeeDashboard />
+          </EmployeeProtectedRoute>
         </EmployeeAuthProvider>
       } />
       <Route path="/employee-change-password" element={
         <EmployeeAuthProvider>
-          <EmployeeChangePassword />
+          <EmployeeProtectedRoute>
+            <EmployeeChangePassword />
+          </EmployeeProtectedRoute>
         </EmployeeAuthProvider>
       } />
       

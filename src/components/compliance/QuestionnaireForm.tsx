@@ -362,9 +362,20 @@ export function QuestionnaireForm({
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="text-center text-muted-foreground">
-            <p>No questionnaire found for this compliance type.</p>
-            <p className="text-sm mt-2">Please contact your administrator to set up a questionnaire.</p>
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">No Questionnaire Available</h3>
+              <p className="text-muted-foreground">
+                This compliance type ({complianceTypeName}) doesn't have a questionnaire assigned yet.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Please contact your administrator to set up a questionnaire, or use the Date/Text entry options instead.
+              </p>
+            </div>
+            <Button variant="outline" onClick={onComplete}>
+              Go Back
+            </Button>
           </div>
         </CardContent>
       </Card>

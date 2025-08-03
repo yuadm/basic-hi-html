@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -16,6 +17,7 @@ interface ComplianceType {
   name: string;
   description?: string;
   frequency: string;
+  has_questionnaire: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -62,7 +64,8 @@ export function ComplianceTypeManagement() {
   const [newComplianceType, setNewComplianceType] = useState({
     name: "",
     description: "",
-    frequency: ""
+    frequency: "",
+    has_questionnaire: false
   });
   const { toast } = useToast();
 
@@ -112,7 +115,8 @@ export function ComplianceTypeManagement() {
         .insert([{
           name: newComplianceType.name,
           description: newComplianceType.description || null,
-          frequency: newComplianceType.frequency
+          frequency: newComplianceType.frequency,
+          has_questionnaire: newComplianceType.has_questionnaire
         }])
         .select()
         .single();
@@ -129,7 +133,7 @@ export function ComplianceTypeManagement() {
 
       console.log('Compliance type added successfully:', data);
       setComplianceTypes([...complianceTypes, data]);
-      setNewComplianceType({ name: "", description: "", frequency: "" });
+      setNewComplianceType({ name: "", description: "", frequency: "", has_questionnaire: false });
       setIsAddDialogOpen(false);
       
       // Notify compliance page of the change
@@ -159,7 +163,8 @@ export function ComplianceTypeManagement() {
         .update({
           name: editingComplianceType.name,
           description: editingComplianceType.description || null,
-          frequency: editingComplianceType.frequency
+          frequency: editingComplianceType.frequency,
+          has_questionnaire: editingComplianceType.has_questionnaire
         })
         .eq('id', editingComplianceType.id);
 
@@ -270,10 +275,17 @@ export function ComplianceTypeManagement() {
                 {complianceType.description && (
                   <p className="text-sm text-muted-foreground">{complianceType.description}</p>
                 )}
-                <div className="text-sm">
-                  <span className="font-medium">Frequency:</span> {
-                    FREQUENCY_OPTIONS.find(opt => opt.value === complianceType.frequency)?.label || complianceType.frequency
-                  }
+                <div className="flex items-center gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Frequency:</span> {
+                      FREQUENCY_OPTIONS.find(opt => opt.value === complianceType.frequency)?.label || complianceType.frequency
+                    }
+                  </div>
+                  {complianceType.has_questionnaire && (
+                    <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                      Questionnaire Enabled
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button 
@@ -350,6 +362,21 @@ export function ComplianceTypeManagement() {
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="has-questionnaire"
+                  checked={newComplianceType.has_questionnaire}
+                  onCheckedChange={(checked) => setNewComplianceType(prev => ({ ...prev, has_questionnaire: checked }))}
+                />
+                <Label htmlFor="has-questionnaire">Enable Questionnaire</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                When enabled, users can complete a questionnaire for this compliance type instead of just entering dates.
+              </p>
+            </div>
+            
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
@@ -357,6 +384,7 @@ export function ComplianceTypeManagement() {
               <Button 
                 onClick={handleAddComplianceType} 
                 disabled={!newComplianceType.name.trim() || !newComplianceType.frequency}
+                className="bg-gradient-primary hover:opacity-90"
               >
                 Add Compliance Type
               </Button>
@@ -409,6 +437,21 @@ export function ComplianceTypeManagement() {
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="edit-has-questionnaire"
+                  checked={editingComplianceType?.has_questionnaire || false}
+                  onCheckedChange={(checked) => setEditingComplianceType(prev => prev ? { ...prev, has_questionnaire: checked } : null)}
+                />
+                <Label htmlFor="edit-has-questionnaire">Enable Questionnaire</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                When enabled, users can complete a questionnaire for this compliance type instead of just entering dates.
+              </p>
+            </div>
+            
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 Cancel
@@ -416,6 +459,7 @@ export function ComplianceTypeManagement() {
               <Button 
                 onClick={handleEditComplianceType} 
                 disabled={!editingComplianceType?.name.trim() || !editingComplianceType?.frequency}
+                className="bg-gradient-primary hover:opacity-90"
               >
                 Save Changes
               </Button>

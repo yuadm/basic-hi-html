@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Briefcase, Users } from 'lucide-react';
+import { Briefcase, Badge, Building } from 'lucide-react';
+import { CompanyProvider, useCompany } from '@/contexts/CompanyContext';
 
-export default function PublicHome() {
+function PublicHomeContent() {
   const { user, userRole, loading } = useAuth();
+  const { companySettings, loading: companyLoading } = useCompany();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,7 +37,19 @@ export default function PublicHome() {
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12 pt-8">
-          <h1 className="text-4xl font-bold mb-4">Welcome to Our Company</h1>
+          <div className="mx-auto mb-6 w-20 h-20 bg-primary/10 rounded-lg flex items-center justify-center">
+            {!companyLoading && companySettings.logo ? (
+              <img
+                src={companySettings.logo}
+                alt={companySettings.name}
+                className="h-16 w-16 object-contain"
+              />
+            ) : (
+              <Building className="w-10 h-10 text-primary" />
+            )}
+          </div>
+          <h1 className="text-4xl font-bold mb-2">{!companyLoading ? companySettings.name : 'Welcome to Our Company'}</h1>
+          <p className="text-lg text-muted-foreground mb-2">{!companyLoading && companySettings.tagline}</p>
           <p className="text-lg text-muted-foreground">Choose what you need to do today</p>
         </div>
         
@@ -69,7 +83,7 @@ export default function PublicHome() {
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-secondary" />
+                <Badge className="w-6 h-6 text-secondary" />
               </div>
               <CardTitle className="text-2xl">Employee Portal</CardTitle>
               <CardDescription>
@@ -93,5 +107,13 @@ export default function PublicHome() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PublicHome() {
+  return (
+    <CompanyProvider>
+      <PublicHomeContent />
+    </CompanyProvider>
   );
 }

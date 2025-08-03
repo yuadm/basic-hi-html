@@ -36,6 +36,7 @@ export function ReportsContent() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
   const [selectedLeaveType, setSelectedLeaveType] = useState<string>("all");
+  const [selectedLeaveStatus, setSelectedLeaveStatus] = useState<string>("all");
   const [selectedComplianceType, setSelectedComplianceType] = useState<string>("all");
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
@@ -147,7 +148,7 @@ export function ReportsContent() {
       name: "Leaves Report", 
       description: "Leave requests and balances",
       icon: "🌴",
-      fields: ["Employee", "Employee Code", "Branch", "Type", "Start Date", "End Date", "Duration", "Days Remaining", "Status", "Reason", "Submitted Date", "Added By", "Approved By", "Approved Date", "Rejected By", "Rejected Date"]
+      fields: ["Employee", "Employee Code", "Branch", "Type", "Start Date", "End Date", "Duration", "Days Remaining", "Status", "Reason", "Submitted Date", "Manager Notes", "Approved/Rejected By", "Approved Date", "Rejected Date"]
     },
     {
       id: "documents",
@@ -399,11 +400,11 @@ export function ReportsContent() {
 
         case "leaves":
           let query = supabase
-            .from('leaves')
+            .from('leave_requests')
             .select(`
               *,
-              employees (name, employee_code, remaining_leave_days, branch),
-              leave_types (name)
+              employees!leave_requests_employee_id_fkey (name, employee_code, remaining_leave_days, branch),
+              leave_types!leave_requests_leave_type_id_fkey (name)
             `)
             .order('start_date', { ascending: false });
 
@@ -413,6 +414,10 @@ export function ReportsContent() {
 
           if (selectedLeaveType !== "all") {
             query = query.eq('leave_types.name', selectedLeaveType);
+          }
+
+          if (selectedLeaveStatus !== "all") {
+            query = query.eq('status', selectedLeaveStatus);
           }
 
           if (dateRange?.from && dateRange?.to) {
@@ -425,24 +430,40 @@ export function ReportsContent() {
           
           if (leavesError) throw leavesError;
           
-          const transformedLeavesData = (leavesData || []).map(leave => ({
-            Employee: leave.employees?.name || '',
-            'Employee Code': leave.employees?.employee_code || '',
-            Branch: leave.employees?.branch || '',
-            Type: leave.leave_types?.name || '',
-            'Start Date': new Date(leave.start_date).toLocaleDateString('en-GB'),
-            'End Date': new Date(leave.end_date).toLocaleDateString('en-GB'),
-            Duration: leave.days || 0,
-            'Days Remaining': leave.employees?.remaining_leave_days || 0,
-            Status: leave.status || '',
-            Reason: leave.notes || '',
-            'Submitted Date': new Date(leave.created_at).toLocaleDateString('en-GB'),
-            'Added By': leave.manager_notes || '',
-            'Approved By': leave.approved_by || '',
-            'Approved Date': leave.approved_date ? new Date(leave.approved_date).toLocaleDateString('en-GB') : '',
-            'Rejected By': leave.rejected_by || '',
-            'Rejected Date': leave.rejected_date ? new Date(leave.rejected_date).toLocaleDateString('en-GB') : ''
-          }));
+          // Fetch user roles to get emails for approved_by IDs
+          const approvedByIds = (leavesData || [])
+            .map(leave => leave.approved_by)
+            .filter(id => id) as string[];
+          
+          let userRoles: any[] = [];
+          if (approvedByIds.length > 0) {
+            const { data: userRolesData } = await supabase
+              .from('user_roles')
+              .select('user_id, email')
+              .in('user_id', approvedByIds);
+            userRoles = userRolesData || [];
+          }
+          
+          const transformedLeavesData = (leavesData || []).map(leave => {
+            const approvedByUser = userRoles.find(ur => ur.user_id === leave.approved_by);
+            return {
+              Employee: leave.employees?.name || '',
+              'Employee Code': leave.employees?.employee_code || '',
+              Branch: leave.employees?.branch || '',
+              Type: leave.leave_types?.name || '',
+              'Start Date': new Date(leave.start_date).toLocaleDateString('en-GB'),
+              'End Date': new Date(leave.end_date).toLocaleDateString('en-GB'),
+              Duration: leave.days_requested || 0,
+              'Days Remaining': leave.employees?.remaining_leave_days || 0,
+              Status: leave.status || '',
+              Reason: leave.notes || '',
+              'Submitted Date': new Date(leave.created_at).toLocaleDateString('en-GB'),
+              'Manager Notes': leave.manager_notes || '',
+              'Approved/Rejected By': approvedByUser?.email || '',
+              'Approved Date': leave.approved_date ? new Date(leave.approved_date).toLocaleDateString('en-GB') : '',
+              'Rejected Date': leave.rejected_date ? new Date(leave.rejected_date).toLocaleDateString('en-GB') : ''
+            };
+          });
           
           const csvContentLeaves = convertToCSV(transformedLeavesData, selectedColumns[selectedReport]);
           filename = `leaves_report_${new Date().toISOString().split('T')[0]}`;
@@ -617,22 +638,38 @@ export function ReportsContent() {
             </div>
 
             {selectedReport === "leaves" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Leave Type</label>
-                <Select value={selectedLeaveType} onValueChange={setSelectedLeaveType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select leave type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Leave Types</SelectItem>
-                    {leaveTypes.map((leaveType) => (
-                      <SelectItem key={leaveType.id} value={leaveType.name}>
-                        {leaveType.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Leave Type</label>
+                  <Select value={selectedLeaveType} onValueChange={setSelectedLeaveType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select leave type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Leave Types</SelectItem>
+                      {leaveTypes.map((leaveType) => (
+                        <SelectItem key={leaveType.id} value={leaveType.name}>
+                          {leaveType.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Leave Status</label>
+                  <Select value={selectedLeaveStatus} onValueChange={setSelectedLeaveStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select leave status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
             )}
 
             {selectedReport === "compliance" && (

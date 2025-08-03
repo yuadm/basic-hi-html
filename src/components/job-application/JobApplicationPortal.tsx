@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Shield } from 'lucide-react';
+import { CompanyProvider, useCompany } from '@/contexts/CompanyContext';
 import { JobApplicationData, PersonalInfo, Availability, EmergencyContact, EmploymentHistory, References, SkillsExperience, Declaration, TermsPolicy } from './types';
 import { PersonalInfoStep } from './steps/PersonalInfoStep';
 import { AvailabilityStep } from './steps/AvailabilityStep';
@@ -64,11 +65,12 @@ const initialFormData: JobApplicationData = {
   termsPolicy: { consentToTerms: false, signature: '', fullName: '', date: '' }
 };
 
-export function JobApplicationPortal() {
+function JobApplicationPortalContent() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<JobApplicationData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { companySettings } = useCompany();
   const { toast } = useToast();
 
   const totalSteps = 8;
@@ -234,6 +236,27 @@ export function JobApplicationPortal() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
       <div className="max-w-2xl mx-auto">
+        {/* Company Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            {companySettings.logo ? (
+              <img
+                src={companySettings.logo}
+                alt={companySettings.name}
+                className="h-12 w-12 object-contain"
+              />
+            ) : (
+              <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                <Shield className="h-8 w-8 text-primary" />
+              </div>
+            )}
+            <div className="text-left">
+              <h1 className="text-2xl font-bold">{companySettings.name}</h1>
+              <p className="text-muted-foreground">{companySettings.tagline}</p>
+            </div>
+          </div>
+        </div>
+
         <div className="mb-8">
           <Button
             variant="ghost"
@@ -245,7 +268,7 @@ export function JobApplicationPortal() {
           </Button>
           
           <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold mb-2">Job Application</h1>
+            <h2 className="text-3xl font-bold mb-2">Job Application</h2>
             <p className="text-muted-foreground">Step {currentStep} of {totalSteps}: {getStepTitle()}</p>
           </div>
 
@@ -297,5 +320,13 @@ export function JobApplicationPortal() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export function JobApplicationPortal() {
+  return (
+    <CompanyProvider>
+      <JobApplicationPortalContent />
+    </CompanyProvider>
   );
 }

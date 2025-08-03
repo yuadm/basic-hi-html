@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { usePagePermissions } from "@/hooks/usePagePermissions";
 
 interface ComplianceType {
   id: string;
@@ -21,6 +22,12 @@ export function ComplianceContent() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { hasPageAccess } = usePermissions();
+  const { 
+    canViewCompliance,
+    canCreateCompliance,
+    canEditCompliance,
+    canDeleteCompliance
+  } = usePagePermissions();
 
   useEffect(() => {
     fetchComplianceTypes();
