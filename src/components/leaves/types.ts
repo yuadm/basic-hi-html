@@ -39,7 +39,7 @@ export interface Leave {
   approved_by_user?: {
     user_id: string;
     email: string;
-  };
+  } | null;
 }
 
 export type SortField = 'employee_name' | 'leave_type' | 'start_date' | 'days' | 'status' | 'created_at';
