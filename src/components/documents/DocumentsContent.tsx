@@ -316,9 +316,9 @@ export function DocumentsContent() {
         // Convert to ISO date string
         expiryDateValue = new Date(expiryDate.getTime() - expiryDate.getTimezoneOffset() * 60000).toISOString().split('T')[0];
       } else {
-        // For text values, save as-is and don't calculate status
+        // For text values, save as-is and set status to valid (no calculations)
         expiryDateValue = newDocument.expiry_date as string;
-        status = 'valid'; // Default status for text values
+        status = 'valid'; // Don't calculate status for text values
       }
 
       // Process issue date - can be either Date object or string
