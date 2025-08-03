@@ -103,6 +103,39 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_automation_settings: {
+        Row: {
+          auto_archive_completed: boolean
+          auto_generate_records: boolean
+          created_at: string
+          escalation_days: number
+          grace_period_days: number
+          id: string
+          notification_days_before: number
+          updated_at: string
+        }
+        Insert: {
+          auto_archive_completed?: boolean
+          auto_generate_records?: boolean
+          created_at?: string
+          escalation_days?: number
+          grace_period_days?: number
+          id?: string
+          notification_days_before?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_archive_completed?: boolean
+          auto_generate_records?: boolean
+          created_at?: string
+          escalation_days?: number
+          grace_period_days?: number
+          id?: string
+          notification_days_before?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       compliance_data_retention: {
         Row: {
           archive_due_date: string | null
@@ -155,13 +188,17 @@ export type Database = {
       }
       compliance_period_records: {
         Row: {
+          auto_generated: boolean | null
           completed_by: string | null
           completion_date: string
           completion_method: string | null
           compliance_type_id: string
           created_at: string
           employee_id: string
+          grace_period_end: string | null
           id: string
+          is_overdue: boolean | null
+          last_notification_sent: string | null
           next_due_date: string | null
           notes: string | null
           period_identifier: string
@@ -169,13 +206,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_generated?: boolean | null
           completed_by?: string | null
           completion_date: string
           completion_method?: string | null
           compliance_type_id: string
           created_at?: string
           employee_id: string
+          grace_period_end?: string | null
           id?: string
+          is_overdue?: boolean | null
+          last_notification_sent?: string | null
           next_due_date?: string | null
           notes?: string | null
           period_identifier: string
@@ -183,13 +224,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_generated?: boolean | null
           completed_by?: string | null
           completion_date?: string
           completion_method?: string | null
           compliance_type_id?: string
           created_at?: string
           employee_id?: string
+          grace_period_end?: string | null
           id?: string
+          is_overdue?: boolean | null
+          last_notification_sent?: string | null
           next_due_date?: string | null
           notes?: string | null
           period_identifier?: string
@@ -1496,6 +1541,10 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_compliance_records_for_period: {
+        Args: { p_compliance_type_id: string; p_period_identifier: string }
+        Returns: number
+      }
       generate_employee_accounts: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1536,6 +1585,10 @@ export type Database = {
       is_admin_user: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      update_compliance_statuses: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       user_has_permission: {
         Args: { user_id: string; perm_type: string; perm_key: string }
