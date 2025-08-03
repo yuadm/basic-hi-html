@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, CheckCircle, Clock, Eye, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useState, useMemo } from "react";
 import { DeleteDocumentDialog } from "./DeleteDocumentDialog";
@@ -46,15 +47,18 @@ interface DocumentTableProps {
   documents: Document[];
   employees: Employee[];
   documentTypes: DocumentType[];
+  selectedDocuments?: string[];
   onView?: (document: Document) => void;
   onEdit?: (document: Document) => void;
   onDelete?: (document: Document) => void;
+  onSelectDocument?: (documentId: string) => void;
+  onSelectAll?: () => void;
 }
 
 type SortField = 'employee' | 'branch' | 'country' | string;
 type SortDirection = 'asc' | 'desc';
 
-export function DocumentTable({ documents, employees, documentTypes, onView, onEdit, onDelete }: DocumentTableProps) {
+export function DocumentTable({ documents, employees, documentTypes, selectedDocuments = [], onView, onEdit, onDelete, onSelectDocument, onSelectAll }: DocumentTableProps) {
   const [sortField, setSortField] = useState<SortField>('employee');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -203,6 +207,15 @@ export function DocumentTable({ documents, employees, documentTypes, onView, onE
         <Table>
           <TableHeader>
             <TableRow>
+              {onSelectDocument && (
+                <TableHead className="w-12">
+                  <Checkbox 
+                    checked={selectedDocuments.length === documents.length && documents.length > 0}
+                    onCheckedChange={onSelectAll}
+                    aria-label="Select all documents"
+                  />
+                </TableHead>
+              )}
               <TableHead>
                 <Button
                   variant="ghost"
@@ -272,6 +285,29 @@ export function DocumentTable({ documents, employees, documentTypes, onView, onE
 
               return (
                 <TableRow key={employeeId} className="hover:bg-muted/50 transition-colors">
+                  {onSelectDocument && (
+                    <TableCell>
+                      <Checkbox 
+                        checked={employeeDocuments.every(doc => selectedDocuments.includes(doc.id))}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            employeeDocuments.forEach(doc => {
+                              if (!selectedDocuments.includes(doc.id)) {
+                                onSelectDocument(doc.id);
+                              }
+                            });
+                          } else {
+                            employeeDocuments.forEach(doc => {
+                              if (selectedDocuments.includes(doc.id)) {
+                                onSelectDocument(doc.id);
+                              }
+                            });
+                          }
+                        }}
+                        aria-label={`Select all documents for ${firstDocument.employees?.name}`}
+                      />
+                    </TableCell>
+                  )}
                 <TableCell className="font-medium">
                   <div className="space-y-1">
                     <div>{firstDocument.employees?.name}</div>

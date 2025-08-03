@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, FileText, Search, Filter, AlertTriangle, CheckCircle, Clock, Calendar, Upload, Download, X, FileSpreadsheet, AlertCircle } from "lucide-react";
+import { Plus, FileText, Search, Filter, AlertTriangle, CheckCircle, Clock, Calendar, Upload, Download, X, FileSpreadsheet, AlertCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DocumentTable } from "./DocumentTable";
 import { DocumentViewDialog } from "./DocumentViewDialog";
 import { DocumentEditDialog } from "./DocumentEditDialog";
@@ -122,6 +123,8 @@ export function DocumentsContent() {
   const [importing, setImporting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [batchDeleteDialogOpen, setBatchDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -482,6 +485,15 @@ export function DocumentsContent() {
   };
 
   const handleDelete = async (document: Document) => {
+    if (!canDeleteDocuments()) {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to delete documents.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('document_tracker')
@@ -503,6 +515,58 @@ export function DocumentsContent() {
         description: "Could not delete document. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const batchDeleteDocuments = async () => {
+    if (!canDeleteDocuments()) {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to delete documents.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('document_tracker')
+        .delete()
+        .in('id', selectedDocuments);
+
+      if (error) throw error;
+
+      toast({
+        title: "Documents deleted",
+        description: `Successfully deleted ${selectedDocuments.length} documents.`,
+      });
+
+      setBatchDeleteDialogOpen(false);
+      setSelectedDocuments([]);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting documents:', error);
+      toast({
+        title: "Error deleting documents",
+        description: "Could not delete documents. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleSelectDocument = (documentId: string) => {
+    setSelectedDocuments(prev => 
+      prev.includes(documentId) 
+        ? prev.filter(id => id !== documentId)
+        : [...prev, documentId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedDocuments.length === filteredDocuments.length) {
+      setSelectedDocuments([]);
+    } else {
+      setSelectedDocuments(filteredDocuments.map(doc => doc.id));
     }
   };
 
@@ -894,6 +958,15 @@ export function DocumentsContent() {
         </div>
         
         <div className="flex items-center gap-3">
+          {selectedDocuments.length > 0 && canDeleteDocuments() && (
+            <Button 
+              variant="destructive"
+              onClick={() => setBatchDeleteDialogOpen(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Selected ({selectedDocuments.length})
+            </Button>
+          )}
           {canUploadDocuments() && (
             <Button 
               variant="outline"
@@ -1070,9 +1143,12 @@ export function DocumentsContent() {
           documents={filteredDocuments}
           employees={employees}
           documentTypes={documentTypes}
+          selectedDocuments={selectedDocuments}
           onView={canViewDocuments() ? handleView : undefined}
           onEdit={canEditDocuments() ? handleEdit : undefined}
           onDelete={canDeleteDocuments() ? handleDelete : undefined}
+          onSelectDocument={toggleSelectDocument}
+          onSelectAll={toggleSelectAll}
         />
               )}
             </TabsContent>
@@ -1457,6 +1533,28 @@ export function DocumentsContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Batch Delete Dialog */}
+      <AlertDialog open={batchDeleteDialogOpen} onOpenChange={setBatchDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Selected Documents</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedDocuments.length} selected document{selectedDocuments.length !== 1 ? 's' : ''}? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={batchDeleteDocuments}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Documents
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
