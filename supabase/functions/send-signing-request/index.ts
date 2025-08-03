@@ -32,18 +32,25 @@ const handler = async (req: Request): Promise<Response> => {
     }: SigningRequestEmail = await req.json();
 
     console.log("Sending signing request email to:", recipientEmail);
+    
+    const apiKey = Deno.env.get("BREVO_API_KEY");
+    if (!apiKey) {
+      throw new Error("BREVO_API_KEY environment variable is not set");
+    }
+    
+    console.log("Using Brevo API key:", apiKey ? "Key is set" : "Key is missing");
 
     const emailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
         "accept": "application/json",
-        "api-key": Deno.env.get("BREVO_API_KEY") || "",
+        "api-key": apiKey,
         "content-type": "application/json"
       },
       body: JSON.stringify({
         sender: {
           name: "Document Signing System",
-          email: "noreply@yourdomain.com"
+          email: "yuadm3@gmail.com"
         },
         to: [{ email: recipientEmail, name: recipientName }],
         subject: `Document Signing Request: ${documentTitle}`,
@@ -112,7 +119,9 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (!emailResponse.ok) {
-      throw new Error(`Brevo API error: ${emailResponse.status}`);
+      const errorText = await emailResponse.text();
+      console.error("Brevo API error response:", errorText);
+      throw new Error(`Brevo API error: ${emailResponse.status} - ${errorText}`);
     }
 
     const result = await emailResponse.json();
