@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -105,17 +106,6 @@ export function UserPermissionsDialog({ user, onSuccess }: UserPermissionsDialog
   const generateDefaultPermissions = () => {
     const permissions: Permission[] = [];
     
-    // Add page access permissions
-    pageModules.forEach(module => {
-      permissions.push({
-        type: 'page_access',
-        key: module.path,
-        label: `${module.name} - Page Access`,
-        granted: true
-      });
-    });
-    
-    // Add page action permissions
     pageModules.forEach(module => {
       module.actions.forEach(action => {
         permissions.push({
@@ -298,99 +288,46 @@ export function UserPermissionsDialog({ user, onSuccess }: UserPermissionsDialog
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Page Access Permissions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Page Access</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Control which pages the user can access
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {pageModules.map((module) => {
-                  const pageAccessPermission = permissions.find(p => 
-                    p.type === 'page_access' && p.key === module.path
-                  );
-                  const permIndex = permissions.findIndex(p => 
-                    p.type === 'page_access' && p.key === module.path
-                  );
-                  
-                  if (!pageAccessPermission) return null;
-                  
-                  return (
-                    <div key={`page-${module.key}`} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`page-access-${module.key}`}
-                        checked={pageAccessPermission.granted}
-                        onCheckedChange={(checked) => handlePermissionChange(permIndex, !!checked)}
-                      />
-                      <Label 
-                        htmlFor={`page-access-${module.key}`}
-                        className="text-sm cursor-pointer font-medium"
-                      >
-                        {module.name}
-                      </Label>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Page Action Permissions */}
-          {pageModules.map((module) => {
-            const pageAccessPermission = permissions.find(p => 
-              p.type === 'page_access' && p.key === module.path
-            );
-            const hasPageAccess = pageAccessPermission?.granted ?? true;
-            
-            return (
-              <Card key={module.key} className={!hasPageAccess ? "opacity-50" : ""}>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    {module.name} - Actions
-                    <span className="text-sm text-muted-foreground font-normal">
-                      ({module.path})
-                    </span>
-                  </CardTitle>
-                  {!hasPageAccess && (
-                    <p className="text-xs text-muted-foreground">
-                      Page access must be granted for these permissions to take effect
-                    </p>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {module.actions.map((action) => {
-                      const permKey = `${module.key}:${action}`;
-                      const permission = permissions.find(p => p.key === permKey && p.type === 'page_action');
-                      const permIndex = permissions.findIndex(p => p.key === permKey && p.type === 'page_action');
-                      
-                      if (!permission) return null;
-                      
-                      return (
-                        <div key={action} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`${module.key}-${action}`}
-                            checked={permission.granted}
-                            disabled={!hasPageAccess}
-                            onCheckedChange={(checked) => handlePermissionChange(permIndex, !!checked)}
-                          />
-                          <Label 
-                            htmlFor={`${module.key}-${action}`}
-                            className="text-sm capitalize cursor-pointer"
-                          >
-                            {action}
-                          </Label>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {/* Page-Specific Permissions */}
+          {pageModules.map((module) => (
+            <Card key={module.key}>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {module.name}
+                  <span className="text-sm text-muted-foreground font-normal">
+                    ({module.path})
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {module.actions.map((action) => {
+                    const permKey = `${module.key}:${action}`;
+                    const permission = permissions.find(p => p.key === permKey);
+                    const permIndex = permissions.findIndex(p => p.key === permKey);
+                    
+                    if (!permission) return null;
+                    
+                    return (
+                      <div key={action} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`${module.key}-${action}`}
+                          checked={permission.granted}
+                          onCheckedChange={(checked) => handlePermissionChange(permIndex, !!checked)}
+                        />
+                        <Label 
+                          htmlFor={`${module.key}-${action}`}
+                          className="text-sm capitalize cursor-pointer"
+                        >
+                          {action}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
 
           {/* Branch Access */}
           <Card>

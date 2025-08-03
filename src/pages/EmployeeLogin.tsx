@@ -6,16 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, User, Lock, Shield, ArrowLeft } from 'lucide-react';
+import { Loader2, User, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { CompanyProvider, useCompany } from '@/contexts/CompanyContext';
 
-function EmployeeLoginContent() {
+export default function EmployeeLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { companySettings, loading: companyLoading } = useCompany();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -146,32 +144,15 @@ function EmployeeLoginContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/')}
-        className="absolute top-4 left-4 flex items-center gap-2"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Home
-      </Button>
       <Card className="w-full max-w-md shadow-glow">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-            {companySettings.logo ? (
-              <img
-                src={companySettings.logo}
-                alt={companySettings.name}
-                className="h-12 w-12 object-contain"
-              />
-            ) : (
-              <Shield className="w-8 h-8 text-primary" />
-            )}
+          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+            <User className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">{companySettings.name}</CardTitle>
-            <CardDescription className="space-y-1">
-              <div>{companySettings.tagline}</div>
-              <div className="text-sm">Employee Portal - Sign in with your credentials</div>
+            <CardTitle className="text-2xl font-bold">Employee Portal</CardTitle>
+            <CardDescription>
+              Sign in with your employee credentials
             </CardDescription>
           </div>
         </CardHeader>
@@ -223,13 +204,5 @@ function EmployeeLoginContent() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-export default function EmployeeLogin() {
-  return (
-    <CompanyProvider>
-      <EmployeeLoginContent />
-    </CompanyProvider>
   );
 }

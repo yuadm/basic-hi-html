@@ -236,23 +236,8 @@ export function AddComplianceRecordModal({
         });
         return;
       }
-          } else if (recordType === 'questionnaire') {
-      // For questionnaire, we need to check if one exists first
-      const { data: complianceType } = await supabase
-        .from('compliance_types')
-        .select('questionnaire_id')
-        .eq('id', complianceTypeId)
-        .single();
-      
-      if (!complianceType?.questionnaire_id) {
-        toast({
-          title: "No questionnaire available",
-          description: "This compliance type doesn't have a questionnaire assigned. Please use Date or Text entry instead.",
-          variant: "destructive",
-        });
-        return;
-      }
-      // The QuestionnaireForm handles submission
+    } else if (recordType === 'questionnaire') {
+      // For questionnaire, we don't submit here - the QuestionnaireForm handles submission
       return;
     }
 

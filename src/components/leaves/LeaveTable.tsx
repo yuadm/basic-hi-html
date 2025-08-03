@@ -12,10 +12,10 @@ interface LeaveTableProps {
   sortField: SortField;
   sortDirection: SortDirection;
   onSort: (field: SortField) => void;
-  onViewLeave?: (leave: Leave) => void;
-  onEditLeave?: (leave: Leave) => void;
-  onDeleteLeave?: (leave: Leave) => void;
-  onUpdateStatus?: (leaveId: string, status: 'approved' | 'rejected' | 'pending', managerNotes?: string) => void;
+  onViewLeave: (leave: Leave) => void;
+  onEditLeave: (leave: Leave) => void;
+  onDeleteLeave: (leave: Leave) => void;
+  onUpdateStatus: (leaveId: string, status: 'approved' | 'rejected' | 'pending', managerNotes?: string) => void;
 }
 
 export function LeaveTable({ 
@@ -166,67 +166,57 @@ export function LeaveTable({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {onViewLeave && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => onViewLeave(leave)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {onEditLeave && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => onEditLeave(leave)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {onDeleteLeave && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => onDeleteLeave(leave)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {onUpdateStatus && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => onViewLeave(leave)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => onEditLeave(leave)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => onDeleteLeave(leave)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        {leave.status === 'pending' && (
                           <>
-                            {leave.status === 'pending' && (
-                              <>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  className="text-green-600 hover:text-green-700"
-                                  onClick={() => onUpdateStatus(leave.id, 'approved')}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  className="text-red-600 hover:text-red-700"
-                                  onClick={() => onUpdateStatus(leave.id, 'rejected')}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                            {(leave.status === 'approved' || leave.status === 'rejected') && (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-blue-600 hover:text-blue-700"
-                                onClick={() => onUpdateStatus(leave.id, 'pending')}
-                              >
-                                Reset to Pending
-                              </Button>
-                            )}
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-green-600 hover:text-green-700"
+                              onClick={() => onUpdateStatus(leave.id, 'approved')}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => onUpdateStatus(leave.id, 'rejected')}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
                           </>
+                        )}
+                        {(leave.status === 'approved' || leave.status === 'rejected') && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="text-blue-600 hover:text-blue-700"
+                            onClick={() => onUpdateStatus(leave.id, 'pending')}
+                          >
+                            Reset to Pending
+                          </Button>
                         )}
                       </div>
                     </TableCell>

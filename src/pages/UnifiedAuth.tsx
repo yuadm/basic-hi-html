@@ -7,16 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, User, Shield, Lock, ArrowLeft } from 'lucide-react';
+import { Loader2, User, Shield, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { CompanyProvider, useCompany } from '@/contexts/CompanyContext';
 
-function UnifiedAuthContent() {
+export default function UnifiedAuth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { companySettings } = useCompany();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -232,32 +230,15 @@ function UnifiedAuthContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/')}
-        className="absolute top-4 left-4 flex items-center gap-2"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Home
-      </Button>
       <Card className="w-full max-w-md shadow-glow">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-            {companySettings.logo ? (
-              <img
-                src={companySettings.logo}
-                alt={companySettings.name}
-                className="h-12 w-12 object-contain"
-              />
-            ) : (
-              <Shield className="w-8 h-8 text-primary" />
-            )}
+          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+            <Shield className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">{companySettings.name || 'Welcome'}</CardTitle>
+            <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
             <CardDescription>
-              {companySettings.tagline && <div>{companySettings.tagline}</div>}
-              <div>Sign in to access your dashboard or employee portal</div>
+              Sign in to access your dashboard or employee portal
             </CardDescription>
           </div>
         </CardHeader>
@@ -358,13 +339,5 @@ function UnifiedAuthContent() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-export default function UnifiedAuth() {
-  return (
-    <CompanyProvider>
-      <UnifiedAuthContent />
-    </CompanyProvider>
   );
 }

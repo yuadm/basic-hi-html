@@ -11,7 +11,6 @@ import { LeaveDialogs } from "./LeaveDialogs";
 import { useLeaveData } from "./hooks/useLeaveData";
 import { useLeaveActions } from "./hooks/useLeaveActions";
 import { usePermissions } from "@/contexts/PermissionsContext";
-import { usePagePermissions } from "@/hooks/usePagePermissions";
 import { Leave } from "./types";
 
 export function LeavesContent() {
@@ -48,13 +47,6 @@ export function LeavesContent() {
 
   // Get permissions context
   const { isAdmin, getAccessibleBranches } = usePermissions();
-  const { 
-    canViewLeaves,
-    canCreateLeaves,
-    canEditLeaves,
-    canDeleteLeaves,
-    canApproveLeaves
-  } = usePagePermissions();
 
   const filteredLeaves = leaves.filter(leave => {
     const matchesSearch = leave.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -190,15 +182,13 @@ export function LeavesContent() {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          {canCreateLeaves() && (
-            <Button 
-              className="bg-gradient-primary hover:opacity-90"
-              onClick={() => setDialogOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Request Leave
-            </Button>
-          )}
+          <Button 
+            className="bg-gradient-primary hover:opacity-90"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Request Leave
+          </Button>
         </div>
       </div>
 
@@ -264,10 +254,10 @@ export function LeavesContent() {
         sortField={sortField}
         sortDirection={sortDirection}
         onSort={handleSort}
-        onViewLeave={canViewLeaves() ? handleViewLeave : undefined}
-        onEditLeave={canEditLeaves() ? handleEditLeave : undefined}
-        onDeleteLeave={canDeleteLeaves() ? handleDeleteLeave : undefined}
-        onUpdateStatus={canApproveLeaves() ? handleUpdateStatus : undefined}
+        onViewLeave={handleViewLeave}
+        onEditLeave={handleEditLeave}
+        onDeleteLeave={handleDeleteLeave}
+        onUpdateStatus={handleUpdateStatus}
       />
 
       {/* Leave Request Dialog */}

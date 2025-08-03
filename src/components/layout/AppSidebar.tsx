@@ -116,7 +116,7 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const { companySettings } = useCompany();
   const { user, userRole, signOut } = useAuth();
-  const { hasPageAccess, loading: permissionsLoading, error } = usePermissions();
+  const { hasPageAccess } = usePermissions();
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
@@ -140,14 +140,14 @@ export function AppSidebar() {
     );
   };
 
-  // Filter navigation items based on permissions (only when not loading)
-  const accessibleNavigationItems = permissionsLoading 
-    ? [] 
-    : navigationItems.filter(item => hasPageAccess(item.requiredPage));
+  // Filter navigation items based on permissions
+  const accessibleNavigationItems = navigationItems.filter(item => 
+    hasPageAccess(item.requiredPage)
+  );
 
-  const accessibleSettingsItems = permissionsLoading 
-    ? [] 
-    : settingsItems.filter(item => hasPageAccess(item.requiredPage));
+  const accessibleSettingsItems = settingsItems.filter(item => 
+    hasPageAccess(item.requiredPage)
+  );
 
   return (
     <Sidebar
@@ -201,88 +201,64 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-3 py-4">
-        {permissionsLoading ? (
-          <div className="space-y-4">
-            <div className="animate-pulse space-y-2">
-              <div className="h-4 bg-sidebar-accent rounded w-20"></div>
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 bg-sidebar-accent rounded"></div>
+        <SidebarGroup>
+          {!collapsed && (
+            <SidebarGroupLabel className="text-xs uppercase tracking-wider text-sidebar-foreground/60 font-semibold mb-2">
+              Main Menu
+            </SidebarGroupLabel>
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu className="space-y-1">
+              {accessibleNavigationItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
+                    <NavLink to={item.url} className={getNavClassName(item.url)}>
+                      <item.icon className="w-5 h-5 flex-shrink-0" />
+                      {!collapsed && (
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">{item.title}</div>
+                          <div className="text-xs opacity-60 truncate">
+                            {item.description}
+                          </div>
+                        </div>
+                      )}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               ))}
-            </div>
-            <div className="animate-pulse space-y-2 mt-8">
-              <div className="h-4 bg-sidebar-accent rounded w-24"></div>
-              {[1, 2].map((i) => (
-                <div key={i} className="h-10 bg-sidebar-accent rounded"></div>
-              ))}
-            </div>
-          </div>
-        ) : error ? (
-          <div className="p-4 text-center">
-            <div className="text-destructive text-sm mb-2">Failed to load permissions</div>
-            <div className="text-xs text-muted-foreground">Please refresh the page</div>
-          </div>
-        ) : (
-          <>
-            <SidebarGroup>
-              {!collapsed && (
-                <SidebarGroupLabel className="text-xs uppercase tracking-wider text-sidebar-foreground/60 font-semibold mb-2">
-                  Main Menu
-                </SidebarGroupLabel>
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu className="space-y-1">
-                  {accessibleNavigationItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
-                        <NavLink to={item.url} className={getNavClassName(item.url)}>
-                          <item.icon className="w-5 h-5 flex-shrink-0" />
-                          {!collapsed && (
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium">{item.title}</div>
-                              <div className="text-xs opacity-60 truncate">
-                                {item.description}
-                              </div>
-                            </div>
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-            {accessibleSettingsItems.length > 0 && (
-              <SidebarGroup className="mt-8">
-                {!collapsed && (
-                  <SidebarGroupLabel className="text-xs uppercase tracking-wider text-sidebar-foreground/60 font-semibold mb-2">
-                    Administration
-                  </SidebarGroupLabel>
-                )}
-                <SidebarGroupContent>
-                  <SidebarMenu className="space-y-1">
-                    {accessibleSettingsItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
-                          <NavLink to={item.url} className={getNavClassName(item.url)}>
-                            <item.icon className="w-5 h-5 flex-shrink-0" />
-                            {!collapsed && (
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium">{item.title}</div>
-                                <div className="text-xs opacity-60 truncate">
-                                  {item.description}
-                                </div>
-                              </div>
-                            )}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
+        {accessibleSettingsItems.length > 0 && (
+          <SidebarGroup className="mt-8">
+            {!collapsed && (
+              <SidebarGroupLabel className="text-xs uppercase tracking-wider text-sidebar-foreground/60 font-semibold mb-2">
+                Administration
+              </SidebarGroupLabel>
             )}
-          </>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {accessibleSettingsItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
+                      <NavLink to={item.url} className={getNavClassName(item.url)}>
+                        <item.icon className="w-5 h-5 flex-shrink-0" />
+                        {!collapsed && (
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium">{item.title}</div>
+                            <div className="text-xs opacity-60 truncate">
+                              {item.description}
+                            </div>
+                          </div>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
       </SidebarContent>
 

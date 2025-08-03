@@ -46,9 +46,9 @@ interface DocumentTableProps {
   documents: Document[];
   employees: Employee[];
   documentTypes: DocumentType[];
-  onView?: (document: Document) => void;
-  onEdit?: (document: Document) => void;
-  onDelete?: (document: Document) => void;
+  onView: (document: Document) => void;
+  onEdit: (document: Document) => void;
+  onDelete: (document: Document) => void;
 }
 
 type SortField = 'employee' | 'branch' | 'country' | string;
@@ -98,7 +98,7 @@ export function DocumentTable({ documents, employees, documentTypes, onView, onE
   const handleDeleteConfirm = (documentsToDelete: Document[]) => {
     // Call onDelete for each document
     documentsToDelete.forEach(document => {
-      onDelete?.(document);
+      onDelete(document);
     });
     setDeleteDialogOpen(false);
     setDocumentsToDelete([]);
@@ -344,36 +344,30 @@ export function DocumentTable({ documents, employees, documentTypes, onView, onE
                   })}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {onView && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onView(firstDocument)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onEdit && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onEdit(firstDocument)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onDelete && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(employeeDocuments)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onView(firstDocument)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(firstDocument)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(employeeDocuments)}
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

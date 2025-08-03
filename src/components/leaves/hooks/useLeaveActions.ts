@@ -155,9 +155,6 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
       const previousStatus = leave.status;
       const leaveType = leaveTypes.find(lt => lt.id === leave.leave_type_id);
 
-      // Get current user for audit trail
-      const { data: { user } } = await supabase.auth.getUser();
-      
       // Update leave status
       const { error: leaveError } = await supabase
         .from('leave_requests')
@@ -165,8 +162,7 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
           status: newStatus, 
           manager_notes: managerNotes || null,
           approved_date: newStatus === 'approved' ? new Date().toISOString() : null,
-          rejected_date: newStatus === 'rejected' ? new Date().toISOString() : null,
-          approved_by: newStatus === 'approved' ? user?.id : null
+          rejected_date: newStatus === 'rejected' ? new Date().toISOString() : null
         })
         .eq('id', leaveId);
 

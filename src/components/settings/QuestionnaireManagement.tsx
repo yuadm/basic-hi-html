@@ -6,16 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Settings, FileText, Edit, Trash2 } from "lucide-react";
+import { Plus, Settings, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 interface Question {
   id: string;
@@ -29,31 +22,11 @@ interface ComplianceType {
   id: string;
   name: string;
   description?: string;
-  has_questionnaire: boolean;
-}
-
-interface Branch {
-  id: string;
-  name: string;
-}
-
-interface Questionnaire {
-  id: string;
-  name: string;
-  description?: string;
-  is_active: boolean;
-  compliance_type_id?: string;
-  branch_id?: string;
-  compliance_types?: { name: string };
-  branches?: { name: string };
 }
 
 export function QuestionnaireManagement() {
   const [complianceTypes, setComplianceTypes] = useState<ComplianceType[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
   const [selectedComplianceType, setSelectedComplianceType] = useState("");
-  const [selectedBranch, setSelectedBranch] = useState("");
   const [questionnaireName, setQuestionnaireName] = useState("");
   const [questionnaireDescription, setQuestionnaireDescription] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -73,16 +46,13 @@ export function QuestionnaireManagement() {
 
   useEffect(() => {
     fetchComplianceTypes();
-    fetchBranches();
-    fetchQuestionnaires();
   }, []);
 
   const fetchComplianceTypes = async () => {
     try {
       const { data, error } = await supabase
         .from('compliance_types')
-        .select('id, name, description, has_questionnaire')
-        .eq('has_questionnaire', true)
+        .select('id, name, description')
         .order('name');
 
       if (error) throw error;
@@ -92,48 +62,6 @@ export function QuestionnaireManagement() {
       toast({
         title: "Error",
         description: "Failed to load compliance types",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchBranches = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('branches')
-        .select('id, name')
-        .order('name');
-
-      if (error) throw error;
-      setBranches(data || []);
-    } catch (error) {
-      console.error('Error fetching branches:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load branches",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchQuestionnaires = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('compliance_questionnaires')
-        .select(`
-          *,
-          compliance_types(name),
-          branches(name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setQuestionnaires(data || []);
-    } catch (error) {
-      console.error('Error fetching questionnaires:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load questionnaires",
         variant: "destructive",
       });
     }
@@ -193,100 +121,8 @@ export function QuestionnaireManagement() {
     });
   };
 
-  const loadSpotCheckTemplate = () => {
-    const spotCheckQuestions: Question[] = [
-      {
-        id: "1",
-        question_text: "Care Worker arrives at the Service User's home on time",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "2", 
-        question_text: "Care Worker has keys for entry/Alerts the Service User upon arrival / key safe number",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "3",
-        question_text: "Care Worker is wearing a valid and current ID badge",
-        question_type: "yes_no", 
-        is_required: true
-      },
-      {
-        id: "4",
-        question_text: "Care Worker practices safe hygiene (use of PPE clothing, gloves/aprons etc.",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "5",
-        question_text: "Care Worker checks Service User's care plan upon arrival",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "6",
-        question_text: "Equipment (hoists etc) used properly",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "7",
-        question_text: "Care Worker practices proper food safety and hygiene principles",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "8",
-        question_text: "Care Worker is vigilant for hazards in the Service Users home",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "9",
-        question_text: "Care Worker communicates with the Service User (tasks to be done maintaining confidentiality",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "10",
-        question_text: "Care Worker asks Service User if he/she is satisfied with the service",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "11",
-        question_text: "Care Worker completes Daily Report forms satisfactorily",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "12",
-        question_text: "Snacks left for the Service User are covered and stored properly",
-        question_type: "yes_no",
-        is_required: true
-      },
-      {
-        id: "13",
-        question_text: "Care Worker leaves premises, locking doors behind him/ her",
-        question_type: "yes_no",
-        is_required: true
-      }
-    ];
-
-    setQuestions(spotCheckQuestions);
-    if (!questionnaireName) {
-      setQuestionnaireName("Spot Check Questionnaire");
-    }
-    toast({
-      title: "Template Loaded",
-      description: "Spot check template questions have been loaded",
-    });
-  };
-
   const saveQuestionnaire = async () => {
-    if (!questionnaireName || !selectedComplianceType || !selectedBranch || questions.length === 0) {
+    if (!questionnaireName || !selectedComplianceType || questions.length === 0) {
       toast({
         title: "Error", 
         description: "Please fill in all required fields and add at least one question",
@@ -297,23 +133,6 @@ export function QuestionnaireManagement() {
 
     setLoading(true);
     try {
-      // Check if questionnaire already exists for this compliance type + branch
-      const { data: existing } = await supabase
-        .from('compliance_questionnaires')
-        .select('id')
-        .eq('compliance_type_id', selectedComplianceType)
-        .eq('branch_id', selectedBranch)
-        .single();
-
-      if (existing) {
-        toast({
-          title: "Error",
-          description: "A questionnaire already exists for this compliance type and branch combination",
-          variant: "destructive",
-        });
-        return;
-      }
-
       // Create the questionnaire
       const { data: questionnaire, error: questionnaireError } = await supabase
         .from('compliance_questionnaires')
@@ -321,7 +140,6 @@ export function QuestionnaireManagement() {
           name: questionnaireName,
           description: questionnaireDescription,
           compliance_type_id: selectedComplianceType,
-          branch_id: selectedBranch,
           is_active: true
         })
         .select()
@@ -358,6 +176,14 @@ export function QuestionnaireManagement() {
 
       if (linkError) throw linkError;
 
+      // Update compliance type to link to this questionnaire
+      const { error: updateError } = await supabase
+        .from('compliance_types')
+        .update({ questionnaire_id: questionnaire.id })
+        .eq('id', selectedComplianceType);
+
+      if (updateError) throw updateError;
+
       toast({
         title: "Success",
         description: "Questionnaire saved successfully!",
@@ -367,11 +193,7 @@ export function QuestionnaireManagement() {
       setQuestionnaireName("");
       setQuestionnaireDescription("");
       setSelectedComplianceType("");
-      setSelectedBranch("");
       setQuestions([]);
-      
-      // Refresh questionnaires list
-      fetchQuestionnaires();
       
     } catch (error) {
       console.error('Error saving questionnaire:', error);
@@ -385,95 +207,8 @@ export function QuestionnaireManagement() {
     }
   };
 
-  const deleteQuestionnaire = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('compliance_questionnaires')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Questionnaire deleted successfully",
-      });
-
-      fetchQuestionnaires();
-    } catch (error) {
-      console.error('Error deleting questionnaire:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete questionnaire",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="space-y-6">
-      {/* Existing Questionnaires */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Existing Questionnaires
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {questionnaires.length > 0 ? (
-            <div className="space-y-4">
-              {questionnaires.map((questionnaire) => (
-                <Card key={questionnaire.id} className="border border-border/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <h4 className="font-medium">{questionnaire.name}</h4>
-                        {questionnaire.description && (
-                          <p className="text-sm text-muted-foreground">
-                            {questionnaire.description}
-                          </p>
-                        )}
-                        <div className="flex gap-2">
-                          <Badge variant={questionnaire.is_active ? "default" : "secondary"}>
-                            {questionnaire.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                          {questionnaire.compliance_types && (
-                            <Badge variant="outline">
-                              {questionnaire.compliance_types.name}
-                            </Badge>
-                          )}
-                          {questionnaire.branches && (
-                            <Badge variant="outline">
-                              {questionnaire.branches.name}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteQuestionnaire(questionnaire.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-6">
-              No questionnaires created yet. Create your first questionnaire below.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Questionnaire Builder */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -485,7 +220,7 @@ export function QuestionnaireManagement() {
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Compliance Type <span className="text-red-500">*</span></Label>
+              <Label>Compliance Type</Label>
               <Select value={selectedComplianceType} onValueChange={setSelectedComplianceType}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select compliance type" />
@@ -498,57 +233,24 @@ export function QuestionnaireManagement() {
                   ))}
                 </SelectContent>
               </Select>
-              {complianceTypes.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No compliance types with questionnaire enabled. Enable questionnaires in Compliance Type Management first.
-                </p>
-              )}
             </div>
             <div className="space-y-2">
-              <Label>Branch <span className="text-red-500">*</span></Label>
-              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Questionnaire Name <span className="text-red-500">*</span></Label>
+              <Label>Questionnaire Name</Label>
               <Input
                 value={questionnaireName}
                 onChange={(e) => setQuestionnaireName(e.target.value)}
                 placeholder="e.g., Islington Care Worker Spot Check"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Input
-                value={questionnaireDescription}
-                onChange={(e) => setQuestionnaireDescription(e.target.value)}
-                placeholder="Brief description..."
-              />
-            </div>
           </div>
 
-          {/* Template Actions */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={loadSpotCheckTemplate}
-              className="flex-1"
-            >
-              Load Spot Check Template
-            </Button>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Textarea
+              value={questionnaireDescription}
+              onChange={(e) => setQuestionnaireDescription(e.target.value)}
+              placeholder="Brief description of this questionnaire..."
+            />
           </div>
 
           {/* Add New Question */}
@@ -677,8 +379,7 @@ export function QuestionnaireManagement() {
           <div className="flex justify-end">
             <Button 
               onClick={saveQuestionnaire}
-              disabled={!questionnaireName || !selectedComplianceType || !selectedBranch || questions.length === 0 || loading}
-              className="bg-gradient-primary hover:opacity-90"
+              disabled={!questionnaireName || !selectedComplianceType || questions.length === 0 || loading}
             >
               <Settings className="h-4 w-4 mr-2" />
               {loading ? "Saving..." : "Save Questionnaire"}

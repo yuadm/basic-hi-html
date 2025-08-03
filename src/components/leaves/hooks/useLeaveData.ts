@@ -65,28 +65,12 @@ export function useLeaveData() {
         sampleLeave: leavesData?.[0]
       });
 
-      // Get approved_by user IDs to fetch their details
-      const approvedByIds = leavesData
-        ?.map(leave => leave.approved_by)
-        .filter(id => id) as string[];
-      
-      let userRoles: any[] = [];
-      if (approvedByIds.length > 0) {
-        const { data: userRolesData } = await supabase
-          .from('user_roles')
-          .select('user_id, email')
-          .in('user_id', approvedByIds);
-        userRoles = userRolesData || [];
-      }
-
       // Transform the data to match our interface
       const transformedLeaves = leavesData?.map(leave => {
         // Calculate days from date range
         const startDate = new Date(leave.start_date);
         const endDate = new Date(leave.end_date);
         const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        
-        const approvedByUser = userRoles.find(ur => ur.user_id === leave.approved_by);
         
         return {
           ...leave,
@@ -97,8 +81,7 @@ export function useLeaveData() {
           leave_type: leave.leave_types,
           employee_name: leave.employees?.name || '',
           leave_type_name: leave.leave_types?.name || '',
-          employee_branch_id: leave.employees?.branch_id || '',
-          approved_by_user: approvedByUser || null
+          employee_branch_id: leave.employees?.branch_id || ''
         };
       }) || [];
 

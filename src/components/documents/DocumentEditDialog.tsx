@@ -133,34 +133,14 @@ export function DocumentEditDialog({
   };
 
   const handleDocumentTypeChange = async (documentTypeId: string) => {
-    console.log('=== DOCUMENT TYPE CHANGE START ===');
-    console.log('New document type ID:', documentTypeId);
-    console.log('Current editDocument state BEFORE clearing:', JSON.stringify(editDocument, null, 2));
-    
-    // First, clear all fields and update document type immediately
-    setEditDocument(prev => {
-      const newState = {
-        ...prev,
-        document_type_id: documentTypeId,
-        document_number: "",
-        issue_date: null,
-        expiry_date: null,
-        country: "",
-        nationality_status: "",
-        notes: ""
-      };
-      console.log('Setting editDocument to CLEARED state:', JSON.stringify(newState, null, 2));
-      return newState;
-    });
-    
-    console.log('Fields cleared, now checking for existing documents...');
+    setEditDocument(prev => ({
+      ...prev,
+      document_type_id: documentTypeId
+    }));
     
     // Auto-populate fields from existing document of same type for this employee
     if (editDocument.employee_id && documentTypeId) {
       try {
-        console.log('Searching for existing document with employee_id:', editDocument.employee_id, 'document_type_id:', documentTypeId);
-        console.log('Excluding current document ID:', document?.id);
-        
         const { data: existingDoc, error } = await supabase
           .from('document_tracker')
           .select('*')
@@ -171,36 +151,23 @@ export function DocumentEditDialog({
           .limit(1)
           .maybeSingle();
 
-        console.log('Database query result:', { existingDoc, error });
-
         if (error) throw error;
 
         if (existingDoc) {
-          console.log('Found existing document, auto-populating fields...');
-          setEditDocument(prev => {
-            const populatedState = {
-              ...prev,
-              document_type_id: documentTypeId,
-              document_number: existingDoc.document_number || prev.document_number,
-              issue_date: existingDoc.issue_date && isValidDate(existingDoc.issue_date) ? new Date(existingDoc.issue_date) : existingDoc.issue_date,
-              country: existingDoc.country || prev.country,
-              nationality_status: existingDoc.nationality_status || prev.nationality_status,
-              notes: existingDoc.notes || prev.notes
-            };
-            console.log('Auto-populating with existing document data:', JSON.stringify(populatedState, null, 2));
-            return populatedState;
-          });
-        } else {
-          console.log('No existing document found, fields should remain cleared');
+          setEditDocument(prev => ({
+            ...prev,
+            document_type_id: documentTypeId,
+            document_number: existingDoc.document_number || prev.document_number,
+            issue_date: existingDoc.issue_date && isValidDate(existingDoc.issue_date) ? new Date(existingDoc.issue_date) : existingDoc.issue_date,
+            country: existingDoc.country || prev.country,
+            nationality_status: existingDoc.nationality_status || prev.nationality_status,
+            notes: existingDoc.notes || prev.notes
+          }));
         }
       } catch (error) {
         console.error('Error fetching existing document:', error);
       }
-    } else {
-      console.log('No employee_id or documentTypeId, skipping database lookup');
     }
-    
-    console.log('=== DOCUMENT TYPE CHANGE END ===');
   };
 
   const handleSave = async () => {

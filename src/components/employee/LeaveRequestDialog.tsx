@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -58,7 +57,6 @@ interface LeaveRequestDialogProps {
 export function LeaveRequestDialog({ open, onOpenChange, employeeId, onSuccess }: LeaveRequestDialogProps) {
   const [loading, setLoading] = useState(false);
   const [leaveTypes, setLeaveTypes] = useState<Array<{ id: string; name: string }>>([]);
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<LeaveRequestFormData>({
@@ -115,8 +113,14 @@ export function LeaveRequestDialog({ open, onOpenChange, employeeId, onSuccess }
 
       if (error) throw error;
 
-      // Show confirmation popup instead of success toast
-      setShowConfirmation(true);
+      toast({
+        title: 'Success',
+        description: 'Leave request submitted successfully',
+      });
+
+      form.reset();
+      onSuccess();
+      onOpenChange(false);
     } catch (error) {
       console.error('Error submitting leave request:', error);
       toast({
@@ -129,24 +133,7 @@ export function LeaveRequestDialog({ open, onOpenChange, employeeId, onSuccess }
     }
   };
 
-  const handleConfirmationOk = () => {
-    setShowConfirmation(false);
-    
-    // Reset form
-    form.reset();
-    
-    // Close dialog and refresh
-    onOpenChange(false);
-    onSuccess();
-    
-    toast({
-      title: "Success",
-      description: "Leave request submitted successfully",
-    });
-  };
-
   return (
-    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
@@ -309,29 +296,5 @@ export function LeaveRequestDialog({ open, onOpenChange, employeeId, onSuccess }
         </Form>
       </DialogContent>
     </Dialog>
-
-    <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-      <AlertDialogContent className="max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Leave Request Submitted</AlertDialogTitle>
-          <AlertDialogDescription className="space-y-3 text-sm">
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="font-medium text-yellow-800 mb-2">
-                <strong>Important:</strong> Submitting this form does not guarantee approval. You must call the office to have your leave/holiday officially approved.
-              </p>
-              <p className="font-medium text-yellow-800 text-sm">
-                <strong>Muhiim:</strong> Soo gudbinta foomkan ma micnaheedu waa in fasaxa la oggolaaday. Waa inaad xafiiska soo wacdaa si si rasmi ah loogu ansixiyo fasaxaaga.
-              </p>
-            </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction onClick={handleConfirmationOk}>
-            OK
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-    </>
   );
 }

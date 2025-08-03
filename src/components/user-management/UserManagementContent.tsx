@@ -12,7 +12,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePagePermissions } from "@/hooks/usePagePermissions";
 import { UserRoleSelect } from "./UserRoleSelect";
 import { UserPermissionsDialog } from "./UserPermissionsDialog";
 
@@ -38,7 +37,6 @@ export function UserManagementContent() {
   const [resettingPassword, setResettingPassword] = useState(false);
   const { toast } = useToast();
   const { user: currentUser, userRole } = useAuth();
-  const { canCreateUsers, canEditUsers, canDeleteUsers } = usePagePermissions();
 
   useEffect(() => {
     fetchUsers();
@@ -337,7 +335,7 @@ export function UserManagementContent() {
         </div>
         
         <div className="flex items-center gap-3">
-          {canCreateUsers() && (
+          {userRole === 'admin' && (
             <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-primary hover:opacity-90">
@@ -506,53 +504,51 @@ export function UserManagementContent() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {canEditUsers() && (
-                          <UserRoleSelect
-                            value={user.role}
-                            onValueChange={(newRole) => updateUserRole(user.id, newRole)}
-                            disabled={isCurrentUser(user.id)}
-                          />
-                        )}
-                        {canEditUsers() && (
-                          <UserPermissionsDialog
-                            user={user}
-                            onSuccess={fetchUsers}
-                          />
-                        )}
-                        {canEditUsers() && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => openResetPasswordDialog(user.id)}
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {canDeleteUsers() && !isCurrentUser(user.id) && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete User</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this user? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteUser(user.id)}
-                                  className="bg-destructive hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                        {userRole === 'admin' && (
+                          <>
+                            <UserRoleSelect
+                              value={user.role}
+                              onValueChange={(newRole) => updateUserRole(user.id, newRole)}
+                              disabled={isCurrentUser(user.id)}
+                            />
+                            <UserPermissionsDialog
+                              user={user}
+                              onSuccess={fetchUsers}
+                            />
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => openResetPasswordDialog(user.id)}
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                            {!isCurrentUser(user.id) && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this user? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteUser(user.id)}
+                                      className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </>
                         )}
                       </div>
                     </TableCell>
@@ -662,7 +658,7 @@ export function UserManagementContent() {
           <p className="text-muted-foreground mb-4">
             Get started by adding your first user with appropriate roles.
           </p>
-          {canCreateUsers() && (
+          {userRole === 'admin' && (
             <Button 
               className="bg-gradient-primary hover:opacity-90"
               onClick={() => setCreateUserOpen(true)}
