@@ -13,8 +13,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Set up PDF.js worker to match react-pdf v10.x internal version (5.3.31)
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.3.31/pdf.worker.min.js`;
+// Disable PDF.js worker to avoid CORS issues
+pdfjs.GlobalWorkerOptions.workerSrc = "";
 
 interface TemplateField {
   id?: string;

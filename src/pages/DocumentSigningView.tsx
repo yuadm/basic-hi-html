@@ -12,8 +12,8 @@ import { toast } from "sonner";
 import { Loader2, FileText, Download } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
 
-// Set up PDF.js worker to match react-pdf v10.x internal version (5.3.31)
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.3.31/pdf.worker.min.js`;
+// Disable PDF.js worker to avoid CORS issues
+pdfjs.GlobalWorkerOptions.workerSrc = "";
 
 interface SigningRequestData {
   id: string;
