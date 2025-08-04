@@ -19,6 +19,9 @@ function UnifiedAuthContent() {
   const { companySettings } = useCompany();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Feature flag to control sign-up visibility
+  const ENABLE_SIGNUP = false;
 
   useEffect(() => {
     // Check if user is already logged in
@@ -263,15 +266,17 @@ function UnifiedAuthContent() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className={`grid w-full ${ENABLE_SIGNUP ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <TabsTrigger value="signin" className="flex items-center gap-2">
                 <Lock className="w-4 h-4" />
                 Sign In
               </TabsTrigger>
-              <TabsTrigger value="signup" className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Sign Up
-              </TabsTrigger>
+              {ENABLE_SIGNUP && (
+                <TabsTrigger value="signup" className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Sign Up
+                </TabsTrigger>
+              )}
             </TabsList>
             
             <TabsContent value="signin">
@@ -308,40 +313,42 @@ function UnifiedAuthContent() {
               </form>
             </TabsContent>
             
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email Address</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="transition-all focus:shadow-glow"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="Create a password (min 6 characters)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="transition-all focus:shadow-glow"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <User className="mr-2 h-4 w-4" />
-                  Create Account
-                </Button>
-              </form>
-            </TabsContent>
+            {ENABLE_SIGNUP && (
+              <TabsContent value="signup">
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email Address</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="transition-all focus:shadow-glow"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password</Label>
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      placeholder="Create a password (min 6 characters)"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className="transition-all focus:shadow-glow"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <User className="mr-2 h-4 w-4" />
+                    Create Account
+                  </Button>
+                </form>
+              </TabsContent>
+            )}
           </Tabs>
 
           {error && (
