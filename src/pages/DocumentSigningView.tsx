@@ -13,7 +13,7 @@ import { Loader2, FileText, Download } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
 
 // Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.js';
 
 interface SigningRequestData {
   id: string;
