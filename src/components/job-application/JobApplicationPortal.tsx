@@ -260,7 +260,7 @@ function JobApplicationPortalContent() {
 
         <div className="mb-8">
           <Button
-            variant="ghost"
+            variant="secondary"
             onClick={() => window.history.back()}
             className="mb-4"
           >
