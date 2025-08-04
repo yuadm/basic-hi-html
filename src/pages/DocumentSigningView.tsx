@@ -111,6 +111,60 @@ export default function DocumentSigningView() {
       const recipient = signingData.signing_request_recipients[0];
       if (!recipient) throw new Error("No recipient found");
 
+      // Generate final PDF with filled fields and signatures
+      const originalPdfUrl = `${supabase.storage.from("documents").getPublicUrl(signingData.document_templates.file_path).data.publicUrl}`;
+      const originalPdfResponse = await fetch(originalPdfUrl);
+      const originalPdfBytes = await originalPdfResponse.arrayBuffer();
+
+      const pdfDoc = await PDFDocument.load(originalPdfBytes);
+      const pages = pdfDoc.getPages();
+
+      // Add field values and signatures to the PDF
+      for (const field of templateFields) {
+        const page = pages[field.page_number - 1];
+        if (!page) continue;
+
+        const value = field.field_type === "signature" ? signatures[field.id] : fieldValues[field.id];
+        if (!value) continue;
+
+        if (field.field_type === "signature") {
+          // Handle signature fields - convert base64 to image and embed
+          try {
+            const signatureData = value.split(',')[1]; // Remove data:image/png;base64, prefix
+            const signatureBytes = Uint8Array.from(atob(signatureData), c => c.charCodeAt(0));
+            const signatureImage = await pdfDoc.embedPng(signatureBytes);
+            
+            page.drawImage(signatureImage, {
+              x: field.x_position,
+              y: page.getHeight() - field.y_position - field.height,
+              width: field.width,
+              height: field.height,
+            });
+          } catch (error) {
+            console.error("Error adding signature:", error);
+          }
+        } else {
+          // Handle text fields
+          page.drawText(value.toString(), {
+            x: field.x_position,
+            y: page.getHeight() - field.y_position - 12,
+            size: 12,
+          });
+        }
+      }
+
+      // Generate the final PDF
+      const finalPdfBytes = await pdfDoc.save();
+      const finalPdfBlob = new Blob([finalPdfBytes], { type: 'application/pdf' });
+
+      // Upload the final PDF to storage
+      const fileName = `${Date.now()}_${signingData.title}_signed.pdf`;
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(`signed-documents/${fileName}`, finalPdfBlob);
+
+      if (uploadError) throw uploadError;
+
       // Update recipient status to signed
       const { error: updateError } = await supabase
         .from("signing_request_recipients")
@@ -125,7 +179,7 @@ export default function DocumentSigningView() {
       // Create signed document record with field data
       const signedDocumentData = {
         signing_request_id: signingData.id,
-        final_document_path: `signed-documents/${Date.now()}_${signingData.title}.pdf`,
+        final_document_path: `signed-documents/${fileName}`,
         completion_data: {
           recipient_id: recipient.id,
           field_data: {
