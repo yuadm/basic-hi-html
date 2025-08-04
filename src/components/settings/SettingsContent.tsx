@@ -7,6 +7,8 @@ import { DocumentSettings } from "./DocumentSettings";
 import { ComplianceSettings } from "./ComplianceSettings";
 import { BranchSettings } from "./BranchSettings";
 import { JobPositionSettings } from "./JobPositionSettings";
+import { ApplicationShiftSettings } from "./ApplicationShiftSettings";
+import { ApplicationSkillsSettings } from "./ApplicationSkillsSettings";
 
 export function SettingsContent() {
 
@@ -25,30 +27,38 @@ export function SettingsContent() {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="company" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Company
           </TabsTrigger>
-          <TabsTrigger value="leave" className="flex items-center gap-2">
+          <TabsTrigger value="positions" className="flex items-center gap-2">
+            <Briefcase className="w-4 h-4" />
+            Job Positions
+          </TabsTrigger>
+          <TabsTrigger value="shifts" className="flex items-center gap-2">
             <Calendar className="w-4 h-4" />
-            Leave Settings
+            Shifts
           </TabsTrigger>
-          <TabsTrigger value="documents" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Documents
-          </TabsTrigger>
-          <TabsTrigger value="compliance" className="flex items-center gap-2">
+          <TabsTrigger value="skills" className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
-            Compliance
+            Skills
           </TabsTrigger>
           <TabsTrigger value="branches" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Branches
           </TabsTrigger>
-          <TabsTrigger value="positions" className="flex items-center gap-2">
-            <Briefcase className="w-4 h-4" />
-            Job Positions
+          <TabsTrigger value="compliance" className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Compliance
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Documents
+          </TabsTrigger>
+          <TabsTrigger value="leave" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            Leave Settings
           </TabsTrigger>
         </TabsList>
 
@@ -74,6 +84,14 @@ export function SettingsContent() {
 
         <TabsContent value="positions" className="space-y-6">
           <JobPositionSettings />
+        </TabsContent>
+
+        <TabsContent value="shifts" className="space-y-6">
+          <ApplicationShiftSettings />
+        </TabsContent>
+
+        <TabsContent value="skills" className="space-y-6">
+          <ApplicationSkillsSettings />
         </TabsContent>
       </Tabs>
     </div>

@@ -49,6 +49,110 @@ export type Database = {
           },
         ]
       }
+      application_shift_settings: {
+        Row: {
+          created_at: string
+          display_order: number
+          end_time: string
+          id: string
+          is_active: boolean
+          label: string
+          name: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          label: string
+          name: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          name?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      application_skills: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_skills_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "application_skills_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_skills_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       branches: {
         Row: {
           created_at: string | null

@@ -1,28 +1,51 @@
+import { useState, useEffect } from 'react';
 import { Availability } from '../types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AvailabilityStepProps {
   data: Availability;
   updateData: (field: keyof Availability, value: string | string[]) => void;
 }
 
-const shifts = [
-  { id: 'early-mornings', label: 'Early Mornings', time: '7:00 am - 10:00 am' },
-  { id: 'late-mornings', label: 'Late Mornings', time: '10:00 am - 12:00 pm' },
-  { id: 'early-afternoons', label: 'Early Afternoons', time: '12:00 pm - 3:00 pm' },
-  { id: 'late-afternoons', label: 'Late Afternoons', time: '3:00 pm - 6:00 pm' },
-  { id: 'evenings', label: 'Evenings', time: '6:00 pm - 10:00 pm' },
-  { id: 'waking-nights', label: 'Waking Nights', time: '8:00 pm - 8:00 am' },
-  { id: 'sleeping-nights', label: 'Sleeping Nights', time: '8:00 pm - 8:00 am' },
-];
-
-const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+interface ShiftSetting {
+  id: string;
+  name: string;
+  label: string;
+  start_time: string;
+  end_time: string;
+  is_active: boolean;
+}
 
 export function AvailabilityStep({ data, updateData }: AvailabilityStepProps) {
+  const [shifts, setShifts] = useState<ShiftSetting[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchShifts();
+  }, []);
+
+  const fetchShifts = async () => {
+    try {
+      const { data: shiftsData, error } = await supabase
+        .from('application_shift_settings')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order');
+
+      if (error) throw error;
+      setShifts(shiftsData || []);
+    } catch (error) {
+      console.error('Error fetching shifts:', error);
+      setShifts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleShiftToggle = (shiftId: string, checked: boolean) => {
     const currentShifts = data.selectedShifts || [];
     if (checked) {
@@ -31,6 +54,10 @@ export function AvailabilityStep({ data, updateData }: AvailabilityStepProps) {
       updateData('selectedShifts', currentShifts.filter(s => s !== shiftId));
     }
   };
+
+  if (loading) {
+    return <div>Loading shift options...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -47,15 +74,15 @@ export function AvailabilityStep({ data, updateData }: AvailabilityStepProps) {
               <CardContent className="p-4">
                 <div className="flex items-start space-x-3">
                   <Checkbox
-                    id={shift.id}
-                    checked={data.selectedShifts?.includes(shift.id) || false}
-                    onCheckedChange={(checked) => handleShiftToggle(shift.id, checked === true)}
+                    id={shift.name}
+                    checked={data.selectedShifts?.includes(shift.name) || false}
+                    onCheckedChange={(checked) => handleShiftToggle(shift.name, checked === true)}
                   />
                   <div className="flex-1">
-                    <Label htmlFor={shift.id} className="font-medium cursor-pointer">
+                    <Label htmlFor={shift.name} className="font-medium cursor-pointer">
                       {shift.label}
                     </Label>
-                    <p className="text-sm text-muted-foreground mt-1">{shift.time}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{shift.start_time} - {shift.end_time}</p>
                   </div>
                 </div>
               </CardContent>
