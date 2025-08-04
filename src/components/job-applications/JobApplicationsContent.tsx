@@ -718,9 +718,9 @@ function ApplicationDetails({
             )}
 
             {/* Previous Employments Array */}
-            {displayData.employment_history?.employments && displayData.employment_history.employments.map((employment: any, index: number) => (
+            {displayData.employment_history?.previousEmployers && displayData.employment_history.previousEmployers.map((employment: any, index: number) => (
               <div key={index} className="border p-4 rounded-lg">
-                <h4 className="font-medium mb-3">Employment {index + 1}</h4>
+                <h4 className="font-medium mb-3">Previous Employment {index + 1}</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-gray-400">Company</label>
@@ -740,7 +740,7 @@ function ApplicationDetails({
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Period</label>
-                    <p>{employment.fromDate} to {employment.toDate}</p>
+                    <p>{employment.from} to {employment.to}</p>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Reason for Leaving</label>
