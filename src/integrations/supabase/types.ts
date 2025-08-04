@@ -242,41 +242,65 @@ export type Database = {
       }
       compliance_data_retention: {
         Row: {
+          archival_completed_at: string | null
+          archival_notes: string | null
+          archival_started_at: string | null
+          archival_status: string | null
           archive_due_date: string | null
+          completion_statistics: Json | null
           compliance_type_id: string
           created_at: string
           data_summary: Json | null
           download_available_date: string | null
+          download_requested_at: string | null
           id: string
           is_archived: boolean | null
           period_identifier: string
           period_type: string
+          retention_policy_years: number | null
+          total_records_archived: number | null
           updated_at: string
           year: number
         }
         Insert: {
+          archival_completed_at?: string | null
+          archival_notes?: string | null
+          archival_started_at?: string | null
+          archival_status?: string | null
           archive_due_date?: string | null
+          completion_statistics?: Json | null
           compliance_type_id: string
           created_at?: string
           data_summary?: Json | null
           download_available_date?: string | null
+          download_requested_at?: string | null
           id?: string
           is_archived?: boolean | null
           period_identifier: string
           period_type: string
+          retention_policy_years?: number | null
+          total_records_archived?: number | null
           updated_at?: string
           year: number
         }
         Update: {
+          archival_completed_at?: string | null
+          archival_notes?: string | null
+          archival_started_at?: string | null
+          archival_status?: string | null
           archive_due_date?: string | null
+          completion_statistics?: Json | null
           compliance_type_id?: string
           created_at?: string
           data_summary?: Json | null
           download_available_date?: string | null
+          download_requested_at?: string | null
           id?: string
           is_archived?: boolean | null
           period_identifier?: string
           period_type?: string
+          retention_policy_years?: number | null
+          total_records_archived?: number | null
           updated_at?: string
           year?: number
         }
@@ -1629,6 +1653,10 @@ export type Database = {
           download_available_date: string
         }[]
       }
+      check_archival_readiness: {
+        Args: { p_compliance_type_id: string; p_year: number }
+        Returns: boolean
+      }
       create_user_branch_permissions_table: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1648,6 +1676,10 @@ export type Database = {
       generate_compliance_records_for_period: {
         Args: { p_compliance_type_id: string; p_period_identifier: string }
         Returns: number
+      }
+      generate_compliance_statistics: {
+        Args: { p_compliance_type_id: string; p_year: number }
+        Returns: Json
       }
       generate_employee_accounts: {
         Args: Record<PropertyKey, never>

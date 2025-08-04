@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.admin-reset-employee-password]
 verify_jwt = true
+
+[functions.compliance-automation]
+verify_jwt = false
+
+[functions.compliance-data-archival]
+verify_jwt = false
