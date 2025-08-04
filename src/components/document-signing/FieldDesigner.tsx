@@ -5,16 +5,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Document, Page, pdfjs } from "react-pdf";
 import { Type, Calendar, FileSignature, Square, Save, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-// Set up PDF.js worker - use jsdelivr CDN which is more reliable
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+import { EnhancedPDFViewer } from "./EnhancedPDFViewer";
+import "@/lib/pdf-config"; // Initialize PDF.js configuration
 
 interface TemplateField {
   id?: string;
@@ -38,15 +35,12 @@ interface FieldDesignerProps {
 }
 
 export function FieldDesigner({ isOpen, onClose, templateId, templateUrl }: FieldDesignerProps) {
-  const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
   const [fields, setFields] = useState<TemplateField[]>([]);
   const [selectedField, setSelectedField] = useState<TemplateField | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [isCreatingField, setIsCreatingField] = useState(false);
   const [newFieldType, setNewFieldType] = useState<TemplateField["field_type"]>("text");
-  const pageRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
   // Fetch existing fields
@@ -123,9 +117,11 @@ export function FieldDesigner({ isOpen, onClose, templateId, templateUrl }: Fiel
   });
 
   const handlePageClick = (event: React.MouseEvent) => {
-    if (!isCreatingField || !pageRef.current) return;
+    if (!isCreatingField) return;
 
-    const rect = pageRef.current.getBoundingClientRect();
+    // Get the click position relative to the PDF viewer
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
     const x = (event.clientX - rect.left) / scale;
     const y = (event.clientY - rect.top) / scale;
 
@@ -286,97 +282,54 @@ export function FieldDesigner({ isOpen, onClose, templateId, templateUrl }: Fiel
             </div>
           </div>
 
-          {/* PDF Viewer */}
-          <div className="flex-1 flex flex-col">
-            <div className="flex items-center gap-2 mb-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage <= 1}
-              >
-                Previous
-              </Button>
-              <span className="text-sm">
-                Page {currentPage} of {numPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
-                disabled={currentPage >= numPages}
-              >
-                Next
-              </Button>
-              <div className="ml-auto flex items-center gap-2">
-                <Label>Zoom:</Label>
-                <Select value={scale.toString()} onValueChange={(value) => setScale(parseFloat(value))}>
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0.5">50%</SelectItem>
-                    <SelectItem value="0.75">75%</SelectItem>
-                    <SelectItem value="1">100%</SelectItem>
-                    <SelectItem value="1.25">125%</SelectItem>
-                    <SelectItem value="1.5">150%</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* PDF Viewer */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1 relative bg-gray-100 rounded">
+                <EnhancedPDFViewer
+                  pdfUrl={templateUrl}
+                  currentPage={currentPage}
+                  onPageChange={setCurrentPage}
+                  scale={scale}
+                  onScaleChange={setScale}
+                  onPageClick={handlePageClick}
+                  className="h-full"
+                  overlayContent={
+                    <>
+                      {/* Render field overlays */}
+                      {fields
+                        .filter(field => field.page_number === currentPage)
+                        .map((field, index) => {
+                          const Icon = fieldIcons[field.field_type];
+                          return (
+                            <div
+                              key={index}
+                              className={`absolute border-2 bg-blue-100 bg-opacity-50 flex items-center justify-center cursor-pointer ${
+                                selectedField === field ? "border-blue-500" : "border-blue-300"
+                              }`}
+                              style={{
+                                left: field.x_position * scale,
+                                top: field.y_position * scale,
+                                width: field.width * scale,
+                                height: field.height * scale,
+                                cursor: isCreatingField ? "crosshair" : "pointer"
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedField(field);
+                              }}
+                            >
+                              <Icon className="w-4 h-4 text-blue-600" />
+                              <span className="text-xs text-blue-600 ml-1 truncate">
+                                {field.field_name}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </>
+                  }
+                />
               </div>
             </div>
-
-            <div className="flex-1 relative overflow-auto bg-gray-100 rounded">
-              <div
-                ref={pageRef}
-                className="relative inline-block"
-                onClick={handlePageClick}
-                style={{ cursor: isCreatingField ? "crosshair" : "default" }}
-              >
-                <Document
-                  file={templateUrl}
-                  onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                  className="inline-block"
-                >
-                  <Page
-                    pageNumber={currentPage}
-                    scale={scale}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                  />
-                </Document>
-
-                {/* Render field overlays */}
-                {fields
-                  .filter(field => field.page_number === currentPage)
-                  .map((field, index) => {
-                    const Icon = fieldIcons[field.field_type];
-                    return (
-                      <div
-                        key={index}
-                        className={`absolute border-2 bg-blue-100 bg-opacity-50 flex items-center justify-center cursor-pointer ${
-                          selectedField === field ? "border-blue-500" : "border-blue-300"
-                        }`}
-                        style={{
-                          left: field.x_position * scale,
-                          top: field.y_position * scale,
-                          width: field.width * scale,
-                          height: field.height * scale
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedField(field);
-                        }}
-                      >
-                        <Icon className="w-4 h-4 text-blue-600" />
-                        <span className="text-xs text-blue-600 ml-1 truncate">
-                          {field.field_name}
-                        </span>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

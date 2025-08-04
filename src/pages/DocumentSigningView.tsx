@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, useRef } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
 import SignatureCanvas from "react-signature-canvas";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,11 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, FileText, Download } from "lucide-react";
+import { Loader2, FileText } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
-
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.js';
+import { EnhancedPDFViewer } from "@/components/document-signing/EnhancedPDFViewer";
+import "@/lib/pdf-config"; // Initialize PDF.js configuration
 
 interface SigningRequestData {
   id: string;
@@ -51,7 +49,7 @@ export default function DocumentSigningView() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
-  const [numPages, setNumPages] = useState<number>(0);
+  const [scale, setScale] = useState(1.0);
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [signatures, setSignatures] = useState<Record<string, string>>({});
@@ -326,52 +324,20 @@ export default function DocumentSigningView() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* PDF Viewer */}
           <div className="lg:col-span-2">
-            <Card>
+            <Card className="h-[700px]">
               <CardHeader>
                 <CardTitle>Document</CardTitle>
-                {numPages > 1 && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage <= 1}
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-sm">
-                      Page {currentPage} of {numPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
-                      disabled={currentPage >= numPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="h-full p-0">
                 {pdfUrl && (
-                  <div className="relative border rounded">
-                    <Document
-                      file={pdfUrl}
-                      onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                      onLoadError={(error) => {
-                        console.error("PDF load error:", error);
-                        toast.error("Failed to load PDF");
-                      }}
-                    >
-                      <Page
-                        pageNumber={currentPage}
-                        width={600}
-                        renderTextLayer={false}
-                        renderAnnotationLayer={false}
-                      />
-                    </Document>
-                  </div>
+                  <EnhancedPDFViewer
+                    pdfUrl={pdfUrl}
+                    currentPage={currentPage}
+                    onPageChange={setCurrentPage}
+                    scale={scale}
+                    onScaleChange={setScale}
+                    className="h-full"
+                  />
                 )}
               </CardContent>
             </Card>
