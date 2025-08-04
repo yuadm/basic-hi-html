@@ -116,7 +116,7 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const { companySettings } = useCompany();
   const { user, userRole, signOut } = useAuth();
-  const { hasPageAccess, loading: permissionsLoading, ready: permissionsReady, error } = usePermissions();
+  const { hasPageAccess, loading: permissionsLoading, error } = usePermissions();
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
@@ -140,104 +140,14 @@ export function AppSidebar() {
     );
   };
 
-  // Only filter items when permissions are ready and we're about to render them
-  const getAccessibleItems = () => {
-    if (!permissionsReady) return { navigationItems: [], settingsItems: [] };
-    
-    return {
-      navigationItems: navigationItems.filter(item => hasPageAccess(item.requiredPage)),
-      settingsItems: settingsItems.filter(item => hasPageAccess(item.requiredPage))
-    };
-  };
+  // Filter navigation items based on permissions (only when not loading)
+  const accessibleNavigationItems = permissionsLoading 
+    ? [] 
+    : navigationItems.filter(item => hasPageAccess(item.requiredPage));
 
-  // Don't render menu items at all until permissions are ready
-  if (!permissionsReady) {
-    return (
-      <Sidebar
-        className={cn(
-          "border-r border-sidebar-border bg-gradient-surface transition-all duration-300",
-          collapsed ? "w-16" : "w-64"
-        )}
-        collapsible="icon"
-      >
-        <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
-          <div className="flex items-center justify-between">
-            {!collapsed && (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center overflow-hidden">
-                  {companySettings.logo ? (
-                    <img
-                      src={companySettings.logo}
-                      alt="Company Logo"
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <Shield className="w-5 h-5 text-white" />
-                  )}
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-sidebar-foreground">
-                    {companySettings.name}
-                  </h1>
-                  <p className="text-xs text-sidebar-foreground/60">
-                    {companySettings.tagline}
-                  </p>
-                </div>
-              </div>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleSidebar}
-              className={cn(
-                "w-8 h-8 p-0 hover:bg-sidebar-accent",
-                collapsed && "mx-auto"
-              )}
-            >
-              {collapsed ? (
-                <ChevronRight className="w-4 h-4" />
-              ) : (
-                <ChevronLeft className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-        </SidebarHeader>
-
-        <SidebarContent className="px-3 py-4">
-          <div className="space-y-4">
-            <div className="animate-pulse space-y-2">
-              <div className="h-4 bg-sidebar-accent rounded w-20"></div>
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 bg-sidebar-accent rounded"></div>
-              ))}
-            </div>
-            <div className="animate-pulse space-y-2 mt-8">
-              <div className="h-4 bg-sidebar-accent rounded w-24"></div>
-              {[1, 2].map((i) => (
-                <div key={i} className="h-10 bg-sidebar-accent rounded"></div>
-              ))}
-            </div>
-          </div>
-        </SidebarContent>
-
-        <SidebarFooter className="border-t border-sidebar-border px-3 py-3 space-y-2">
-          {!collapsed ? (
-            <div className="animate-pulse">
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50">
-                <div className="w-8 h-8 rounded-full bg-sidebar-accent"></div>
-                <div className="flex-1 space-y-1">
-                  <div className="h-4 bg-sidebar-accent rounded w-24"></div>
-                  <div className="h-3 bg-sidebar-accent rounded w-16"></div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="w-8 h-8 mx-auto rounded-full bg-sidebar-accent animate-pulse"></div>
-          )}
-        </SidebarFooter>
-      </Sidebar>
-    );
-  }
+  const accessibleSettingsItems = permissionsLoading 
+    ? [] 
+    : settingsItems.filter(item => hasPageAccess(item.requiredPage));
 
   return (
     <Sidebar
@@ -291,25 +201,67 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-3 py-4">
-        {error ? (
+        {permissionsLoading ? (
+          <div className="space-y-4">
+            <div className="animate-pulse space-y-2">
+              <div className="h-4 bg-sidebar-accent rounded w-20"></div>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-10 bg-sidebar-accent rounded"></div>
+              ))}
+            </div>
+            <div className="animate-pulse space-y-2 mt-8">
+              <div className="h-4 bg-sidebar-accent rounded w-24"></div>
+              {[1, 2].map((i) => (
+                <div key={i} className="h-10 bg-sidebar-accent rounded"></div>
+              ))}
+            </div>
+          </div>
+        ) : error ? (
           <div className="p-4 text-center">
             <div className="text-destructive text-sm mb-2">Failed to load permissions</div>
             <div className="text-xs text-muted-foreground">Please refresh the page</div>
           </div>
-        ) : (() => {
-          const { navigationItems: accessibleNavigationItems, settingsItems: accessibleSettingsItems } = getAccessibleItems();
-          
-          return (
-            <>
-              <SidebarGroup>
+        ) : (
+          <>
+            <SidebarGroup>
+              {!collapsed && (
+                <SidebarGroupLabel className="text-xs uppercase tracking-wider text-sidebar-foreground/60 font-semibold mb-2">
+                  Main Menu
+                </SidebarGroupLabel>
+              )}
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-1">
+                  {accessibleNavigationItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
+                        <NavLink to={item.url} className={getNavClassName(item.url)}>
+                          <item.icon className="w-5 h-5 flex-shrink-0" />
+                          {!collapsed && (
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium">{item.title}</div>
+                              <div className="text-xs opacity-60 truncate">
+                                {item.description}
+                              </div>
+                            </div>
+                          )}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {accessibleSettingsItems.length > 0 && (
+              <SidebarGroup className="mt-8">
                 {!collapsed && (
                   <SidebarGroupLabel className="text-xs uppercase tracking-wider text-sidebar-foreground/60 font-semibold mb-2">
-                    Main Menu
+                    Administration
                   </SidebarGroupLabel>
                 )}
                 <SidebarGroupContent>
                   <SidebarMenu className="space-y-1">
-                    {accessibleNavigationItems.map((item) => (
+                    {accessibleSettingsItems.map((item) => (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
                           <NavLink to={item.url} className={getNavClassName(item.url)}>
@@ -329,40 +281,9 @@ export function AppSidebar() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
-
-              {accessibleSettingsItems.length > 0 && (
-                <SidebarGroup className="mt-8">
-                  {!collapsed && (
-                    <SidebarGroupLabel className="text-xs uppercase tracking-wider text-sidebar-foreground/60 font-semibold mb-2">
-                      Administration
-                    </SidebarGroupLabel>
-                  )}
-                  <SidebarGroupContent>
-                    <SidebarMenu className="space-y-1">
-                      {accessibleSettingsItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
-                            <NavLink to={item.url} className={getNavClassName(item.url)}>
-                              <item.icon className="w-5 h-5 flex-shrink-0" />
-                              {!collapsed && (
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium">{item.title}</div>
-                                  <div className="text-xs opacity-60 truncate">
-                                    {item.description}
-                                  </div>
-                                </div>
-                              )}
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              )}
-            </>
-          );
-        })()}
+            )}
+          </>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border px-3 py-3 space-y-2">
