@@ -979,14 +979,7 @@ function ApplicationDetails({
                   <label className="text-sm font-medium text-gray-500 capitalize">
                     {key.replace(/([A-Z])/g, ' $1').trim()}
                   </label>
-                  <p>
-                    {typeof value === 'boolean' 
-                      ? (value ? 'Yes' : 'No') 
-                      : key.toLowerCase() === 'date' 
-                        ? formatDateDisplay(String(value))
-                        : String(value)
-                    }
-                  </p>
+                  <p>{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}</p>
                 </div>
               ))}
             </div>
