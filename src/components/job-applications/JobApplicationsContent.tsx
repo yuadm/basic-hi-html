@@ -12,6 +12,25 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, Eye, FileText, Edit, Trash2, Send, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Helper function to format dates from YYYY-MM-DD to MM/DD/YYYY
+const formatDateDisplay = (dateString: string | null | undefined): string => {
+  if (!dateString) return 'Not provided';
+  
+  // Check if it's already in MM/DD/YYYY format
+  if (dateString.includes('/')) return dateString;
+  
+  // Convert from YYYY-MM-DD to MM/DD/YYYY
+  try {
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  } catch (error) {
+    return dateString; // Return original if conversion fails
+  }
+};
+
 interface JobApplication {
   id: string;
   personal_info: any;
@@ -696,7 +715,7 @@ function ApplicationDetails({
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Period</label>
-                    <p>{displayData.employment_history.recentEmployer.from} to {displayData.employment_history.recentEmployer.to}</p>
+                    <p>{formatDateDisplay(displayData.employment_history.recentEmployer.from)} to {formatDateDisplay(displayData.employment_history.recentEmployer.to)}</p>
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs text-gray-400">Address</label>
@@ -731,6 +750,10 @@ function ApplicationDetails({
                     <p>{employment.position}</p>
                   </div>
                   <div>
+                    <label className="text-xs text-gray-400">Contact Name</label>
+                    <p>{employment.name}</p>
+                  </div>
+                  <div>
                     <label className="text-xs text-gray-400">Email</label>
                     <p>{employment.email}</p>
                   </div>
@@ -740,9 +763,20 @@ function ApplicationDetails({
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Period</label>
-                    <p>{employment.from} to {employment.to}</p>
+                    <p>{formatDateDisplay(employment.from)} to {formatDateDisplay(employment.to)}</p>
                   </div>
-                  <div>
+                  <div className="col-span-2">
+                    <label className="text-xs text-gray-400">Address</label>
+                    <p>
+                      {[
+                        employment.address,
+                        employment.address2,
+                        employment.town,
+                        employment.postcode
+                      ].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
                     <label className="text-xs text-gray-400">Reason for Leaving</label>
                     <p>{employment.reasonForLeaving}</p>
                   </div>
