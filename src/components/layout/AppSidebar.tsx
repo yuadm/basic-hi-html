@@ -140,14 +140,15 @@ export function AppSidebar() {
     );
   };
 
-  // Filter navigation items based on permissions (only when permissions are ready)
-  const accessibleNavigationItems = permissionsReady 
-    ? navigationItems.filter(item => hasPageAccess(item.requiredPage))
-    : [];
-
-  const accessibleSettingsItems = permissionsReady 
-    ? settingsItems.filter(item => hasPageAccess(item.requiredPage))
-    : [];
+  // Only filter items when permissions are ready and we're about to render them
+  const getAccessibleItems = () => {
+    if (!permissionsReady) return { navigationItems: [], settingsItems: [] };
+    
+    return {
+      navigationItems: navigationItems.filter(item => hasPageAccess(item.requiredPage)),
+      settingsItems: settingsItems.filter(item => hasPageAccess(item.requiredPage))
+    };
+  };
 
   // Don't render menu items at all until permissions are ready
   if (!permissionsReady) {
@@ -295,47 +296,20 @@ export function AppSidebar() {
             <div className="text-destructive text-sm mb-2">Failed to load permissions</div>
             <div className="text-xs text-muted-foreground">Please refresh the page</div>
           </div>
-        ) : (
-          <>
-            <SidebarGroup>
-              {!collapsed && (
-                <SidebarGroupLabel className="text-xs uppercase tracking-wider text-sidebar-foreground/60 font-semibold mb-2">
-                  Main Menu
-                </SidebarGroupLabel>
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu className="space-y-1">
-                  {accessibleNavigationItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
-                        <NavLink to={item.url} className={getNavClassName(item.url)}>
-                          <item.icon className="w-5 h-5 flex-shrink-0" />
-                          {!collapsed && (
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium">{item.title}</div>
-                              <div className="text-xs opacity-60 truncate">
-                                {item.description}
-                              </div>
-                            </div>
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            {accessibleSettingsItems.length > 0 && (
-              <SidebarGroup className="mt-8">
+        ) : (() => {
+          const { navigationItems: accessibleNavigationItems, settingsItems: accessibleSettingsItems } = getAccessibleItems();
+          
+          return (
+            <>
+              <SidebarGroup>
                 {!collapsed && (
                   <SidebarGroupLabel className="text-xs uppercase tracking-wider text-sidebar-foreground/60 font-semibold mb-2">
-                    Administration
+                    Main Menu
                   </SidebarGroupLabel>
                 )}
                 <SidebarGroupContent>
                   <SidebarMenu className="space-y-1">
-                    {accessibleSettingsItems.map((item) => (
+                    {accessibleNavigationItems.map((item) => (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
                           <NavLink to={item.url} className={getNavClassName(item.url)}>
@@ -355,9 +329,40 @@ export function AppSidebar() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
-            )}
-          </>
-        )}
+
+              {accessibleSettingsItems.length > 0 && (
+                <SidebarGroup className="mt-8">
+                  {!collapsed && (
+                    <SidebarGroupLabel className="text-xs uppercase tracking-wider text-sidebar-foreground/60 font-semibold mb-2">
+                      Administration
+                    </SidebarGroupLabel>
+                  )}
+                  <SidebarGroupContent>
+                    <SidebarMenu className="space-y-1">
+                      {accessibleSettingsItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
+                            <NavLink to={item.url} className={getNavClassName(item.url)}>
+                              <item.icon className="w-5 h-5 flex-shrink-0" />
+                              {!collapsed && (
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium">{item.title}</div>
+                                  <div className="text-xs opacity-60 truncate">
+                                    {item.description}
+                                  </div>
+                                </div>
+                              )}
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              )}
+            </>
+          );
+        })()}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border px-3 py-3 space-y-2">
