@@ -116,7 +116,7 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const { companySettings } = useCompany();
   const { user, userRole, signOut } = useAuth();
-  const { hasPageAccess, loading: permissionsLoading, error } = usePermissions();
+  const { hasPageAccess, loading: permissionsLoading, ready: permissionsReady, error } = usePermissions();
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
@@ -140,14 +140,14 @@ export function AppSidebar() {
     );
   };
 
-  // Filter navigation items based on permissions (only when not loading)
-  const accessibleNavigationItems = permissionsLoading 
-    ? [] 
-    : navigationItems.filter(item => hasPageAccess(item.requiredPage));
+  // Filter navigation items based on permissions (only when permissions are ready)
+  const accessibleNavigationItems = permissionsReady 
+    ? navigationItems.filter(item => hasPageAccess(item.requiredPage))
+    : [];
 
-  const accessibleSettingsItems = permissionsLoading 
-    ? [] 
-    : settingsItems.filter(item => hasPageAccess(item.requiredPage));
+  const accessibleSettingsItems = permissionsReady 
+    ? settingsItems.filter(item => hasPageAccess(item.requiredPage))
+    : [];
 
   return (
     <Sidebar
@@ -201,7 +201,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-3 py-4">
-        {permissionsLoading ? (
+        {!permissionsReady ? (
           <div className="space-y-4">
             <div className="animate-pulse space-y-2">
               <div className="h-4 bg-sidebar-accent rounded w-20"></div>

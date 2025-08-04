@@ -10,16 +10,24 @@ interface PermissionsContextType {
   getAccessibleBranches: () => string[];
   isAdmin: boolean;
   loading: boolean;
+  ready: boolean;
   error: string | null;
 }
 
 const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
 
 export function PermissionsProvider({ children }: { children: ReactNode }) {
-  const { userRole } = useAuth();
-  const { hasPageAccess, hasFeatureAccess, hasPageAction, getAccessibleBranches, loading, error } = useUserPermissions();
+  const { userRole, loading: authLoading } = useAuth();
+  const { hasPageAccess, hasFeatureAccess, hasPageAction, getAccessibleBranches, loading: permissionsLoading, error } = useUserPermissions();
   
   const isAdmin = userRole === 'admin';
+  const loading = authLoading || permissionsLoading;
+  
+  // Permissions are ready when:
+  // 1. Auth is not loading (user role is available)
+  // 2. Permissions are not loading
+  // 3. We have a user role (not null/undefined)
+  const ready = !authLoading && !permissionsLoading && userRole !== null;
 
   const value = {
     hasPageAccess: (pagePath: string) => isAdmin || hasPageAccess(pagePath),
@@ -28,6 +36,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     getAccessibleBranches: () => isAdmin ? [] : getAccessibleBranches(), // Empty array means all branches for admin
     isAdmin,
     loading,
+    ready,
     error
   };
 
