@@ -36,7 +36,7 @@ const initialFormData: JobApplicationData = {
     nationalInsuranceNumber: '',
   },
   availability: {
-    selectedShifts: [],
+    timeSlots: {},
     hoursPerWeek: '',
     hasRightToWork: '',
   },
@@ -79,7 +79,7 @@ function JobApplicationPortalContent() {
     setFormData(prev => ({ ...prev, personalInfo: { ...prev.personalInfo, [field]: value } }));
   };
 
-  const updateAvailability = (field: keyof Availability, value: string | string[]) => {
+  const updateAvailability = (field: keyof Availability, value: string | Record<string, string[]>) => {
     setFormData(prev => ({ ...prev, availability: { ...prev.availability, [field]: value } }));
   };
 

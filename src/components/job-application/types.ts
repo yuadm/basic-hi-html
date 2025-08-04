@@ -19,7 +19,7 @@ export interface PersonalInfo {
 }
 
 export interface Availability {
-  selectedShifts: string[];
+  timeSlots: Record<string, string[]>; // timeSlotId -> array of selected days
   hoursPerWeek: string;
   hasRightToWork: string;
 }

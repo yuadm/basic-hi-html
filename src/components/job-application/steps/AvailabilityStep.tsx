@@ -9,10 +9,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface AvailabilityStepProps {
   data: Availability;
-  updateData: (field: keyof Availability, value: string | string[]) => void;
+  updateData: (field: keyof Availability, value: string | Record<string, string[]>) => void;
 }
 
-interface ShiftSetting {
+interface TimeSlot {
   id: string;
   name: string;
   label: string;
@@ -21,74 +21,103 @@ interface ShiftSetting {
   is_active: boolean;
 }
 
+const DAYS_OF_WEEK = [
+  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+];
+
 export function AvailabilityStep({ data, updateData }: AvailabilityStepProps) {
-  const [shifts, setShifts] = useState<ShiftSetting[]>([]);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchShifts();
+    fetchTimeSlots();
   }, []);
 
-  const fetchShifts = async () => {
+  const fetchTimeSlots = async () => {
     try {
-      const { data: shiftsData, error } = await supabase
+      const { data: slotsData, error } = await supabase
         .from('application_shift_settings')
         .select('*')
         .eq('is_active', true)
         .order('display_order');
 
       if (error) throw error;
-      setShifts(shiftsData || []);
+      setTimeSlots(slotsData || []);
     } catch (error) {
-      console.error('Error fetching shifts:', error);
-      setShifts([]);
+      console.error('Error fetching time slots:', error);
+      setTimeSlots([]);
     } finally {
       setLoading(false);
     }
   };
-  const handleShiftToggle = (shiftId: string, checked: boolean) => {
-    const currentShifts = data.selectedShifts || [];
+
+  const handleDayToggle = (timeSlotId: string, day: string, checked: boolean) => {
+    const currentTimeSlots = data.timeSlots || {};
+    const currentDays = currentTimeSlots[timeSlotId] || [];
+    
+    let updatedDays: string[];
     if (checked) {
-      updateData('selectedShifts', [...currentShifts, shiftId]);
+      updatedDays = [...currentDays, day];
     } else {
-      updateData('selectedShifts', currentShifts.filter(s => s !== shiftId));
+      updatedDays = currentDays.filter(d => d !== day);
     }
+    
+    const updatedTimeSlots = {
+      ...currentTimeSlots,
+      [timeSlotId]: updatedDays
+    };
+    
+    updateData('timeSlots', updatedTimeSlots);
   };
 
   if (loading) {
-    return <div>Loading shift options...</div>;
+    return <div>Loading time slot options...</div>;
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-4">Availability</h3>
-        <p className="text-muted-foreground mb-6">Please specify what days and time you are available to work (you may choose more than one shift pattern).</p>
+        <p className="text-muted-foreground mb-6">Please Specify What Days And Time You Are Available To Work (You May Choose More Than One Shift Pattern).</p>
       </div>
 
-      <div>
-        <Label className="text-base font-medium">Available Shifts</Label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          {shifts.map(shift => (
-            <Card key={shift.id} className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start space-x-3">
+      <div className="space-y-6">
+        {timeSlots.map(timeSlot => (
+          <div key={timeSlot.id} className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <h4 className="font-medium text-foreground">{timeSlot.label}</h4>
+              </div>
+              <div className="flex-shrink-0">
+                <span className="inline-flex items-center px-3 py-1 rounded-md bg-muted text-sm font-medium text-muted-foreground">
+                  {timeSlot.start_time} - {timeSlot.end_time}
+                </span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+              {DAYS_OF_WEEK.map(day => (
+                <div key={`${timeSlot.id}-${day}`} className="flex items-center space-x-2">
                   <Checkbox
-                    id={shift.name}
-                    checked={data.selectedShifts?.includes(shift.name) || false}
-                    onCheckedChange={(checked) => handleShiftToggle(shift.name, checked === true)}
+                    id={`${timeSlot.id}-${day}`}
+                    checked={data.timeSlots?.[timeSlot.id]?.includes(day) || false}
+                    onCheckedChange={(checked) => handleDayToggle(timeSlot.id, day, checked === true)}
                   />
-                  <div className="flex-1">
-                    <Label htmlFor={shift.name} className="font-medium cursor-pointer">
-                      {shift.label}
-                    </Label>
-                    <p className="text-sm text-muted-foreground mt-1">{shift.start_time} - {shift.end_time}</p>
-                  </div>
+                  <Label 
+                    htmlFor={`${timeSlot.id}-${day}`} 
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    {day}
+                  </Label>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              ))}
+            </div>
+            
+            {timeSlot.id !== timeSlots[timeSlots.length - 1]?.id && (
+              <div className="border-b border-border"></div>
+            )}
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
