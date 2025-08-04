@@ -250,6 +250,63 @@ export function EmploymentHistoryStep({ data, updateData }: EmploymentHistorySte
                     />
                   </div>
                   <div>
+                    <Label>Email *</Label>
+                    <Input
+                      type="email"
+                      value={employer.email}
+                      onChange={(e) => updatePreviousEmployer(index, 'email', e.target.value)}
+                      placeholder="Email"
+                    />
+                  </div>
+                  <div>
+                    <Label>Position Held *</Label>
+                    <Input
+                      value={employer.position}
+                      onChange={(e) => updatePreviousEmployer(index, 'position', e.target.value)}
+                      placeholder="Position"
+                    />
+                  </div>
+                  <div>
+                    <Label>Address *</Label>
+                    <Input
+                      value={employer.address}
+                      onChange={(e) => updatePreviousEmployer(index, 'address', e.target.value)}
+                      placeholder="Address"
+                    />
+                  </div>
+                  <div>
+                    <Label>Address 2</Label>
+                    <Input
+                      value={employer.address2}
+                      onChange={(e) => updatePreviousEmployer(index, 'address2', e.target.value)}
+                      placeholder="Address 2"
+                    />
+                  </div>
+                  <div>
+                    <Label>Town *</Label>
+                    <Input
+                      value={employer.town}
+                      onChange={(e) => updatePreviousEmployer(index, 'town', e.target.value)}
+                      placeholder="Town"
+                    />
+                  </div>
+                  <div>
+                    <Label>Postcode *</Label>
+                    <Input
+                      value={employer.postcode}
+                      onChange={(e) => updatePreviousEmployer(index, 'postcode', e.target.value)}
+                      placeholder="Postcode"
+                    />
+                  </div>
+                  <div>
+                    <Label>Telephone Number *</Label>
+                    <Input
+                      value={employer.telephone}
+                      onChange={(e) => updatePreviousEmployer(index, 'telephone', e.target.value)}
+                      placeholder="Contact Number"
+                    />
+                  </div>
+                  <div>
                     <Label>From *</Label>
                     <Input
                       type="date"
@@ -265,6 +322,22 @@ export function EmploymentHistoryStep({ data, updateData }: EmploymentHistorySte
                       onChange={(e) => updatePreviousEmployer(index, 'to', e.target.value)}
                     />
                   </div>
+                  <div>
+                    <Label>Leaving date or notice (if relevant)</Label>
+                    <Input
+                      type="date"
+                      value={employer.leavingDate}
+                      onChange={(e) => updatePreviousEmployer(index, 'leavingDate', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Key Tasks/Responsibilities</Label>
+                  <Textarea
+                    value={employer.keyTasks}
+                    onChange={(e) => updatePreviousEmployer(index, 'keyTasks', e.target.value)}
+                    rows={3}
+                  />
                 </div>
                 <div>
                   <Label>Reason for leaving *</Label>
