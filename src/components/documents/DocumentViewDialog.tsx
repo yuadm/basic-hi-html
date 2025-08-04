@@ -67,6 +67,14 @@ export function DocumentViewDialog({ document, open, onClose }: DocumentViewDial
   if (!document) return null;
 
   const getStatusBadge = (document: Document) => {
+    // If expiry_date is not a valid date (text entry), show as valid
+    if (isNaN(Date.parse(document.expiry_date))) {
+      return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+        <CheckCircle className="w-3 h-3 mr-1" />
+        Valid
+      </Badge>;
+    }
+
     const expiryDate = new Date(document.expiry_date);
     const today = new Date();
     const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
@@ -134,14 +142,14 @@ export function DocumentViewDialog({ document, open, onClose }: DocumentViewDial
                       </div>
                       <div>
                         <span className="text-muted-foreground">Expiry Date:</span>
-                        <p>{new Date(doc.expiry_date).toLocaleDateString()}</p>
+                        <p>{isNaN(Date.parse(doc.expiry_date)) ? doc.expiry_date : new Date(doc.expiry_date).toLocaleDateString()}</p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">Issue Date:</span>
-                        <p>{doc.issue_date ? new Date(doc.issue_date).toLocaleDateString() : 'N/A'}</p>
+                        <p>{doc.issue_date ? (isNaN(Date.parse(doc.issue_date)) ? doc.issue_date : new Date(doc.issue_date).toLocaleDateString()) : 'N/A'}</p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Country:</span>
