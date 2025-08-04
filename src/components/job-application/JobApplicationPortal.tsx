@@ -31,6 +31,7 @@ const initialFormData: JobApplicationData = {
     englishProficiency: '',
     otherLanguages: [],
     positionAppliedFor: '',
+    personalCareWillingness: '',
     hasDBS: '',
     hasCarAndLicense: '',
     nationalInsuranceNumber: '',

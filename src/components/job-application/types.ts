@@ -13,6 +13,7 @@ export interface PersonalInfo {
   englishProficiency: string;
   otherLanguages: string[];
   positionAppliedFor: string;
+  personalCareWillingness: string;
   hasDBS: string;
   hasCarAndLicense: string;
   nationalInsuranceNumber: string;

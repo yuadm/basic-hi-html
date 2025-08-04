@@ -3,7 +3,8 @@ import { PersonalInfo } from '../types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { Plus, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface PersonalInfoStepProps {
@@ -25,6 +26,7 @@ const languages = ['Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Arab
 export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
   const [positions, setPositions] = useState<JobPosition[]>([]);
   const [loadingPositions, setLoadingPositions] = useState(true);
+  const [selectedLanguage, setSelectedLanguage] = useState('');
 
   useEffect(() => {
     fetchJobPositions();
@@ -58,13 +60,17 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
     }
   };
 
-  const handleLanguageToggle = (language: string, checked: boolean) => {
-    const currentLanguages = data.otherLanguages || [];
-    if (checked) {
-      updateData('otherLanguages', [...currentLanguages, language]);
-    } else {
-      updateData('otherLanguages', currentLanguages.filter(l => l !== language));
+  const addLanguage = () => {
+    if (selectedLanguage && !data.otherLanguages?.includes(selectedLanguage)) {
+      const currentLanguages = data.otherLanguages || [];
+      updateData('otherLanguages', [...currentLanguages, selectedLanguage]);
+      setSelectedLanguage('');
     }
+  };
+
+  const removeLanguage = (languageToRemove: string) => {
+    const currentLanguages = data.otherLanguages || [];
+    updateData('otherLanguages', currentLanguages.filter(l => l !== languageToRemove));
   };
 
   return (
@@ -223,6 +229,22 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
           </Select>
         </div>
 
+        {data.positionAppliedFor && (
+          <div>
+            <Label htmlFor="personalCareWillingness">Which personal care Are you willing to do? *</Label>
+            <Select value={data.personalCareWillingness} onValueChange={(value) => updateData('personalCareWillingness', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border shadow-md z-50">
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="both">Both</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         <div>
           <Label htmlFor="hasDBS">Do you have a recent or updated DBS? *</Label>
           <Select value={data.hasDBS} onValueChange={(value) => updateData('hasDBS', value)}>
@@ -264,17 +286,52 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
 
       <div>
         <Label>Which other languages do you speak? *</Label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-          {languages.map(language => (
-            <div key={language} className="flex items-center space-x-2">
-              <Checkbox
-                id={language}
-                checked={data.otherLanguages?.includes(language) || false}
-                onCheckedChange={(checked) => handleLanguageToggle(language, checked === true)}
-              />
-              <Label htmlFor={language} className="text-sm">{language}</Label>
+        <div className="space-y-3 mt-2">
+          <div className="flex gap-2">
+            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Select a language" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border shadow-md z-50">
+                {languages
+                  .filter(lang => !data.otherLanguages?.includes(lang))
+                  .map(language => (
+                    <SelectItem key={language} value={language}>{language}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              type="button" 
+              onClick={addLanguage} 
+              disabled={!selectedLanguage}
+              size="sm"
+            >
+              <Plus className="h-4 w-4" />
+              Add
+            </Button>
+          </div>
+          
+          {data.otherLanguages && data.otherLanguages.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Selected Languages:</Label>
+              <div className="flex flex-wrap gap-2">
+                {data.otherLanguages.map(language => (
+                  <div key={language} className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md text-sm">
+                    <span>{language}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeLanguage(language)}
+                      className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>
