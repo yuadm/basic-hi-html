@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DocumentTable } from "./DocumentTable";
 import { DocumentViewDialog } from "./DocumentViewDialog";
-import { DocumentEditDialog } from "./DocumentEditDialog";
+import { DocumentModal } from "./DocumentModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/contexts/PermissionsContext";
@@ -1156,154 +1156,19 @@ export function DocumentsContent() {
         </CardContent>
       </Card>
 
-      {/* Add Document Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Add New Document</DialogTitle>
-            <DialogDescription>
-              Add a new document to track for an employee. Fields will auto-populate if the employee already has this document type.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="employee">Employee</Label>
-                <Select
-                  value={newDocument.employee_id}
-                  onValueChange={handleEmployeeChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.name} ({emp.branch})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="document_type">Document Type</Label>
-                <Select
-                  value={newDocument.document_type_id}
-                  onValueChange={handleDocumentTypeChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {documentTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="document_number">Document Number</Label>
-              <Input
-                id="document_number"
-                value={newDocument.document_number}
-                onChange={(e) => setNewDocument({...newDocument, document_number: e.target.value})}
-                placeholder="e.g., ABC123456"
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Issue Date</Label>
-                <DateTextPicker
-                  value={newDocument.issue_date}
-                  onChange={(value) => setNewDocument({...newDocument, issue_date: value})}
-                  placeholder="Pick date or enter text (e.g., N/A)"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Expiry Date *</Label>
-                <DateTextPicker
-                  value={newDocument.expiry_date}
-                  onChange={(value) => setNewDocument({...newDocument, expiry_date: value})}
-                  placeholder="Pick date or enter text (e.g., NOT REQUIRED)"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  value={newDocument.country}
-                  onChange={(e) => setNewDocument({...newDocument, country: e.target.value})}
-                  placeholder="e.g., United Kingdom"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nationality_status">Nationality Status</Label>
-                <Input
-                  id="nationality_status"
-                  value={newDocument.nationality_status}
-                  onChange={(e) => setNewDocument({...newDocument, nationality_status: e.target.value})}
-                  placeholder="e.g., British Citizen"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Input
-                id="notes"
-                value={newDocument.notes}
-                onChange={(e) => setNewDocument({...newDocument, notes: e.target.value})}
-                placeholder="Additional information..."
-              />
-            </div>
-
-            {/* Employee Status Options */}
-            <div className="space-y-3 p-4 border rounded-lg bg-gradient-subtle border-primary/20">
-              <h4 className="text-sm font-semibold text-foreground">Employee Status</h4>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="sponsored"
-                    checked={sponsored}
-                    onCheckedChange={(checked) => setSponsored(checked === true)}
-                  />
-                  <Label htmlFor="sponsored" className="text-sm font-medium cursor-pointer">
-                    Sponsored Employee
-                  </Label>
-                </div>
-                
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="twenty-hours"
-                  checked={twentyHours}
-                  onCheckedChange={(checked) => setTwentyHours(checked === true)}
-                />
-                <Label htmlFor="twenty-hours" className="text-sm font-medium cursor-pointer">
-                  20 Hours Restriction
-                </Label>
-              </div>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={addDocument} className="bg-gradient-primary hover:opacity-90">
-              Add Document
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Add Document Modal */}
+      <DocumentModal
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSave={() => {
+          fetchData();
+          setDialogOpen(false);
+        }}
+        employees={employees}
+        documentTypes={documentTypes}
+        branches={branches}
+        mode="add"
+      />
 
       {/* Document View Dialog */}
       <DocumentViewDialog
@@ -1312,15 +1177,19 @@ export function DocumentsContent() {
         onClose={() => setViewDialogOpen(false)}
       />
 
-      {/* Document Edit Dialog */}
-      <DocumentEditDialog
-        document={selectedDocumentForEdit}
+      {/* Document Edit Modal */}
+      <DocumentModal
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
-        onSave={handleEditSave}
+        onSave={() => {
+          fetchData();
+          setEditDialogOpen(false);
+        }}
         employees={employees}
         documentTypes={documentTypes}
         branches={branches}
+        document={selectedDocumentForEdit}
+        mode="edit"
       />
 
       {/* Import Dialog */}
