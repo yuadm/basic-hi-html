@@ -113,6 +113,71 @@ export function EmployeesContent() {
     fetchData();
   }, []);
 
+  // Email validation helper functions
+  const checkEmailExists = async (email: string, excludeEmployeeId?: string): Promise<{ exists: boolean; existingEmployee?: Employee }> => {
+    if (!email || !email.trim()) {
+      return { exists: false };
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    try {
+      let query = supabase
+        .from('employees')
+        .select('id, name, email, employee_code, branch')
+        .ilike('email', normalizedEmail);
+      
+      if (excludeEmployeeId) {
+        query = query.neq('id', excludeEmployeeId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error checking email existence:', error);
+        throw error;
+      }
+      
+      const existingEmployee = data && data.length > 0 ? data[0] : null;
+      return { 
+        exists: !!existingEmployee, 
+        existingEmployee: existingEmployee || undefined 
+      };
+    } catch (error) {
+      console.error('Email check failed:', error);
+      throw error;
+    }
+  };
+
+  const validateEmailUniqueness = async (email: string, excludeEmployeeId?: string): Promise<boolean> => {
+    if (!email || !email.trim()) {
+      return true; // Empty email is allowed
+    }
+
+    try {
+      const { exists, existingEmployee } = await checkEmailExists(email, excludeEmployeeId);
+      
+      if (exists && existingEmployee) {
+        toast({
+          title: "Email already exists",
+          description: `This email is already used by ${existingEmployee.name} (${existingEmployee.employee_code}). Please choose a different email address.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Email validation failed:', error);
+      toast({
+        title: "Validation error",
+        description: "Could not validate email uniqueness. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const hashDefaultPassword = async () => {
     try {
       const { data: hashedPassword, error } = await supabase
@@ -210,6 +275,12 @@ export function EmployeesContent() {
         return;
       }
 
+      // Validate email uniqueness
+      const isEmailValid = await validateEmailUniqueness(newEmployee.email);
+      if (!isEmailValid) {
+        return;
+      }
+
       const { error } = await supabase
         .from('employees')
         .insert([{
@@ -295,6 +366,11 @@ export function EmployeesContent() {
     if (!selectedEmployee) return;
     
     try {
+      // Validate email uniqueness (excluding current employee)
+      const isEmailValid = await validateEmailUniqueness(editedEmployee.email, selectedEmployee.id);
+      if (!isEmailValid) {
+        return;
+      }
       const { error } = await supabase
         .from('employees')
         .update({
@@ -442,7 +518,7 @@ export function EmployeesContent() {
         'Name': 'John Doe',
         'Employee Code': 'EMP001',
         'Branch': 'Main Office',
-        
+        'Email': 'john.doe@company.com',
         'Phone': '+1234567890',
         'Job Title': 'Software Engineer',
         'Employee Type': 'regular',
@@ -490,8 +566,7 @@ export function EmployeesContent() {
         } else if (lowerKey.includes('branch')) {
           employee.branch = value?.toString().trim() || '';
         } else if (lowerKey.includes('email')) {
-          // Skip email processing during import
-          // employee.email = value?.toString().trim() || '';
+          employee.email = value?.toString().trim() || '';
         } else if (lowerKey.includes('phone')) {
           employee.phone = value?.toString().trim() || '';
         } else if (lowerKey.includes('job') && lowerKey.includes('title')) {
@@ -605,7 +680,47 @@ export function EmployeesContent() {
     setImporting(true);
     
     try {
-      const validEmployees = importData.filter(emp => !emp.error);
+      // First validate all data including email uniqueness
+      const processedData = await Promise.all(
+        importData.map(async (emp, index) => {
+          let errors = emp.error ? [emp.error] : [];
+          
+          // Check email uniqueness if email is provided
+          if (emp.email && emp.email.trim()) {
+            try {
+              const { exists, existingEmployee } = await checkEmailExists(emp.email);
+              if (exists && existingEmployee) {
+                errors.push(`Email already exists (used by ${existingEmployee.name} - ${existingEmployee.employee_code})`);
+              }
+            } catch (error) {
+              console.error('Email validation failed for import:', error);
+              errors.push('Email validation failed');
+            }
+          }
+          
+          // Check for duplicate emails within import data
+          const duplicateInImport = importData.findIndex((otherEmp, otherIndex) => 
+            otherIndex !== index && 
+            otherEmp.email && 
+            emp.email && 
+            otherEmp.email.trim().toLowerCase() === emp.email.trim().toLowerCase()
+          );
+          
+          if (duplicateInImport !== -1) {
+            errors.push(`Duplicate email found in import data (row ${duplicateInImport + 1})`);
+          }
+          
+          return {
+            ...emp,
+            error: errors.join(', ')
+          };
+        })
+      );
+      
+      // Update import data with validation results
+      setImportData(processedData);
+      
+      const validEmployees = processedData.filter(emp => !emp.error);
       
       if (validEmployees.length === 0) {
         toast({
@@ -613,7 +728,16 @@ export function EmployeesContent() {
           description: "Please fix all errors before importing.",
           variant: "destructive",
         });
+        setImporting(false);
         return;
+      }
+      
+      if (validEmployees.length !== processedData.length) {
+        toast({
+          title: "Some employees have errors",
+          description: `${validEmployees.length} of ${processedData.length} employees will be imported. Fix errors and re-import if needed.`,
+          variant: "destructive",
+        });
       }
 
       const employeesToInsert = validEmployees.map(emp => ({
@@ -641,7 +765,7 @@ export function EmployeesContent() {
       if (error) throw error;
 
       toast({
-        title: "Import successful",
+        title: "Import successful", 
         description: `Successfully imported ${validEmployees.length} employees.`,
       });
 
