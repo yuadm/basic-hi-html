@@ -160,114 +160,117 @@ export function FieldDesigner({ isOpen, onClose, templateId, templateUrl }: Fiel
 
         <div className="flex-1 flex gap-4 overflow-hidden">
           {/* Toolbar */}
-          <div className="w-64 flex flex-col gap-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Add Fields</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {Object.entries(fieldIcons).map(([type, Icon]) => (
-                  <Button
-                    key={type}
-                    variant={newFieldType === type && isCreatingField ? "default" : "outline"}
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setNewFieldType(type as TemplateField["field_type"]);
-                      setIsCreatingField(true);
-                    }}
-                  >
-                    <Icon className="w-4 h-4 mr-2" />
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Field Properties */}
-            {selectedField && (
+          <div className="w-64 flex flex-col h-full overflow-hidden">
+            <div className="flex-1 overflow-y-auto space-y-4 p-1">
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Field Properties</CardTitle>
+                  <CardTitle className="text-sm">Add Fields</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <Label htmlFor="fieldName">Field Name</Label>
-                    <Input
-                      id="fieldName"
-                      value={selectedField.field_name}
-                      onChange={(e) => {
-                        const updated = { ...selectedField, field_name: e.target.value };
-                        setSelectedField(updated);
-                        setFields(fields.map(f => f === selectedField ? updated : f));
-                      }}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="fieldType">Field Type</Label>
-                    <Select
-                      value={selectedField.field_type}
-                      onValueChange={(value: TemplateField["field_type"]) => {
-                        const updated = { ...selectedField, field_type: value };
-                        setSelectedField(updated);
-                        setFields(fields.map(f => f === selectedField ? updated : f));
+                <CardContent className="space-y-2">
+                  {Object.entries(fieldIcons).map(([type, Icon]) => (
+                    <Button
+                      key={type}
+                      variant={newFieldType === type && isCreatingField ? "default" : "outline"}
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        setNewFieldType(type as TemplateField["field_type"]);
+                        setIsCreatingField(true);
                       }}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="text">Text</SelectItem>
-                        <SelectItem value="date">Date</SelectItem>
-                        <SelectItem value="signature">Signature</SelectItem>
-                        <SelectItem value="checkbox">Checkbox</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="placeholder">Placeholder Text</Label>
-                    <Input
-                      id="placeholder"
-                      value={selectedField.placeholder_text || ""}
-                      onChange={(e) => {
-                        const updated = { ...selectedField, placeholder_text: e.target.value };
-                        setSelectedField(updated);
-                        setFields(fields.map(f => f === selectedField ? updated : f));
-                      }}
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="required"
-                      checked={selectedField.is_required}
-                      onCheckedChange={(checked) => {
-                        const updated = { ...selectedField, is_required: checked };
-                        setSelectedField(updated);
-                        setFields(fields.map(f => f === selectedField ? updated : f));
-                      }}
-                    />
-                    <Label htmlFor="required">Required</Label>
-                  </div>
-
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      setFields(fields.filter(f => f !== selectedField));
-                      setSelectedField(null);
-                    }}
-                  >
-                    <X className="w-4 h-4 mr-1" />
-                    Delete Field
-                  </Button>
+                      <Icon className="w-4 h-4 mr-2" />
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </Button>
+                  ))}
                 </CardContent>
               </Card>
-            )}
 
-            <div className="flex gap-2 mt-auto">
+              {/* Field Properties */}
+              {selectedField && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Field Properties</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <Label htmlFor="fieldName">Field Name</Label>
+                      <Input
+                        id="fieldName"
+                        value={selectedField.field_name}
+                        onChange={(e) => {
+                          const updated = { ...selectedField, field_name: e.target.value };
+                          setSelectedField(updated);
+                          setFields(fields.map(f => f === selectedField ? updated : f));
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="fieldType">Field Type</Label>
+                      <Select
+                        value={selectedField.field_type}
+                        onValueChange={(value: TemplateField["field_type"]) => {
+                          const updated = { ...selectedField, field_type: value };
+                          setSelectedField(updated);
+                          setFields(fields.map(f => f === selectedField ? updated : f));
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">Text</SelectItem>
+                          <SelectItem value="date">Date</SelectItem>
+                          <SelectItem value="signature">Signature</SelectItem>
+                          <SelectItem value="checkbox">Checkbox</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="placeholder">Placeholder Text</Label>
+                      <Input
+                        id="placeholder"
+                        value={selectedField.placeholder_text || ""}
+                        onChange={(e) => {
+                          const updated = { ...selectedField, placeholder_text: e.target.value };
+                          setSelectedField(updated);
+                          setFields(fields.map(f => f === selectedField ? updated : f));
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="required"
+                        checked={selectedField.is_required}
+                        onCheckedChange={(checked) => {
+                          const updated = { ...selectedField, is_required: checked };
+                          setSelectedField(updated);
+                          setFields(fields.map(f => f === selectedField ? updated : f));
+                        }}
+                      />
+                      <Label htmlFor="required">Required</Label>
+                    </div>
+
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setFields(fields.filter(f => f !== selectedField));
+                        setSelectedField(null);
+                      }}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Delete Field
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Fixed Save/Close buttons at bottom */}
+            <div className="border-t p-4 flex gap-2">
               <Button
                 onClick={() => saveFieldsMutation.mutate(fields)}
                 disabled={saveFieldsMutation.isPending}
