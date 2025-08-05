@@ -1,10 +1,10 @@
 import { pdfjs } from "react-pdf";
 
-// Centralized PDF.js configuration optimized for Vite
+// Centralized PDF.js configuration optimized for Vite and CORS
 const PDFJS_VERSION = pdfjs.version;
 
-// Use unpkg for better Vite compatibility
-const PDFJS_WORKER_URL = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
+// Use jsDelivr CDN which supports CORS and has correct file paths
+const PDFJS_WORKER_URL = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.mjs`;
 
 // Configure PDF.js worker globally
 pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
