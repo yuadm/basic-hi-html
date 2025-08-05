@@ -81,13 +81,20 @@ export default function DocumentSigningView() {
     queryFn: async () => {
       if (!signingData?.template_id) return [];
       
+      console.log("Fetching template fields for template_id:", signingData.template_id);
+      
       const { data, error } = await supabase
         .from("template_fields")
         .select("*")
         .eq("template_id", signingData.template_id)
         .order("page_number");
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching template fields:", error);
+        throw error;
+      }
+      
+      console.log("Template fields data:", data);
       return data as TemplateField[];
     },
     enabled: !!signingData?.template_id,
@@ -349,47 +356,53 @@ export default function DocumentSigningView() {
               <CardHeader>
                 <CardTitle>Complete the Form</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {templateFields?.filter(field => field.page_number === currentPage).map((field) => (
-                  <div key={field.id} className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      {field.field_name}
-                      {field.is_required && <span className="text-red-500">*</span>}
-                    </Label>
+               <CardContent className="space-y-4">
+                 {(() => {
+                   console.log("Template fields:", templateFields, "Current page:", currentPage);
+                   const fieldsForPage = templateFields?.filter(field => field.page_number === currentPage) || [];
+                   console.log("Fields for current page:", fieldsForPage);
+                   return null;
+                 })()}
+                 {templateFields?.filter(field => field.page_number === currentPage).map((field) => (
+                   <div key={field.id} className="space-y-2">
+                     <Label className="flex items-center gap-2">
+                       {field.field_name}
+                       {field.is_required && <span className="text-red-500">*</span>}
+                     </Label>
 
-                    {field.field_type === "signature" ? (
-                      <div className="space-y-2">
-                        <div className="border border-dashed border-gray-300 rounded p-2">
-                          <SignatureCanvas
-                            ref={(ref) => (signatureRefs.current[field.id] = ref)}
-                            canvasProps={{
-                              width: 300,
-                              height: 150,
-                              className: "w-full h-24 border rounded",
-                            }}
-                            onEnd={() => handleSignature(field.id)}
-                          />
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => clearSignature(field.id)}
-                          className="w-full"
-                        >
-                          Clear Signature
-                        </Button>
-                      </div>
-                    ) : (
-                      <Input
-                        type={field.field_type === "date" ? "date" : "text"}
-                        value={fieldValues[field.id] || ""}
-                        onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                        required={field.is_required}
-                        placeholder={`Enter ${field.field_name.toLowerCase()}`}
-                      />
-                    )}
-                  </div>
-                ))}
+                     {field.field_type === "signature" ? (
+                       <div className="space-y-2">
+                         <div className="border border-dashed border-gray-300 rounded p-2">
+                           <SignatureCanvas
+                             ref={(ref) => (signatureRefs.current[field.id] = ref)}
+                             canvasProps={{
+                               width: 300,
+                               height: 150,
+                               className: "w-full h-24 border rounded",
+                             }}
+                             onEnd={() => handleSignature(field.id)}
+                           />
+                         </div>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => clearSignature(field.id)}
+                           className="w-full"
+                         >
+                           Clear Signature
+                         </Button>
+                       </div>
+                     ) : (
+                       <Input
+                         type={field.field_type === "date" ? "date" : "text"}
+                         value={fieldValues[field.id] || ""}
+                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                         required={field.is_required}
+                         placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                       />
+                     )}
+                    </div>
+                  ))}
 
                 <div className="pt-4 space-y-2">
                   <Button
