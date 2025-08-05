@@ -565,7 +565,7 @@ function ApplicationDetails({
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500">Date of Birth</label>
-              <p>{displayData.personal_info?.dateOfBirth || 'Not provided'}</p>
+              <p>{formatDateDisplay(displayData.personal_info?.dateOfBirth) || 'Not provided'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500">National Insurance Number</label>
@@ -610,14 +610,6 @@ function ApplicationDetails({
             <div>
               <label className="text-sm font-medium text-gray-500">Confirm Email</label>
               <p>{displayData.personal_info?.confirmEmail || 'Not provided'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Password Field</label>
-              <p>{displayData.personal_info?.password ? '***Password Set***' : 'Not provided'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Confirm Password Field</label>
-              <p>{displayData.personal_info?.confirmPassword ? '***Confirm Password Set***' : 'Not provided'}</p>
             </div>
           </div>
         </CardContent>
