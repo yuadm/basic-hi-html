@@ -96,7 +96,7 @@ export default function DocumentSigningView() {
   // Load PDF when data is available
   useEffect(() => {
     if (signingData?.document_templates?.file_path) {
-      const url = `${supabase.storage.from("documents").getPublicUrl(signingData.document_templates.file_path).data.publicUrl}`;
+      const url = `${supabase.storage.from("company-assets").getPublicUrl(signingData.document_templates.file_path).data.publicUrl}`;
       setPdfUrl(url);
     }
   }, [signingData]);
@@ -110,7 +110,7 @@ export default function DocumentSigningView() {
       if (!recipient) throw new Error("No recipient found");
 
       // Generate final PDF with filled fields and signatures
-      const originalPdfUrl = `${supabase.storage.from("documents").getPublicUrl(signingData.document_templates.file_path).data.publicUrl}`;
+      const originalPdfUrl = `${supabase.storage.from("company-assets").getPublicUrl(signingData.document_templates.file_path).data.publicUrl}`;
       const originalPdfResponse = await fetch(originalPdfUrl);
       const originalPdfBytes = await originalPdfResponse.arrayBuffer();
 
