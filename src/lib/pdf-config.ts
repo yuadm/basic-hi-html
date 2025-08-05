@@ -1,13 +1,13 @@
 import { pdfjs } from "react-pdf";
 
-// Centralized PDF.js configuration with optimized worker setup
+// Centralized PDF.js configuration optimized for Vite
 const PDFJS_VERSION = pdfjs.version;
-const PDFJS_WORKER_URL = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
+
+// Use unpkg for better Vite compatibility
+const PDFJS_WORKER_URL = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
 
 // Configure PDF.js worker globally
-if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
-}
+pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
 
 // PDF viewer configuration constants
 export const PDF_CONFIG = {
