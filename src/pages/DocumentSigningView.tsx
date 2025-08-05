@@ -158,7 +158,7 @@ export default function DocumentSigningView() {
       // Upload the final PDF to storage
       const fileName = `${Date.now()}_${signingData.title}_signed.pdf`;
       const { error: uploadError } = await supabase.storage
-        .from("documents")
+        .from("company-assets")
         .upload(`signed-documents/${fileName}`, finalPdfBlob);
 
       if (uploadError) throw uploadError;
