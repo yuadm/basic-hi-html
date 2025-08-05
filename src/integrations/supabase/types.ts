@@ -1199,6 +1199,7 @@ export type Database = {
           leave_type_id: string
           manager_notes: string | null
           notes: string | null
+          rejected_by: string | null
           rejected_date: string | null
           start_date: string
           status: string
@@ -1214,6 +1215,7 @@ export type Database = {
           leave_type_id: string
           manager_notes?: string | null
           notes?: string | null
+          rejected_by?: string | null
           rejected_date?: string | null
           start_date: string
           status?: string
@@ -1229,6 +1231,7 @@ export type Database = {
           leave_type_id?: string
           manager_notes?: string | null
           notes?: string | null
+          rejected_by?: string | null
           rejected_date?: string | null
           start_date?: string
           status?: string

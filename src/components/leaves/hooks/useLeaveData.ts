@@ -65,17 +65,23 @@ export function useLeaveData() {
         sampleLeave: leavesData?.[0]
       });
 
-      // Get approved_by user IDs to fetch their details
+      // Get approved_by and rejected_by user IDs to fetch their details
       const approvedByIds = leavesData
         ?.map(leave => leave.approved_by)
         .filter(id => id) as string[];
       
+      const rejectedByIds = leavesData
+        ?.map(leave => leave.rejected_by)
+        .filter(id => id) as string[];
+      
+      const allUserIds = [...new Set([...approvedByIds, ...rejectedByIds])];
+      
       let userRoles: any[] = [];
-      if (approvedByIds.length > 0) {
+      if (allUserIds.length > 0) {
         const { data: userRolesData } = await supabase
           .from('user_roles')
           .select('user_id, email')
-          .in('user_id', approvedByIds);
+          .in('user_id', allUserIds);
         userRoles = userRolesData || [];
       }
 
@@ -87,6 +93,7 @@ export function useLeaveData() {
         const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         
         const approvedByUser = userRoles.find(ur => ur.user_id === leave.approved_by);
+        const rejectedByUser = userRoles.find(ur => ur.user_id === leave.rejected_by);
         
         return {
           ...leave,
@@ -98,7 +105,8 @@ export function useLeaveData() {
           employee_name: leave.employees?.name || '',
           leave_type_name: leave.leave_types?.name || '',
           employee_branch_id: leave.employees?.branch_id || '',
-          approved_by_user: approvedByUser || null
+          approved_by_user: approvedByUser || null,
+          rejected_by_user: rejectedByUser || null
         };
       }) || [];
 

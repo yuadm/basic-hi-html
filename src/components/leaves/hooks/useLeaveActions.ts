@@ -166,7 +166,8 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
           manager_notes: managerNotes || null,
           approved_date: newStatus === 'approved' ? new Date().toISOString() : null,
           rejected_date: newStatus === 'rejected' ? new Date().toISOString() : null,
-          approved_by: newStatus === 'approved' ? user?.id : null
+          approved_by: newStatus === 'approved' ? user?.id : null,
+          rejected_by: newStatus === 'rejected' ? user?.id : null
         })
         .eq('id', leaveId);
 

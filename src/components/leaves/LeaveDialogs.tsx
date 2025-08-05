@@ -181,8 +181,8 @@ export function LeaveDialogs({
                       <div className="text-sm">
                         <span className="font-medium text-red-700">Rejected:</span>{' '}
                         {format(new Date(selectedLeave.rejected_date), 'PPP')}
-                        {selectedLeave.approved_by_user?.email && (
-                          <span className="text-muted-foreground"> by {selectedLeave.approved_by_user.email}</span>
+                        {selectedLeave.rejected_by_user?.email && (
+                          <span className="text-muted-foreground"> by {selectedLeave.rejected_by_user.email}</span>
                         )}
                       </div>
                     )}

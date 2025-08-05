@@ -430,22 +430,38 @@ export function ReportsContent() {
           
           if (leavesError) throw leavesError;
           
-          // Fetch user roles to get emails for approved_by IDs
+          // Fetch user roles to get emails for approved_by and rejected_by IDs
           const approvedByIds = (leavesData || [])
             .map(leave => leave.approved_by)
             .filter(id => id) as string[];
           
+          const rejectedByIds = (leavesData || [])
+            .map(leave => leave.rejected_by)
+            .filter(id => id) as string[];
+          
+          const allUserIds = [...new Set([...approvedByIds, ...rejectedByIds])];
+          
           let userRoles: any[] = [];
-          if (approvedByIds.length > 0) {
+          if (allUserIds.length > 0) {
             const { data: userRolesData } = await supabase
               .from('user_roles')
               .select('user_id, email')
-              .in('user_id', approvedByIds);
+              .in('user_id', allUserIds);
             userRoles = userRolesData || [];
           }
           
           const transformedLeavesData = (leavesData || []).map(leave => {
             const approvedByUser = userRoles.find(ur => ur.user_id === leave.approved_by);
+            const rejectedByUser = userRoles.find(ur => ur.user_id === leave.rejected_by);
+            
+            // Determine which email to show based on status
+            let actionByEmail = '';
+            if (leave.status === 'approved' && approvedByUser) {
+              actionByEmail = approvedByUser.email;
+            } else if (leave.status === 'rejected' && rejectedByUser) {
+              actionByEmail = rejectedByUser.email;
+            }
+            
             return {
               Employee: leave.employees?.name || '',
               'Employee Code': leave.employees?.employee_code || '',
@@ -459,7 +475,7 @@ export function ReportsContent() {
               Reason: leave.notes || '',
               'Submitted Date': new Date(leave.created_at).toLocaleDateString('en-GB'),
               'Manager Notes': leave.manager_notes || '',
-              'Approved/Rejected By': approvedByUser?.email || '',
+              'Approved/Rejected By': actionByEmail,
               'Approved Date': leave.approved_date ? new Date(leave.approved_date).toLocaleDateString('en-GB') : '',
               'Rejected Date': leave.rejected_date ? new Date(leave.rejected_date).toLocaleDateString('en-GB') : ''
             };

@@ -30,6 +30,7 @@ export interface Leave {
   approved_date?: string;
   rejected_date?: string;
   approved_by?: string;
+  rejected_by?: string;
   created_at: string;
   employee?: Employee;
   leave_type?: LeaveType;
@@ -37,6 +38,10 @@ export interface Leave {
   leave_type_name?: string;
   employee_branch_id?: string;
   approved_by_user?: {
+    user_id: string;
+    email: string;
+  } | null;
+  rejected_by_user?: {
     user_id: string;
     email: string;
   } | null;
