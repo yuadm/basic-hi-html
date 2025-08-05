@@ -1134,49 +1134,218 @@ function ApplicationDetails({
               </div>
             )}
 
-            {/* Previous Employments - Read only for now as it's an array */}
-            {displayData.employment_history?.previousEmployers && displayData.employment_history.previousEmployers.map((employment: any, index: number) => (
+            {/* Previous Employments Array - Now editable */}
+            {(displayData.employment_history?.previousEmployers || isEditing) && (displayData.employment_history?.previousEmployers || []).map((employment: any, index: number) => (
               <div key={index} className="border p-4 rounded-lg">
                 <h4 className="font-medium mb-3">Previous Employment {index + 1}</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-gray-400">Company</label>
-                    <p>{employment.company}</p>
+                    {isEditing ? (
+                      <Input
+                        value={editData.employment_history?.previousEmployers?.[index]?.company || ''}
+                        onChange={(e) => {
+                          const previousEmployers = [...(editData.employment_history?.previousEmployers || [])];
+                          if (!previousEmployers[index]) previousEmployers[index] = {};
+                          previousEmployers[index].company = e.target.value;
+                          setEditData({
+                            ...editData,
+                            employment_history: {
+                              ...editData.employment_history,
+                              previousEmployers
+                            }
+                          });
+                        }}
+                      />
+                    ) : (
+                      <p>{employment.company}</p>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Position</label>
-                    <p>{employment.position}</p>
+                    {isEditing ? (
+                      <Input
+                        value={editData.employment_history?.previousEmployers?.[index]?.position || ''}
+                        onChange={(e) => {
+                          const previousEmployers = [...(editData.employment_history?.previousEmployers || [])];
+                          if (!previousEmployers[index]) previousEmployers[index] = {};
+                          previousEmployers[index].position = e.target.value;
+                          setEditData({
+                            ...editData,
+                            employment_history: {
+                              ...editData.employment_history,
+                              previousEmployers
+                            }
+                          });
+                        }}
+                      />
+                    ) : (
+                      <p>{employment.position}</p>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Contact Name</label>
-                    <p>{employment.name}</p>
+                    {isEditing ? (
+                      <Input
+                        value={editData.employment_history?.previousEmployers?.[index]?.name || ''}
+                        onChange={(e) => {
+                          const previousEmployers = [...(editData.employment_history?.previousEmployers || [])];
+                          if (!previousEmployers[index]) previousEmployers[index] = {};
+                          previousEmployers[index].name = e.target.value;
+                          setEditData({
+                            ...editData,
+                            employment_history: {
+                              ...editData.employment_history,
+                              previousEmployers
+                            }
+                          });
+                        }}
+                      />
+                    ) : (
+                      <p>{employment.name}</p>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Email</label>
-                    <p>{employment.email}</p>
+                    {isEditing ? (
+                      <Input
+                        value={editData.employment_history?.previousEmployers?.[index]?.email || ''}
+                        onChange={(e) => {
+                          const previousEmployers = [...(editData.employment_history?.previousEmployers || [])];
+                          if (!previousEmployers[index]) previousEmployers[index] = {};
+                          previousEmployers[index].email = e.target.value;
+                          setEditData({
+                            ...editData,
+                            employment_history: {
+                              ...editData.employment_history,
+                              previousEmployers
+                            }
+                          });
+                        }}
+                      />
+                    ) : (
+                      <p>{employment.email}</p>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs text-gray-400">Phone</label>
-                    <p>{employment.telephone}</p>
+                    {isEditing ? (
+                      <Input
+                        value={editData.employment_history?.previousEmployers?.[index]?.telephone || ''}
+                        onChange={(e) => {
+                          const previousEmployers = [...(editData.employment_history?.previousEmployers || [])];
+                          if (!previousEmployers[index]) previousEmployers[index] = {};
+                          previousEmployers[index].telephone = e.target.value;
+                          setEditData({
+                            ...editData,
+                            employment_history: {
+                              ...editData.employment_history,
+                              previousEmployers
+                            }
+                          });
+                        }}
+                      />
+                    ) : (
+                      <p>{employment.telephone}</p>
+                    )}
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400">Period</label>
-                    <p>{formatDateDisplay(employment.from)} to {formatDateDisplay(employment.to)}</p>
+                    <label className="text-xs text-gray-400">Period From</label>
+                    {isEditing ? (
+                      <Input
+                        type="date"
+                        value={editData.employment_history?.previousEmployers?.[index]?.from || ''}
+                        onChange={(e) => {
+                          const previousEmployers = [...(editData.employment_history?.previousEmployers || [])];
+                          if (!previousEmployers[index]) previousEmployers[index] = {};
+                          previousEmployers[index].from = e.target.value;
+                          setEditData({
+                            ...editData,
+                            employment_history: {
+                              ...editData.employment_history,
+                              previousEmployers
+                            }
+                          });
+                        }}
+                      />
+                    ) : (
+                      <p>{formatDateDisplay(employment.from)}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Period To</label>
+                    {isEditing ? (
+                      <Input
+                        type="date"
+                        value={editData.employment_history?.previousEmployers?.[index]?.to || ''}
+                        onChange={(e) => {
+                          const previousEmployers = [...(editData.employment_history?.previousEmployers || [])];
+                          if (!previousEmployers[index]) previousEmployers[index] = {};
+                          previousEmployers[index].to = e.target.value;
+                          setEditData({
+                            ...editData,
+                            employment_history: {
+                              ...editData.employment_history,
+                              previousEmployers
+                            }
+                          });
+                        }}
+                      />
+                    ) : (
+                      <p>{formatDateDisplay(employment.to)}</p>
+                    )}
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs text-gray-400">Address</label>
-                    <p>
-                      {[
-                        employment.address,
-                        employment.address2,
-                        employment.town,
-                        employment.postcode
-                      ].filter(Boolean).join(', ')}
-                    </p>
+                    {isEditing ? (
+                      <Input
+                        value={editData.employment_history?.previousEmployers?.[index]?.address || ''}
+                        onChange={(e) => {
+                          const previousEmployers = [...(editData.employment_history?.previousEmployers || [])];
+                          if (!previousEmployers[index]) previousEmployers[index] = {};
+                          previousEmployers[index].address = e.target.value;
+                          setEditData({
+                            ...editData,
+                            employment_history: {
+                              ...editData.employment_history,
+                              previousEmployers
+                            }
+                          });
+                        }}
+                        placeholder="Full address"
+                      />
+                    ) : (
+                      <p>
+                        {[
+                          employment.address,
+                          employment.address2,
+                          employment.town,
+                          employment.postcode
+                        ].filter(Boolean).join(', ')}
+                      </p>
+                    )}
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs text-gray-400">Reason for Leaving</label>
-                    <p>{employment.reasonForLeaving}</p>
+                    {isEditing ? (
+                      <Input
+                        value={editData.employment_history?.previousEmployers?.[index]?.reasonForLeaving || ''}
+                        onChange={(e) => {
+                          const previousEmployers = [...(editData.employment_history?.previousEmployers || [])];
+                          if (!previousEmployers[index]) previousEmployers[index] = {};
+                          previousEmployers[index].reasonForLeaving = e.target.value;
+                          setEditData({
+                            ...editData,
+                            employment_history: {
+                              ...editData.employment_history,
+                              previousEmployers
+                            }
+                          });
+                        }}
+                      />
+                    ) : (
+                      <p>{employment.reasonForLeaving}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1464,20 +1633,46 @@ function ApplicationDetails({
         </CardContent>
       </Card>
 
-      {/* Skills & Experience - Read only for now */}
-      {displayData.skills_experience?.skills && (
+      {/* Skills & Experience - Now editable */}
+      {(displayData.skills_experience?.skills || isEditing) && (
         <Card>
           <CardHeader>
             <CardTitle>Skills & Experience</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(displayData.skills_experience.skills).map(([skill, value]: [string, any]) => (
+              {Object.entries(displayData.skills_experience?.skills || {}).map(([skill, value]: [string, any]) => (
                 <div key={skill} className="flex justify-between items-center">
                   <span className="capitalize">{skill.replace(/([A-Z])/g, ' $1').trim()}</span>
-                  <Badge variant={value === 'good' ? "default" : value === 'basic' ? "secondary" : "outline"}>
-                    {String(value).charAt(0).toUpperCase() + String(value).slice(1)}
-                  </Badge>
+                  {isEditing ? (
+                    <Select
+                      value={editData.skills_experience?.skills?.[skill] || 'none'}
+                      onValueChange={(newValue) => setEditData({
+                        ...editData,
+                        skills_experience: {
+                          ...editData.skills_experience,
+                          skills: {
+                            ...editData.skills_experience?.skills,
+                            [skill]: newValue
+                          }
+                        }
+                      })}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="basic">Basic</SelectItem>
+                        <SelectItem value="good">Good</SelectItem>
+                        <SelectItem value="excellent">Excellent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge variant={value === 'good' ? "default" : value === 'basic' ? "secondary" : "outline"}>
+                      {String(value).charAt(0).toUpperCase() + String(value).slice(1)}
+                    </Badge>
+                  )}
                 </div>
               ))}
             </div>
@@ -1485,24 +1680,45 @@ function ApplicationDetails({
         </Card>
       )}
 
-      {/* Declarations - Read only for now */}
-      {displayData.declarations && (
+      {/* Declarations - Now editable */}
+      {(displayData.declarations || isEditing) && (
         <Card>
           <CardHeader>
             <CardTitle>Declarations</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(displayData.declarations).map(([key, value]: [string, any]) => {
-                if (typeof value === 'boolean') {
+              {Object.entries(displayData.declarations || {}).map(([key, value]: [string, any]) => {
+                if (typeof value === 'boolean' || (isEditing && (value === 'yes' || value === 'no'))) {
                   return (
                     <div key={key} className="flex justify-between items-center">
                       <span className="capitalize">
                         {key.replace(/([A-Z])/g, ' $1').trim()}
                       </span>
-                      <Badge variant={value ? "default" : "secondary"}>
-                        {value ? 'Yes' : 'No'}
-                      </Badge>
+                      {isEditing ? (
+                        <Select
+                          value={editData.declarations?.[key] === true || editData.declarations?.[key] === 'yes' ? 'yes' : 'no'}
+                          onValueChange={(newValue) => setEditData({
+                            ...editData,
+                            declarations: {
+                              ...editData.declarations,
+                              [key]: newValue === 'yes'
+                            }
+                          })}
+                        >
+                          <SelectTrigger className="w-20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="yes">Yes</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant={value ? "default" : "secondary"}>
+                          {value ? 'Yes' : 'No'}
+                        </Badge>
+                      )}
                     </div>
                   );
                 } else if (value && value !== '') {
@@ -1511,7 +1727,20 @@ function ApplicationDetails({
                       <label className="text-sm font-medium text-gray-500 capitalize">
                         {key.replace(/([A-Z])/g, ' $1').trim()}
                       </label>
-                      <p className="text-sm">{String(value)}</p>
+                      {isEditing ? (
+                        <Input
+                          value={editData.declarations?.[key] || ''}
+                          onChange={(e) => setEditData({
+                            ...editData,
+                            declarations: {
+                              ...editData.declarations,
+                              [key]: e.target.value
+                            }
+                          })}
+                        />
+                      ) : (
+                        <p className="text-sm">{String(value)}</p>
+                      )}
                     </div>
                   );
                 }
