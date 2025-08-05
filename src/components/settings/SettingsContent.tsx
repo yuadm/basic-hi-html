@@ -9,6 +9,9 @@ import { BranchSettings } from "./BranchSettings";
 import { JobPositionSettings } from "./JobPositionSettings";
 import { ApplicationShiftSettings } from "./ApplicationShiftSettings";
 import { ApplicationSkillsSettings } from "./ApplicationSkillsSettings";
+import { ApplicationPersonalSettings } from "./ApplicationPersonalSettings";
+import { ApplicationStatusSettings } from "./ApplicationStatusSettings";
+import { ApplicationFieldSettings } from "./ApplicationFieldSettings";
 
 export function SettingsContent() {
 
@@ -27,7 +30,7 @@ export function SettingsContent() {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="company" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Company
@@ -43,6 +46,18 @@ export function SettingsContent() {
           <TabsTrigger value="skills" className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
             Skills
+          </TabsTrigger>
+          <TabsTrigger value="personal" className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Personal Info
+          </TabsTrigger>
+          <TabsTrigger value="status" className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            App Status
+          </TabsTrigger>
+          <TabsTrigger value="fields" className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Fields
           </TabsTrigger>
           <TabsTrigger value="branches" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
@@ -92,6 +107,18 @@ export function SettingsContent() {
 
         <TabsContent value="skills" className="space-y-6">
           <ApplicationSkillsSettings />
+        </TabsContent>
+
+        <TabsContent value="personal" className="space-y-6">
+          <ApplicationPersonalSettings />
+        </TabsContent>
+
+        <TabsContent value="status" className="space-y-6">
+          <ApplicationStatusSettings />
+        </TabsContent>
+
+        <TabsContent value="fields" className="space-y-6">
+          <ApplicationFieldSettings />
         </TabsContent>
       </Tabs>
     </div>

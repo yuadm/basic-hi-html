@@ -49,6 +49,78 @@ export type Database = {
           },
         ]
       }
+      application_field_settings: {
+        Row: {
+          created_at: string
+          display_order: number
+          field_label: string
+          field_name: string
+          help_text: string | null
+          id: string
+          is_required: boolean
+          is_visible: boolean
+          step_name: string
+          updated_at: string
+          validation_rules: Json | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          field_label: string
+          field_name: string
+          help_text?: string | null
+          id?: string
+          is_required?: boolean
+          is_visible?: boolean
+          step_name: string
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          field_label?: string
+          field_name?: string
+          help_text?: string | null
+          id?: string
+          is_required?: boolean
+          is_visible?: boolean
+          step_name?: string
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Relationships: []
+      }
+      application_personal_settings: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          setting_type: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          setting_type: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          setting_type?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       application_shift_settings: {
         Row: {
           created_at: string
@@ -149,6 +221,42 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      application_status_settings: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          is_default: boolean
+          status_color: string
+          status_label: string
+          status_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          status_color?: string
+          status_label: string
+          status_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          status_color?: string
+          status_label?: string
+          status_name?: string
           updated_at?: string
         }
         Relationships: []

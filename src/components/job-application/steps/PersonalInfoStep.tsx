@@ -18,18 +18,24 @@ interface JobPosition {
   is_active: boolean;
 }
 
-const titles = ['Mr', 'Mrs', 'Miss', 'Ms', 'Dr', 'Prof'];
-const boroughs = ['Westminster', 'Camden', 'Islington', 'Hackney', 'Tower Hamlets', 'Greenwich', 'Lewisham', 'Southwark', 'Lambeth', 'Wandsworth', 'Hammersmith and Fulham', 'Kensington and Chelsea', 'Other'];
-const englishLevels = ['Native', 'Fluent', 'Intermediate', 'Basic'];
-const languages = ['Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Arabic', 'Mandarin', 'Hindi', 'Polish', 'Romanian', 'Other'];
+interface PersonalSetting {
+  id: string;
+  setting_type: string;
+  value: string;
+  is_active: boolean;
+  display_order: number;
+}
 
 export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
   const [positions, setPositions] = useState<JobPosition[]>([]);
   const [loadingPositions, setLoadingPositions] = useState(true);
   const [selectedLanguage, setSelectedLanguage] = useState('');
+  const [personalSettings, setPersonalSettings] = useState<PersonalSetting[]>([]);
+  const [loadingSettings, setLoadingSettings] = useState(true);
 
   useEffect(() => {
     fetchJobPositions();
+    fetchPersonalSettings();
   }, []);
 
   const fetchJobPositions = async () => {
@@ -60,6 +66,37 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
     }
   };
 
+  const fetchPersonalSettings = async () => {
+    try {
+      const { data: settingsData, error } = await supabase
+        .from('application_personal_settings')
+        .select('*')
+        .eq('is_active', true)
+        .order('setting_type', { ascending: true })
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setPersonalSettings(settingsData || []);
+    } catch (error) {
+      console.error('Error fetching personal settings:', error);
+      // Fallback to default values if database fetch fails
+      setPersonalSettings([
+        { id: '1', setting_type: 'title', value: 'Mr', is_active: true, display_order: 1 },
+        { id: '2', setting_type: 'title', value: 'Mrs', is_active: true, display_order: 2 },
+        { id: '3', setting_type: 'title', value: 'Miss', is_active: true, display_order: 3 },
+        { id: '4', setting_type: 'title', value: 'Ms', is_active: true, display_order: 4 },
+        { id: '5', setting_type: 'title', value: 'Dr', is_active: true, display_order: 5 },
+        { id: '6', setting_type: 'title', value: 'Prof', is_active: true, display_order: 6 },
+      ]);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const getSettingsByType = (type: string) => {
+    return personalSettings.filter(s => s.setting_type === type).map(s => s.value);
+  };
+
   const addLanguage = () => {
     if (selectedLanguage && !data.otherLanguages?.includes(selectedLanguage)) {
       const currentLanguages = data.otherLanguages || [];
@@ -88,7 +125,7 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
               <SelectValue placeholder="Select Title" />
             </SelectTrigger>
             <SelectContent>
-              {titles.map(title => (
+              {getSettingsByType('title').map(title => (
                 <SelectItem key={title} value={title}>{title}</SelectItem>
               ))}
             </SelectContent>
@@ -184,7 +221,7 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
-              {boroughs.map(borough => (
+              {getSettingsByType('borough').map(borough => (
                 <SelectItem key={borough} value={borough}>{borough}</SelectItem>
               ))}
             </SelectContent>
@@ -208,7 +245,7 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
-              {englishLevels.map(level => (
+              {getSettingsByType('english_level').map(level => (
                 <SelectItem key={level} value={level}>{level}</SelectItem>
               ))}
             </SelectContent>
@@ -237,9 +274,9 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent className="bg-background border shadow-md z-50">
-                <SelectItem value="male">Male</SelectItem>
-                <SelectItem value="female">Female</SelectItem>
-                <SelectItem value="both">Both</SelectItem>
+                {getSettingsByType('personal_care_option').map(option => (
+                  <SelectItem key={option.toLowerCase()} value={option.toLowerCase()}>{option}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -252,9 +289,9 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="yes">Yes</SelectItem>
-              <SelectItem value="no">No</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
+              {getSettingsByType('dbs_option').map(option => (
+                <SelectItem key={option.toLowerCase()} value={option.toLowerCase()}>{option}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -293,7 +330,7 @@ export function PersonalInfoStep({ data, updateData }: PersonalInfoStepProps) {
                 <SelectValue placeholder="Select a language" />
               </SelectTrigger>
               <SelectContent className="bg-background border shadow-md z-50">
-                {languages
+                {getSettingsByType('language')
                   .filter(lang => !data.otherLanguages?.includes(lang))
                   .map(language => (
                     <SelectItem key={language} value={language}>{language}</SelectItem>
