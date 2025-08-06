@@ -53,6 +53,8 @@ export function EnhancedPDFViewer({
   const [thumbnailsVisible, setThumbnailsVisible] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [fileSource, setFileSource] = useState<string | Uint8Array>(pdfUrl);
+  const [fallbackTried, setFallbackTried] = useState(false);
 
   // Keyboard navigation handler
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -103,7 +105,24 @@ export function EnhancedPDFViewer({
     setError(null);
   };
 
-  const handleDocumentLoadError = (error: any) => {
+  const handleDocumentLoadError = async (error: any) => {
+    // Try a blob fallback once (fetch entire file and feed as Uint8Array)
+    if (!fallbackTried) {
+      try {
+        const res = await fetch(pdfUrl, { credentials: 'omit' });
+        if (res.ok) {
+          const buf = await res.arrayBuffer();
+          setFileSource(new Uint8Array(buf));
+          setFallbackTried(true);
+          setError(null);
+          setIsLoading(true);
+          return; // Let react-pdf retry with the blob source
+        }
+      } catch (_) {
+        // ignore and fall through to error handling
+      }
+    }
+
     const errorMessage = pdfErrorHandler.getErrorMessage(error);
     setError(errorMessage);
     setIsLoading(false);
@@ -299,7 +318,7 @@ export function EnhancedPDFViewer({
                   }`}
                   onClick={() => goToPage(pageNum)}
                 >
-                  <Document file={pdfUrl}>
+                  <Document file={fileSource}>
                     <Page
                       pageNumber={pageNum}
                       width={150}
@@ -334,7 +353,7 @@ export function EnhancedPDFViewer({
             onClick={onPageClick}
           >
             <Document
-              file={pdfUrl}
+              file={fileSource}
               onLoadSuccess={handleDocumentLoadSuccess}
               onLoadError={handleDocumentLoadError}
               loading=""

@@ -29,6 +29,7 @@ export function TemplateManager() {
   });
   const [fieldDesignerOpen, setFieldDesignerOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
+  const [selectedTemplateUrl, setSelectedTemplateUrl] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch templates
@@ -124,6 +125,16 @@ export function TemplateManager() {
     return data.publicUrl;
   };
 
+  const getSignedFileUrl = async (filePath: string) => {
+    const { data, error } = await supabase.storage
+      .from("company-assets")
+      .createSignedUrl(filePath, 60 * 60);
+    if (error || !data?.signedUrl) {
+      return getFileUrl(filePath);
+    }
+    return data.signedUrl;
+  };
+
   if (isLoading) {
     return <div className="text-center p-8">Loading templates...</div>;
   }
@@ -217,7 +228,10 @@ export function TemplateManager() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(getFileUrl(template.file_path), '_blank')}
+                      onClick={async () => {
+                        const url = await getSignedFileUrl(template.file_path);
+                        window.open(url, '_blank');
+                      }}
                     >
                       <Eye className="w-4 h-4 mr-1" />
                       View
@@ -225,8 +239,10 @@ export function TemplateManager() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
+                        const url = await getSignedFileUrl(template.file_path);
                         setSelectedTemplate(template);
+                        setSelectedTemplateUrl(url);
                         setFieldDesignerOpen(true);
                       }}
                     >
@@ -271,7 +287,7 @@ export function TemplateManager() {
             setSelectedTemplate(null);
           }}
           templateId={selectedTemplate.id}
-          templateUrl={getFileUrl(selectedTemplate.file_path)}
+          templateUrl={selectedTemplateUrl ?? getFileUrl(selectedTemplate.file_path)}
         />
       )}
     </div>
