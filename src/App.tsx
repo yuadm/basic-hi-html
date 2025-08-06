@@ -27,6 +27,7 @@ import JobApplication from "./pages/JobApplication";
 import JobApplications from "./pages/JobApplications";
 import DocumentSigning from "./pages/DocumentSigning";
 import DocumentSigningView from "./pages/DocumentSigningView";
+import EmployeeDocumentSigningView from "./pages/EmployeeDocumentSigningView";
 import NotFound from "./pages/NotFound";
 
 
@@ -51,6 +52,9 @@ function AppContent() {
       <Route path="/login" element={<UnifiedAuth />} />
       <Route path="/job-application" element={<JobApplication />} />
       <Route path="/sign/:token" element={<DocumentSigningView />} />
+      <Route path="/employee-sign/:token" element={
+        <EmployeeDocumentSigningView />
+      } />
       
       {/* Legacy redirects */}
       <Route path="/auth" element={<Navigate to="/login" replace />} />
