@@ -141,19 +141,28 @@ export default function DocumentSigningView() {
             
             page.drawImage(signatureImage, {
               x: field.x_position,
-              y: page.getHeight() - field.y_position - field.height,
+              y: field.y_position, // Use y_position directly - don't flip
               width: field.width,
               height: field.height,
             });
           } catch (error) {
             console.error("Error adding signature:", error);
           }
+        } else if (field.field_type === "checkbox") {
+          // Handle checkbox fields
+          if (value === "true") {
+            page.drawText("✓", {
+              x: field.x_position + 2,
+              y: field.y_position + 5, // Use y_position directly
+              size: field.height - 4,
+            });
+          }
         } else {
           // Handle text fields
           page.drawText(value.toString(), {
             x: field.x_position,
-            y: page.getHeight() - field.y_position - 12,
-            size: 12,
+            y: field.y_position + (field.height / 2) - 6, // Center text vertically
+            size: Math.min(12, field.height - 4),
           });
         }
       }
@@ -252,6 +261,9 @@ export default function DocumentSigningView() {
     const missingFields = requiredFields.filter(field => {
       if (field.field_type === "signature") {
         return !signatures[field.id];
+      }
+      if (field.field_type === "checkbox") {
+        return !fieldValues[field.id]; // Checkbox can be true or false, just check if it's set
       }
       return !fieldValues[field.id];
     });
