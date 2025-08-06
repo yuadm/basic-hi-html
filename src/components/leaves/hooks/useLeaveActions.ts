@@ -148,30 +148,50 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
 
   const updateLeaveStatus = async (leaveId: string, newStatus: 'approved' | 'rejected' | 'pending', managerNotes?: string) => {
     try {
+      console.log('Updating leave status:', { leaveId, newStatus, managerNotes });
+      
       // Get the leave details first
       const leave = leaves.find(l => l.id === leaveId);
-      if (!leave) return;
+      if (!leave) {
+        console.error('Leave not found:', leaveId);
+        return;
+      }
 
       const previousStatus = leave.status;
       const leaveType = leaveTypes.find(lt => lt.id === leave.leave_type_id);
 
       // Get current user for audit trail
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No authenticated user found');
+        return;
+      }
+      
+      console.log('Current user:', user.id, 'Previous status:', previousStatus);
       
       // Update leave status
+      const updateData = { 
+        status: newStatus, 
+        manager_notes: managerNotes || null,
+        approved_date: newStatus === 'approved' ? new Date().toISOString() : null,
+        rejected_date: newStatus === 'rejected' ? new Date().toISOString() : null,
+        approved_by: newStatus === 'approved' ? user?.id : null,
+        rejected_by: newStatus === 'rejected' ? user?.id : null
+      };
+      
+      console.log('Update data:', updateData);
+      
       const { error: leaveError } = await supabase
         .from('leave_requests')
-        .update({ 
-          status: newStatus, 
-          manager_notes: managerNotes || null,
-          approved_date: newStatus === 'approved' ? new Date().toISOString() : null,
-          rejected_date: newStatus === 'rejected' ? new Date().toISOString() : null,
-          approved_by: newStatus === 'approved' ? user?.id : null,
-          rejected_by: newStatus === 'rejected' ? user?.id : null
-        })
+        .update(updateData)
         .eq('id', leaveId);
 
-      if (leaveError) throw leaveError;
+      if (leaveError) {
+        console.error('Database update error:', leaveError);
+        throw leaveError;
+      }
+      
+      console.log('Leave status updated successfully');
 
       // Handle leave balance updates for leaves that reduce balance
       if (leaveType?.reduces_balance) {

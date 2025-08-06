@@ -66,20 +66,28 @@ export function LeavesContent() {
     
     // For non-admin users, filter by accessible branches
     const accessibleBranches = getAccessibleBranches();
-    console.log('Leave filtering - isAdmin:', isAdmin, 'accessibleBranches:', accessibleBranches, 'leave.employee_branch_id:', leave.employee_branch_id);
     
     let hasAccess = true;
     if (!isAdmin && accessibleBranches.length > 0) {
-      // Check if employee's branch_id is in accessible branches
-      // First try to use employee_branch_id if it exists, otherwise map employee's branch name to branch ID
+      // Get employee's branch ID - try multiple sources
       let employeeBranchId = leave.employee_branch_id;
       
+      // If employee_branch_id is empty/null, try to map from branch name
       if (!employeeBranchId && leave.employee?.branch) {
-        // Map branch name to branch ID since leave.employee_branch_id might be null
-        employeeBranchId = branches.find(b => b.name === leave.employee.branch)?.id;
+        const matchingBranch = branches.find(b => b.name === leave.employee.branch);
+        employeeBranchId = matchingBranch?.id;
       }
       
-      hasAccess = accessibleBranches.includes(employeeBranchId || '');
+      console.log('Branch access check:', {
+        isAdmin,
+        employeeName: leave.employee?.name,
+        employeeBranch: leave.employee?.branch,
+        employeeBranchId,
+        accessibleBranches,
+        hasAccess: employeeBranchId ? accessibleBranches.includes(employeeBranchId) : false
+      });
+      
+      hasAccess = employeeBranchId ? accessibleBranches.includes(employeeBranchId) : false;
     }
     
     return matchesSearch && matchesStatus && matchesBranch && matchesLeaveType && hasAccess;
