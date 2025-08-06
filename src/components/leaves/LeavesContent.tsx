@@ -102,11 +102,18 @@ export function LeavesContent() {
       });
       
       // If user has accessible branches, check if employee belongs to one of them
-      // If user has no accessible branches (empty array), they can see all leaves
-      if (accessibleBranches.length > 0 && employeeBranchId) {
-        hasAccess = accessibleBranches.includes(employeeBranchId);
+      if (accessibleBranches.length > 0) {
+        if (employeeBranchId) {
+          hasAccess = accessibleBranches.includes(employeeBranchId);
+        } else {
+          // If no branch ID but has branch name, check by name
+          const branchNames = branches
+            .filter(b => accessibleBranches.includes(b.id))
+            .map(b => b.name);
+          hasAccess = leave.employee?.branch ? branchNames.includes(leave.employee.branch) : false;
+        }
       }
-      // If no specific branch restrictions or no employee branch ID, allow access
+      // If user has no accessible branches (empty array), they can see all leaves
     }
     
     return matchesSearch && matchesStatus && matchesBranch && matchesLeaveType && hasAccess;
