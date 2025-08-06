@@ -47,14 +47,26 @@ export function LeavesContent() {
   } = useLeaveActions({ leaves, employees, leaveTypes, refetchData });
 
   // Get permissions context
-  const { isAdmin, getAccessibleBranches } = usePermissions();
+  const { isAdmin, getAccessibleBranches, loading: permissionsLoading, error: permissionsError } = usePermissions();
   const { 
-    canViewLeaves,
-    canCreateLeaves,
-    canEditLeaves,
-    canDeleteLeaves,
-    canApproveLeaves
+    canViewLeaves, 
+    canCreateLeaves, 
+    canEditLeaves, 
+    canDeleteLeaves, 
+    canApproveLeaves 
   } = usePagePermissions();
+
+  // Debug permissions
+  console.log('PERMISSIONS DEBUG:', {
+    canViewLeaves: canViewLeaves(),
+    canCreateLeaves: canCreateLeaves(),
+    canEditLeaves: canEditLeaves(),
+    canDeleteLeaves: canDeleteLeaves(),
+    canApproveLeaves: canApproveLeaves(),
+    isAdmin,
+    loading: permissionsLoading,
+    error: permissionsError
+  });
 
   const filteredLeaves = leaves.filter(leave => {
     const matchesSearch = leave.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
