@@ -65,7 +65,8 @@ export function LeavesContent() {
     canApproveLeaves: canApproveLeaves(),
     isAdmin,
     loading: permissionsLoading,
-    error: permissionsError
+    error: permissionsError,
+    accessibleBranches: getAccessibleBranches()
   });
 
   const filteredLeaves = leaves.filter(leave => {

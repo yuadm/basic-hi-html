@@ -78,8 +78,8 @@ export function useUserPermissions() {
     const permission = permissions.find(
       p => p.permission_type === permissionType && p.permission_key === permissionKey
     );
-    // Default to true if permission not explicitly set
-    return permission ? permission.granted : true;
+    // Only return granted value if permission is explicitly set, otherwise return false
+    return permission ? permission.granted : false;
   };
 
   const hasPageAccess = (pagePath: string): boolean => {
