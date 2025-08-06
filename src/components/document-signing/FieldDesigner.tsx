@@ -119,26 +119,66 @@ export function FieldDesigner({ isOpen, onClose, templateId, templateUrl }: Fiel
   const handlePageClick = (event: React.MouseEvent) => {
     if (!isCreatingField) return;
 
-    // Get the click position relative to the PDF viewer
-    const target = event.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
+    // Get the PDF page container element
+    const pageElement = event.currentTarget.querySelector('.react-pdf__Page');
+    if (!pageElement) return;
+    
+    const rect = pageElement.getBoundingClientRect();
     const x = (event.clientX - rect.left) / scale;
     const y = (event.clientY - rect.top) / scale;
 
     const newField: TemplateField = {
       field_name: `${newFieldType}_field_${Date.now()}`,
       field_type: newFieldType,
-      x_position: x,
-      y_position: y,
+      x_position: Math.max(0, x),
+      y_position: Math.max(0, y),
       width: newFieldType === "signature" ? 150 : 100,
       height: newFieldType === "signature" ? 60 : 30,
       page_number: currentPage,
-      is_required: true
+      is_required: true,
+      placeholder_text: `Enter ${newFieldType} here`
     };
 
     setFields([...fields, newField]);
     setSelectedField(newField);
     setIsCreatingField(false);
+  };
+
+  const handleFieldDrag = (fieldIndex: number, event: React.MouseEvent) => {
+    event.preventDefault();
+    const field = fields[fieldIndex];
+    if (!field) return;
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const initialX = field.x_position;
+    const initialY = field.y_position;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = (moveEvent.clientX - startX) / scale;
+      const deltaY = (moveEvent.clientY - startY) / scale;
+
+      const newX = Math.max(0, initialX + deltaX);
+      const newY = Math.max(0, initialY + deltaY);
+
+      setFields(prev => prev.map((f, i) => 
+        i === fieldIndex 
+          ? { ...f, x_position: newX, y_position: newY }
+          : f
+      ));
+
+      if (selectedField === field) {
+        setSelectedField({ ...field, x_position: newX, y_position: newY });
+      }
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
   const fieldIcons = {
@@ -303,28 +343,46 @@ export function FieldDesigner({ isOpen, onClose, templateId, templateUrl }: Fiel
                         .filter(field => field.page_number === currentPage)
                         .map((field, index) => {
                           const Icon = fieldIcons[field.field_type];
+                          const fieldIndex = fields.findIndex(f => f === field);
                           return (
                             <div
-                              key={index}
-                              className={`absolute border-2 bg-blue-100 bg-opacity-50 flex items-center justify-center cursor-pointer ${
-                                selectedField === field ? "border-blue-500" : "border-blue-300"
-                              }`}
+                              key={field.id || index}
+                              className={`absolute border-2 bg-blue-100 bg-opacity-50 flex items-center justify-center select-none ${
+                                selectedField === field ? "border-blue-500 bg-blue-200" : "border-blue-300"
+                              } ${isCreatingField ? "cursor-crosshair" : "cursor-move"} hover:bg-blue-200 transition-colors`}
                               style={{
                                 left: field.x_position * scale,
                                 top: field.y_position * scale,
                                 width: field.width * scale,
                                 height: field.height * scale,
-                                cursor: isCreatingField ? "crosshair" : "pointer"
+                                zIndex: selectedField === field ? 20 : 10
                               }}
-                              onClick={(e) => {
+                              onMouseDown={(e) => {
                                 e.stopPropagation();
                                 setSelectedField(field);
+                                if (!isCreatingField) {
+                                  handleFieldDrag(fieldIndex, e);
+                                }
                               }}
+                              title={`${field.field_name}${field.is_required ? ' (Required)' : ''} - Click and drag to move`}
                             >
-                              <Icon className="w-4 h-4 text-blue-600" />
-                              <span className="text-xs text-blue-600 ml-1 truncate">
+                              <Icon className="w-4 h-4 text-blue-600 pointer-events-none" />
+                              <span className="text-xs text-blue-600 ml-1 truncate pointer-events-none">
                                 {field.field_name}
                               </span>
+                              
+                              {/* Resize handles */}
+                              {selectedField === field && !isCreatingField && (
+                                <>
+                                  <div 
+                                    className="absolute bottom-0 right-0 w-3 h-3 bg-blue-500 border border-white cursor-se-resize"
+                                    onMouseDown={(e) => {
+                                      e.stopPropagation();
+                                      // Handle resize logic here if needed
+                                    }}
+                                  />
+                                </>
+                              )}
                             </div>
                           );
                         })}

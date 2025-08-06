@@ -42,6 +42,7 @@ interface TemplateField {
   height: number;
   page_number: number;
   is_required: boolean;
+  placeholder_text?: string;
 }
 
 export default function DocumentSigningView() {
@@ -222,6 +223,14 @@ export default function DocumentSigningView() {
     onSuccess: () => {
       toast.success("Document signed successfully!");
       queryClient.invalidateQueries({ queryKey: ["signing-request", token] });
+      // Close the tab/window or redirect to success page
+      setTimeout(() => {
+        window.close();
+        // If window.close() doesn't work (e.g., not opened by JS), redirect
+        if (!window.closed) {
+          navigate("/", { replace: true });
+        }
+      }, 2000);
     },
     onError: (error: any) => {
       console.error("Error signing document:", error);
@@ -322,9 +331,19 @@ export default function DocumentSigningView() {
     );
   }
 
+  // Calculate form completion
+  const requiredFields = templateFields?.filter(field => field.is_required) || [];
+  const completedRequiredFields = requiredFields.filter(field => {
+    if (field.field_type === "signature") {
+      return signatures[field.id];
+    }
+    return fieldValues[field.id];
+  });
+  const isFormComplete = requiredFields.length > 0 && completedRequiredFields.length === requiredFields.length;
+
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto p-4">
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -337,14 +356,25 @@ export default function DocumentSigningView() {
             {signingData.message && (
               <p className="text-sm italic">{signingData.message}</p>
             )}
+            <div className="mt-4 flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                Progress: {completedRequiredFields.length} of {requiredFields.length} required fields completed
+              </div>
+              <div className="w-48 bg-muted rounded-full h-2">
+                <div 
+                  className="bg-primary h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${requiredFields.length > 0 ? (completedRequiredFields.length / requiredFields.length) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
           </CardHeader>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* PDF Viewer */}
-          <div className="lg:col-span-2">
-            <Card className="h-[700px]">
-              <CardHeader>
+          <div className="lg:col-span-3">
+            <Card className="h-[800px]">
+              <CardHeader className="pb-4">
                 <CardTitle>Document</CardTitle>
               </CardHeader>
               <CardContent className="h-full p-0">
@@ -356,90 +386,139 @@ export default function DocumentSigningView() {
                     scale={scale}
                     onScaleChange={setScale}
                     className="h-full"
+                    overlayContent={
+                      <>
+                        {/* Render interactive field overlays */}
+                        {templateFields
+                          ?.filter(field => field.page_number === currentPage)
+                          .map((field) => (
+                            <div
+                              key={field.id}
+                              className="absolute border-2 border-blue-400 bg-blue-100/80 rounded cursor-pointer flex items-center justify-center text-xs font-medium text-blue-700 hover:bg-blue-200/80 transition-colors"
+                              style={{
+                                left: field.x_position * scale,
+                                top: field.y_position * scale,
+                                width: field.width * scale,
+                                height: field.height * scale,
+                                zIndex: 10
+                              }}
+                              title={`${field.field_name}${field.is_required ? ' (Required)' : ''}`}
+                            >
+                              {field.field_type === "signature" ? "✍️" : 
+                               field.field_type === "checkbox" ? "☐" :
+                               field.field_type === "date" ? "📅" : "📝"}
+                              <span className="ml-1 truncate">
+                                {field.field_name}
+                              </span>
+                            </div>
+                          ))}
+                      </>
+                    }
                   />
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Form Fields */}
-          <div>
-            <Card>
+          {/* Form Fields Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-4">
               <CardHeader>
                 <CardTitle>Complete the Form</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Fill in all required fields to sign the document
+                </p>
               </CardHeader>
-               <CardContent className="space-y-4">
-                 {(() => {
-                   console.log("Template fields:", templateFields, "Current page:", currentPage);
-                   const fieldsForPage = templateFields?.filter(field => field.page_number === currentPage) || [];
-                   console.log("Fields for current page:", fieldsForPage);
-                   return null;
-                 })()}
-                 {templateFields?.filter(field => field.page_number === currentPage).map((field) => (
-                   <div key={field.id} className="space-y-2">
-                     <Label className="flex items-center gap-2">
-                       {field.field_name}
-                       {field.is_required && <span className="text-red-500">*</span>}
-                     </Label>
-
-                      {field.field_type === "signature" ? (
-                        <div className="space-y-2">
-                          <div className="border border-dashed border-gray-300 rounded p-2">
-                            <SignatureCanvas
-                              ref={(ref) => (signatureRefs.current[field.id] = ref)}
-                              canvasProps={{
-                                width: 300,
-                                height: 150,
-                                className: "w-full h-24 border rounded",
-                              }}
-                              onEnd={() => handleSignature(field.id)}
-                            />
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => clearSignature(field.id)}
-                            className="w-full"
-                          >
-                            Clear Signature
-                          </Button>
-                        </div>
-                      ) : field.field_type === "checkbox" ? (
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={field.id}
-                            checked={fieldValues[field.id] === "true"}
-                            onChange={(e) => handleFieldChange(field.id, e.target.checked.toString())}
-                            required={field.is_required}
-                            className="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded"
-                          />
-                          <label htmlFor={field.id} className="text-sm">
+              <CardContent className="space-y-4 max-h-[600px] overflow-y-auto">
+                {/* Show all fields grouped by page */}
+                {templateFields && templateFields.length > 0 ? (
+                  Object.entries(
+                    templateFields.reduce((acc, field) => {
+                      if (!acc[field.page_number]) acc[field.page_number] = [];
+                      acc[field.page_number].push(field);
+                      return acc;
+                    }, {} as Record<number, TemplateField[]>)
+                  ).map(([pageNum, fields]) => (
+                    <div key={pageNum} className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                        <span>Page {pageNum}</span>
+                        {parseInt(pageNum) === currentPage && (
+                          <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">Current</span>
+                        )}
+                      </div>
+                      
+                      {fields.map((field) => (
+                        <div key={field.id} className="space-y-2 p-3 border rounded-lg bg-muted/50">
+                          <Label className="flex items-center gap-2 text-sm">
                             {field.field_name}
-                          </label>
-                        </div>
-                      ) : (
-                        <Input
-                          type={field.field_type === "date" ? "date" : "text"}
-                          value={fieldValues[field.id] || ""}
-                          onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                          required={field.is_required}
-                          placeholder={`Enter ${field.field_name.toLowerCase()}`}
-                        />
-                      )}
-                    </div>
-                  ))}
+                            {field.is_required && <span className="text-red-500">*</span>}
+                            {(field.field_type === "signature" ? signatures[field.id] : fieldValues[field.id]) && (
+                              <span className="text-green-600 text-xs">✓</span>
+                            )}
+                          </Label>
 
-                <div className="pt-4 space-y-2">
+                          {field.field_type === "signature" ? (
+                            <div className="space-y-2">
+                              <div className="border border-dashed border-gray-300 rounded p-2 bg-white">
+                                <SignatureCanvas
+                                  ref={(ref) => (signatureRefs.current[field.id] = ref)}
+                                  canvasProps={{
+                                    width: 250,
+                                    height: 100,
+                                    className: "w-full h-20 border rounded",
+                                  }}
+                                  onEnd={() => handleSignature(field.id)}
+                                />
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => clearSignature(field.id)}
+                                className="w-full"
+                              >
+                                Clear
+                              </Button>
+                            </div>
+                          ) : field.field_type === "checkbox" ? (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={field.id}
+                                checked={fieldValues[field.id] === "true"}
+                                onChange={(e) => handleFieldChange(field.id, e.target.checked.toString())}
+                                className="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded"
+                              />
+                              <label htmlFor={field.id} className="text-sm">
+                                {field.placeholder_text || "Check if applicable"}
+                              </label>
+                            </div>
+                          ) : (
+                            <Input
+                              type={field.field_type === "date" ? "date" : "text"}
+                              value={fieldValues[field.id] || ""}
+                              onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                              placeholder={field.placeholder_text || `Enter ${field.field_name.toLowerCase()}`}
+                              className="text-sm"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground text-sm">No form fields found for this document.</p>
+                )}
+
+                <div className="pt-4 space-y-2 border-t">
                   <Button
                     onClick={handleSubmit}
-                    disabled={completeSigning.isPending}
+                    disabled={completeSigning.isPending || !isFormComplete}
                     className="w-full"
                   >
                     {completeSigning.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    Sign Document
+                    {!isFormComplete ? `Complete ${requiredFields.length - completedRequiredFields.length} more field${requiredFields.length - completedRequiredFields.length !== 1 ? 's' : ''}` : 'Sign Document'}
                   </Button>
                   
                   <Button
