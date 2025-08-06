@@ -370,37 +370,51 @@ export default function DocumentSigningView() {
                        {field.is_required && <span className="text-red-500">*</span>}
                      </Label>
 
-                     {field.field_type === "signature" ? (
-                       <div className="space-y-2">
-                         <div className="border border-dashed border-gray-300 rounded p-2">
-                           <SignatureCanvas
-                             ref={(ref) => (signatureRefs.current[field.id] = ref)}
-                             canvasProps={{
-                               width: 300,
-                               height: 150,
-                               className: "w-full h-24 border rounded",
-                             }}
-                             onEnd={() => handleSignature(field.id)}
-                           />
-                         </div>
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={() => clearSignature(field.id)}
-                           className="w-full"
-                         >
-                           Clear Signature
-                         </Button>
-                       </div>
-                     ) : (
-                       <Input
-                         type={field.field_type === "date" ? "date" : "text"}
-                         value={fieldValues[field.id] || ""}
-                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                         required={field.is_required}
-                         placeholder={`Enter ${field.field_name.toLowerCase()}`}
-                       />
-                     )}
+                      {field.field_type === "signature" ? (
+                        <div className="space-y-2">
+                          <div className="border border-dashed border-gray-300 rounded p-2">
+                            <SignatureCanvas
+                              ref={(ref) => (signatureRefs.current[field.id] = ref)}
+                              canvasProps={{
+                                width: 300,
+                                height: 150,
+                                className: "w-full h-24 border rounded",
+                              }}
+                              onEnd={() => handleSignature(field.id)}
+                            />
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => clearSignature(field.id)}
+                            className="w-full"
+                          >
+                            Clear Signature
+                          </Button>
+                        </div>
+                      ) : field.field_type === "checkbox" ? (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={field.id}
+                            checked={fieldValues[field.id] === "true"}
+                            onChange={(e) => handleFieldChange(field.id, e.target.checked.toString())}
+                            required={field.is_required}
+                            className="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded"
+                          />
+                          <label htmlFor={field.id} className="text-sm">
+                            {field.field_name}
+                          </label>
+                        </div>
+                      ) : (
+                        <Input
+                          type={field.field_type === "date" ? "date" : "text"}
+                          value={fieldValues[field.id] || ""}
+                          onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                          required={field.is_required}
+                          placeholder={`Enter ${field.field_name.toLowerCase()}`}
+                        />
+                      )}
                     </div>
                   ))}
 
