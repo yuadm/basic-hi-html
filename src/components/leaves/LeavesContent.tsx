@@ -93,8 +93,17 @@ export function LeavesContent() {
     return matchesSearch && matchesStatus && matchesBranch && matchesLeaveType && hasAccess;
   });
 
-  // Sort leaves
+  // Sort leaves with pending first (two-tier sorting)
   const sortedLeaves = [...filteredLeaves].sort((a, b) => {
+    // Primary sort: pending leaves first
+    const aStatusPriority = a.status === 'pending' ? 0 : 1;
+    const bStatusPriority = b.status === 'pending' ? 0 : 1;
+    
+    if (aStatusPriority !== bStatusPriority) {
+      return aStatusPriority - bStatusPriority;
+    }
+    
+    // Secondary sort: apply user's selected sorting within status groups
     let aValue: any = a[sortField];
     let bValue: any = b[sortField];
     
