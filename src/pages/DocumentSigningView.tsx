@@ -146,6 +146,13 @@ export default function DocumentSigningView() {
         const value = field.field_type === "signature" ? signatures[field.id] : fieldValues[field.id];
         if (!value) continue;
 
+        // Get page dimensions for coordinate conversion
+        const { height: pageHeight } = page.getSize();
+        
+        // Convert web coordinates to PDF coordinates (Y-axis is flipped in PDF)
+        const pdfX = field.x_position;
+        const pdfY = pageHeight - field.y_position - field.height;
+
         if (field.field_type === "signature") {
           // Handle signature fields - convert base64 to image and embed
           try {
@@ -154,8 +161,8 @@ export default function DocumentSigningView() {
             const signatureImage = await pdfDoc.embedPng(signatureBytes);
             
             page.drawImage(signatureImage, {
-              x: field.x_position,
-              y: field.y_position, // Use y_position directly - don't flip
+              x: pdfX,
+              y: pdfY,
               width: field.width,
               height: field.height,
             });
@@ -166,16 +173,16 @@ export default function DocumentSigningView() {
           // Handle checkbox fields
           if (value === "true") {
             page.drawText("✓", {
-              x: field.x_position + 2,
-              y: field.y_position + 5, // Use y_position directly
+              x: pdfX + 2,
+              y: pdfY + 5,
               size: field.height - 4,
             });
           }
         } else {
           // Handle text fields
           page.drawText(value.toString(), {
-            x: field.x_position,
-            y: field.y_position + (field.height / 2) - 6, // Center text vertically
+            x: pdfX,
+            y: pdfY + (field.height / 2) - 6, // Center text vertically
             size: Math.min(12, field.height - 4),
           });
         }
@@ -193,12 +200,13 @@ export default function DocumentSigningView() {
 
       if (uploadError) throw uploadError;
 
-      // Update recipient status to signed
+      // Update recipient status to signed and mark as expired
       const { error: updateError } = await supabase
         .from("signing_request_recipients")
         .update({
           status: "signed",
           signed_at: new Date().toISOString(),
+          expired_at: new Date().toISOString(), // Immediately expire the link
         })
         .eq("id", recipient.id);
 
@@ -327,7 +335,7 @@ export default function DocumentSigningView() {
 
   const recipient = signingData.signing_request_recipients[0];
   const isAlreadySigned = recipient?.status === "signed";
-  const isExpired = recipient?.expired_at || recipient?.access_count > 1 && recipient?.status === "signed";
+  const isExpired = recipient?.expired_at !== null;
 
   if (isAlreadySigned || isExpired) {
     return (
