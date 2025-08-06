@@ -1413,9 +1413,11 @@ export type Database = {
       }
       signing_request_recipients: {
         Row: {
+          access_count: number | null
           access_token: string
           created_at: string
           employee_id: string | null
+          expired_at: string | null
           id: string
           recipient_email: string
           recipient_name: string
@@ -1425,9 +1427,11 @@ export type Database = {
           status: string
         }
         Insert: {
+          access_count?: number | null
           access_token?: string
           created_at?: string
           employee_id?: string | null
+          expired_at?: string | null
           id?: string
           recipient_email: string
           recipient_name: string
@@ -1437,9 +1441,11 @@ export type Database = {
           status?: string
         }
         Update: {
+          access_count?: number | null
           access_token?: string
           created_at?: string
           employee_id?: string | null
+          expired_at?: string | null
           id?: string
           recipient_email?: string
           recipient_name?: string

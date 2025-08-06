@@ -29,6 +29,8 @@ interface SigningRequestData {
     recipient_email: string;
     status: string;
     access_token: string;
+    expired_at?: string;
+    access_count?: number;
   }[];
 }
 
@@ -71,6 +73,17 @@ export default function DocumentSigningView() {
         .single();
 
       if (error) throw error;
+      
+      // Track access for expiration checking
+      if (data?.signing_request_recipients?.[0]) {
+        await supabase
+          .from("signing_request_recipients")
+          .update({ 
+            access_count: (data.signing_request_recipients[0].access_count || 0) + 1 
+          })
+          .eq("id", data.signing_request_recipients[0].id);
+      }
+      
       return data as SigningRequestData;
     },
     enabled: !!token,
@@ -314,16 +327,24 @@ export default function DocumentSigningView() {
 
   const recipient = signingData.signing_request_recipients[0];
   const isAlreadySigned = recipient?.status === "signed";
+  const isExpired = recipient?.expired_at || recipient?.access_count > 1 && recipient?.status === "signed";
 
-  if (isAlreadySigned) {
+  if (isAlreadySigned || isExpired) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md">
           <CardHeader>
-            <CardTitle className="text-center text-green-600">Already Signed</CardTitle>
+            <CardTitle className="text-center text-green-600">
+              {isExpired ? "Link Expired" : "Already Signed"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="mb-4">This document has already been signed.</p>
+            <p className="mb-4">
+              {isExpired 
+                ? "This signing link has expired and is no longer accessible." 
+                : "This document has already been signed."
+              }
+            </p>
             <Button onClick={() => navigate("/")}>Return to Home</Button>
           </CardContent>
         </Card>
