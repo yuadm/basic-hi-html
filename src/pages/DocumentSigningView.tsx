@@ -56,6 +56,7 @@ export default function DocumentSigningView() {
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [signatures, setSignatures] = useState<Record<string, string>>({});
+  const [isSigningInProgress, setIsSigningInProgress] = useState(false);
   const signatureRefs = useRef<Record<string, SignatureCanvas | null>>({});
 
   // Fetch signing request data
@@ -256,6 +257,7 @@ export default function DocumentSigningView() {
     onError: (error: any) => {
       console.error("Error signing document:", error);
       toast.error("Failed to sign document: " + error.message);
+      setIsSigningInProgress(false); // Reset signing state on error
     },
   });
 
@@ -284,7 +286,13 @@ export default function DocumentSigningView() {
   };
 
   const handleSubmit = () => {
-    if (!templateFields) return;
+    if (!templateFields || isSigningInProgress) return;
+
+    // Prevent multiple submissions
+    if (completeSigning.isPending) {
+      toast.error("Document is already being signed, please wait...");
+      return;
+    }
 
     // Check required fields
     const requiredFields = templateFields.filter(field => field.is_required);
@@ -303,6 +311,8 @@ export default function DocumentSigningView() {
       return;
     }
 
+    // Set signing in progress to prevent multiple clicks
+    setIsSigningInProgress(true);
     completeSigning.mutate();
   };
 
@@ -541,7 +551,7 @@ export default function DocumentSigningView() {
                 <div className="pt-4 space-y-2 border-t">
                   <Button
                     onClick={handleSubmit}
-                    disabled={completeSigning.isPending || !isFormComplete}
+                    disabled={completeSigning.isPending || !isFormComplete || isSigningInProgress}
                     className="w-full"
                   >
                     {completeSigning.isPending && (
