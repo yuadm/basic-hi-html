@@ -106,20 +106,51 @@ export function EnhancedPDFViewer({
   };
 
   const handleDocumentLoadError = async (error: any) => {
+    console.log("PDF Load Error:", error);
+    
     // Try a blob fallback once (fetch entire file and feed as Uint8Array)
     if (!fallbackTried) {
       try {
-        const res = await fetch(pdfUrl, { credentials: 'omit' });
+        console.log("Attempting fallback fetch for PDF:", pdfUrl);
+        const res = await fetch(pdfUrl, { 
+          credentials: 'omit',
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/pdf,*/*'
+          }
+        });
+        
+        console.log("Fetch response status:", res.status, res.statusText);
+        
         if (res.ok) {
+          const contentType = res.headers.get('content-type');
+          console.log("Content-Type:", contentType);
+          
+          if (contentType && !contentType.includes('pdf')) {
+            throw new Error(`Invalid content type: ${contentType}. Expected PDF.`);
+          }
+          
           const buf = await res.arrayBuffer();
+          console.log("Buffer size:", buf.byteLength);
+          
+          if (buf.byteLength === 0) {
+            throw new Error("PDF file is empty");
+          }
+          
           setFileSource(new Uint8Array(buf));
           setFallbackTried(true);
           setError(null);
           setIsLoading(true);
           return; // Let react-pdf retry with the blob source
+        } else {
+          throw new Error(`Server returned ${res.status}: ${res.statusText}`);
         }
-      } catch (_) {
-        // ignore and fall through to error handling
+      } catch (fetchError) {
+        console.error("Fallback fetch failed:", fetchError);
+        setError(`Failed to load PDF: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+        setIsLoading(false);
+        toast.error(`PDF loading failed: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+        return;
       }
     }
 
