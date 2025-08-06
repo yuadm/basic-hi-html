@@ -1,7 +1,8 @@
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PermissionsContextType {
   hasPageAccess: (pagePath: string) => boolean;
@@ -18,14 +19,39 @@ const PermissionsContext = createContext<PermissionsContextType | undefined>(und
 export function PermissionsProvider({ children }: { children: ReactNode }) {
   const { userRole } = useAuth();
   const { hasPageAccess, hasFeatureAccess, hasPageAction, getAccessibleBranches, loading, error } = useUserPermissions();
+  const [allBranches, setAllBranches] = useState<string[]>([]);
   
   const isAdmin = userRole === 'admin';
+
+  // Fetch all branches for admin users
+  useEffect(() => {
+    if (isAdmin) {
+      const fetchAllBranches = async () => {
+        const { data: branches } = await supabase
+          .from('branches')
+          .select('id');
+        
+        if (branches) {
+          setAllBranches(branches.map(b => b.id));
+        }
+      };
+      
+      fetchAllBranches();
+    }
+  }, [isAdmin]);
 
   const value = {
     hasPageAccess: (pagePath: string) => isAdmin || hasPageAccess(pagePath),
     hasFeatureAccess: (feature: string) => isAdmin || hasFeatureAccess(feature),
     hasPageAction: (moduleKey: string, action: string) => isAdmin || hasPageAction(moduleKey, action),
-    getAccessibleBranches: () => isAdmin ? [] : getAccessibleBranches(), // Empty array means all branches for admin
+    getAccessibleBranches: () => {
+      if (isAdmin) {
+        return allBranches; // Return all branches for admin
+      }
+      const userBranches = getAccessibleBranches();
+      // If user has no explicit branch restrictions, they can see all branches
+      return userBranches.length > 0 ? userBranches : allBranches;
+    },
     isAdmin,
     loading,
     error
