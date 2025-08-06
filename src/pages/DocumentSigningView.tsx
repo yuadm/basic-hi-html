@@ -346,8 +346,9 @@ export default function DocumentSigningView() {
   }
 
   const recipient = signingData.signing_request_recipients[0];
-  const isAlreadySigned = recipient?.status === "signed";
+  const isAlreadySigned = recipient?.status === "signed" || hasBeenSigned;
   const isExpired = recipient?.expired_at !== null;
+  const hasAccessedAfterSigning = recipient?.status === "signed" && (recipient?.access_count || 0) > 1;
 
   if (isAlreadySigned || isExpired) {
     return (
