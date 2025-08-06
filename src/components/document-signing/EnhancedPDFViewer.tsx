@@ -175,14 +175,28 @@ export function EnhancedPDFViewer({
       <Card className={`flex items-center justify-center h-96 ${className}`}>
         <CardContent className="text-center">
           <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">{error}</p>
-          <Button 
-            variant="outline" 
-            className="mt-4" 
-            onClick={() => window.location.reload()}
-          >
-            Retry
-          </Button>
+          <p className="text-muted-foreground mb-2">{error}</p>
+          {error.includes("400") && (
+            <p className="text-sm text-amber-600 mb-4">
+              The PDF file appears to be corrupted or missing. Please re-upload the document.
+            </p>
+          )}
+          <div className="space-x-2">
+            <Button 
+              variant="outline" 
+              className="mt-4" 
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </Button>
+            <Button 
+              variant="outline" 
+              className="mt-4" 
+              onClick={() => window.open(pdfUrl, '_blank')}
+            >
+              Open Direct Link
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
