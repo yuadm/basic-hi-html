@@ -57,6 +57,7 @@ export default function DocumentSigningView() {
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [signatures, setSignatures] = useState<Record<string, string>>({});
   const [isSigningInProgress, setIsSigningInProgress] = useState(false);
+  const [hasBeenSigned, setHasBeenSigned] = useState(false);
   const signatureRefs = useRef<Record<string, SignatureCanvas | null>>({});
 
   // Fetch signing request data
@@ -243,6 +244,7 @@ export default function DocumentSigningView() {
       });
     },
     onSuccess: () => {
+      setHasBeenSigned(true); // Immediately mark as signed locally
       toast.success("Document signed successfully!");
       queryClient.invalidateQueries({ queryKey: ["signing-request", token] });
       // Close the tab/window or redirect to success page
