@@ -24,6 +24,7 @@ interface Branch {
   name: string;
   created_at: string;
   employee_count?: number;
+  document_count?: number;
 }
 
 export function BranchSettings() {
@@ -64,17 +65,24 @@ export function BranchSettings() {
 
       console.log('Fetched branches:', data);
       
-      // Fetch employee counts for each branch
+      // Fetch employee and document counts for each branch
       const branchesWithCounts = await Promise.all(
         (data || []).map(async (branch) => {
-          const { count } = await supabase
-            .from('employees')
-            .select('*', { count: 'exact', head: true })
-            .eq('branch', branch.name);
+          const [employeeResult, documentResult] = await Promise.all([
+            supabase
+              .from('employees')
+              .select('*', { count: 'exact', head: true })
+              .eq('branch', branch.name),
+            supabase
+              .from('document_tracker')
+              .select('*', { count: 'exact', head: true })
+              .eq('branch_id', branch.id)
+          ]);
           
           return {
             ...branch,
-            employee_count: count || 0
+            employee_count: employeeResult.count || 0,
+            document_count: documentResult.count || 0
           };
         })
       );
@@ -225,10 +233,19 @@ export function BranchSettings() {
 
       console.log('Branch deleted successfully');
       setBranches(branches.filter(branch => branch.id !== branchToDelete.id));
+      
+      const deletedItems = [];
+      if (branchToDelete.employee_count && branchToDelete.employee_count > 0) {
+        deletedItems.push(`${branchToDelete.employee_count} employee(s)`);
+      }
+      if (branchToDelete.document_count && branchToDelete.document_count > 0) {
+        deletedItems.push(`${branchToDelete.document_count} document(s)`);
+      }
+      
       toast({
         title: "Success",
-        description: branchToDelete.employee_count && branchToDelete.employee_count > 0 
-          ? `Branch and ${branchToDelete.employee_count} employee(s) deleted successfully`
+        description: deletedItems.length > 0 
+          ? `Branch and ${deletedItems.join(', ')} deleted successfully`
           : "Branch deleted successfully",
       });
       
@@ -301,9 +318,15 @@ export function BranchSettings() {
                         Active
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Users className="w-4 h-4" />
-                      <span>{branch.employee_count || 0} employees</span>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <span>{branch.employee_count || 0} employees</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>📄</span>
+                        <span>{branch.document_count || 0} documents</span>
+                      </div>
                     </div>
                     <p className="text-sm text-muted-foreground">
                       Created: {new Date(branch.created_at).toLocaleDateString()}
@@ -452,16 +475,22 @@ export function BranchSettings() {
               Delete Branch
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
-              {branchToDelete?.employee_count && branchToDelete.employee_count > 0 ? (
+              {(branchToDelete?.employee_count && branchToDelete.employee_count > 0) || 
+               (branchToDelete?.document_count && branchToDelete.document_count > 0) ? (
                 <>
                   <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                     <p className="font-semibold text-destructive">⚠️ Critical Warning</p>
-                    <p className="text-sm mt-1">
-                      This branch has <strong>{branchToDelete.employee_count} employee(s)</strong> assigned to it.
-                    </p>
+                    <div className="text-sm mt-1 space-y-1">
+                      {branchToDelete?.employee_count && branchToDelete.employee_count > 0 && (
+                        <p>This branch has <strong>{branchToDelete.employee_count} employee(s)</strong> assigned to it.</p>
+                      )}
+                      {branchToDelete?.document_count && branchToDelete.document_count > 0 && (
+                        <p>This branch has <strong>{branchToDelete.document_count} document(s)</strong> linked to it.</p>
+                      )}
+                    </div>
                   </div>
                   <p>
-                    Deleting "<strong>{branchToDelete?.name}</strong>" will <strong>permanently delete</strong> all assigned employees and their data. 
+                    Deleting "<strong>{branchToDelete?.name}</strong>" will <strong>permanently delete</strong> all assigned employees, documents, and their data. 
                     This action cannot be undone.
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -497,8 +526,9 @@ export function BranchSettings() {
             >
               {saving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
               Delete Branch
-              {branchToDelete?.employee_count && branchToDelete.employee_count > 0 && 
-                ` & ${branchToDelete.employee_count} Employee(s)`
+              {((branchToDelete?.employee_count && branchToDelete.employee_count > 0) || 
+                (branchToDelete?.document_count && branchToDelete.document_count > 0)) && 
+                ` & All Data`
               }
             </AlertDialogAction>
           </AlertDialogFooter>
