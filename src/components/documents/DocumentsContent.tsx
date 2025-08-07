@@ -23,6 +23,10 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 import { usePagePermissions } from "@/hooks/usePagePermissions";
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import countries from "world-countries";
+
+// Precomputed country list for the Country select
+const COUNTRY_NAMES = countries.map((c) => c.name.common).sort();
 
 interface Document {
   id: string;
@@ -1237,12 +1241,21 @@ export function DocumentsContent() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
+                <Select
                   value={newDocument.country}
-                  onChange={(e) => setNewDocument({...newDocument, country: e.target.value})}
-                  placeholder="e.g., United Kingdom"
-                />
+                  onValueChange={(val) => setNewDocument({ ...newDocument, country: val })}
+                >
+                  <SelectTrigger id="country">
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    {COUNTRY_NAMES.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="nationality_status">Nationality Status</Label>
