@@ -186,44 +186,9 @@ export function BranchSettings() {
     
     // Check if there are employees assigned to this branch
     if (branchToDelete && branchToDelete.employee_count && branchToDelete.employee_count > 0) {
-      const confirmMessage = `This branch has ${branchToDelete.employee_count} employee(s) assigned to it. You need to reassign these employees to another branch before deletion.\n\nWould you like to reassign them to "Unassigned" first?`;
+      const confirmMessage = `⚠️ WARNING: This branch has ${branchToDelete.employee_count} employee(s) assigned to it.\n\nDeleting this branch will PERMANENTLY DELETE all assigned employees and their data. This action cannot be undone.\n\nAre you sure you want to continue?`;
       
       if (!confirm(confirmMessage)) {
-        return;
-      }
-
-      try {
-        setSaving(true);
-        console.log('Reassigning employees from branch:', branchToDelete.name);
-
-        // First, reassign employees to null (unassigned)
-        const { error: updateError } = await supabase
-          .from('employees')
-          .update({ 
-            branch_id: null,
-            branch: 'Unassigned'
-          })
-          .eq('branch_id', branchId);
-
-        if (updateError) {
-          console.error('Error reassigning employees:', updateError);
-          toast({
-            title: "Error",
-            description: "Failed to reassign employees: " + updateError.message,
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log('Employees reassigned successfully');
-      } catch (error) {
-        console.error('Unexpected error reassigning employees:', error);
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred while reassigning employees",
-          variant: "destructive",
-        });
-        setSaving(false);
         return;
       }
     } else {
@@ -256,7 +221,7 @@ export function BranchSettings() {
       toast({
         title: "Success",
         description: branchToDelete && branchToDelete.employee_count && branchToDelete.employee_count > 0 
-          ? "Employees reassigned and branch deleted successfully"
+          ? `Branch and ${branchToDelete.employee_count} employee(s) deleted successfully`
           : "Branch deleted successfully",
       });
       
