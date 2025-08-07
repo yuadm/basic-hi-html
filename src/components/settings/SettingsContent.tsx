@@ -7,13 +7,7 @@ import { DocumentSettings } from "./DocumentSettings";
 import { ComplianceSettings } from "./ComplianceSettings";
 import { BranchSettings } from "./BranchSettings";
 import { JobPositionSettings } from "./JobPositionSettings";
-import { ApplicationShiftSettings } from "./ApplicationShiftSettings";
-import { ApplicationSkillsSettings } from "./ApplicationSkillsSettings";
-import { ApplicationPersonalSettings } from "./ApplicationPersonalSettings";
-import { ApplicationStatusSettings } from "./ApplicationStatusSettings";
-import { ApplicationFieldSettings } from "./ApplicationFieldSettings";
-import { ApplicationStepSettings } from "./ApplicationStepSettings";
-import { ApplicationEmergencySettings } from "./ApplicationEmergencySettings";
+import { ApplicationSettings } from "./ApplicationSettings";
 
 export function SettingsContent() {
 
@@ -32,42 +26,14 @@ export function SettingsContent() {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-13">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="company" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Company
           </TabsTrigger>
-          <TabsTrigger value="positions" className="flex items-center gap-2">
+          <TabsTrigger value="applications" className="flex items-center gap-2">
             <Briefcase className="w-4 h-4" />
-            Job Positions
-          </TabsTrigger>
-          <TabsTrigger value="shifts" className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Shifts
-          </TabsTrigger>
-          <TabsTrigger value="skills" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Skills
-          </TabsTrigger>
-          <TabsTrigger value="personal" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Personal Info
-          </TabsTrigger>
-          <TabsTrigger value="status" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            App Status
-          </TabsTrigger>
-          <TabsTrigger value="fields" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Fields
-          </TabsTrigger>
-          <TabsTrigger value="steps" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            App Steps
-          </TabsTrigger>
-          <TabsTrigger value="emergency" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Emergency
+            Applications
           </TabsTrigger>
           <TabsTrigger value="branches" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
@@ -107,36 +73,8 @@ export function SettingsContent() {
           <BranchSettings />
         </TabsContent>
 
-        <TabsContent value="positions" className="space-y-6">
-          <JobPositionSettings />
-        </TabsContent>
-
-        <TabsContent value="shifts" className="space-y-6">
-          <ApplicationShiftSettings />
-        </TabsContent>
-
-        <TabsContent value="skills" className="space-y-6">
-          <ApplicationSkillsSettings />
-        </TabsContent>
-
-        <TabsContent value="personal" className="space-y-6">
-          <ApplicationPersonalSettings />
-        </TabsContent>
-
-        <TabsContent value="status" className="space-y-6">
-          <ApplicationStatusSettings />
-        </TabsContent>
-
-        <TabsContent value="fields" className="space-y-6">
-          <ApplicationFieldSettings />
-        </TabsContent>
-
-        <TabsContent value="steps" className="space-y-6">
-          <ApplicationStepSettings />
-        </TabsContent>
-
-        <TabsContent value="emergency" className="space-y-6">
-          <ApplicationEmergencySettings />
+        <TabsContent value="applications" className="space-y-6">
+          <ApplicationSettings />
         </TabsContent>
       </Tabs>
     </div>
