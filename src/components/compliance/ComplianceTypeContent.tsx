@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, Users, CheckCircle, AlertTriangle, Clock, Shield, Eye, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter, Download } from "lucide-react";
+import { ArrowLeft, Calendar, Users, CheckCircle, AlertTriangle, Clock, Shield, Eye, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +46,6 @@ import { CompliancePeriodView } from "./CompliancePeriodView";
 import { AddComplianceRecordModal } from "./AddComplianceRecordModal";
 import { EditComplianceRecordModal } from "./EditComplianceRecordModal";
 import { format } from "date-fns";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 interface ComplianceType {
   id: string;
@@ -78,7 +77,6 @@ interface ComplianceRecord {
   created_at: string;
   updated_at: string;
   completed_by: string | null;
-  completion_method?: string;
 }
 
 interface EmployeeComplianceStatus {
@@ -976,127 +974,6 @@ export function ComplianceTypeContent() {
                                       </div>
                                     </DialogContent>
                                   </Dialog>
-
-                                  {item.record.completion_method === 'questionnaire' && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="hover-scale"
-                                      onClick={async () => {
-                                        try {
-                                          toast({ title: 'Generating PDF', description: 'Building questionnaire summary…' });
-
-                                          const { data: typeData, error: typeError } = await supabase
-                                            .from('compliance_types')
-                                            .select('id, name, questionnaire_id')
-                                            .eq('id', complianceType?.id)
-                                            .single();
-
-                                          if (typeError || !typeData?.questionnaire_id) {
-                                            toast({ title: 'No questionnaire', description: 'No questionnaire linked to this type.', variant: 'destructive' });
-                                            return;
-                                          }
-
-                                          const { data: resp, error: respErr } = await supabase
-                                            .from('compliance_questionnaire_responses')
-                                            .select('id, completed_at')
-                                            .eq('employee_id', item.employee.id)
-                                            .eq('questionnaire_id', typeData.questionnaire_id)
-                                            .order('completed_at', { ascending: false })
-                                            .limit(1)
-                                            .single();
-
-                                          if (respErr || !resp) {
-                                            toast({ title: 'Answers not found', description: 'Could not find questionnaire answers for this record.', variant: 'destructive' });
-                                            return;
-                                          }
-
-                                          const { data: answers, error: aErr } = await supabase
-                                            .from('compliance_responses')
-                                            .select('question_id, response_value')
-                                            .eq('questionnaire_response_id', resp.id);
-                                          if (aErr) throw aErr;
-
-                                          const { data: questions, error: qErr } = await supabase
-                                            .from('compliance_questionnaire_questions')
-                                            .select('order_index, compliance_questions (id, question_text)')
-                                            .eq('questionnaire_id', typeData.questionnaire_id)
-                                            .order('order_index');
-                                          if (qErr) throw qErr;
-
-                                          const doc = await PDFDocument.create();
-                                          let page = doc.addPage();
-                                          const margin = 50;
-                                          let { width, height } = page.getSize();
-                                          let y = height - margin;
-                                          const font = await doc.embedFont(StandardFonts.Helvetica);
-                                          const fontSize = 12;
-
-                                          const addPage = () => {
-                                            page = doc.addPage();
-                                            const size = page.getSize();
-                                            width = size.width;
-                                            height = size.height;
-                                            y = height - margin;
-                                          };
-
-                                          const drawLine = (text: string, bold = false) => {
-                                            const lines = String(text).split('\n');
-                                            for (const ln of lines) {
-                                              if (y < margin + 40) addPage();
-                                              page.drawText(ln, {
-                                                x: margin,
-                                                y,
-                                                size: bold ? fontSize + 1 : fontSize,
-                                                font,
-                                                color: rgb(0, 0, 0),
-                                              });
-                                              y -= 18;
-                                            }
-                                          };
-
-                                          drawLine(`${typeData.name} - Questionnaire Summary`, true);
-                                          drawLine(`Employee: ${item.employee.name}`);
-                                          drawLine(`Branch: ${item.employee.branch}`);
-                                          drawLine(`Period: ${item.record.period_identifier}`);
-                                          drawLine(`Completed: ${new Date(item.record.created_at).toLocaleString()}`);
-                                          y -= 10;
-
-                                          const answerMap = new Map((answers || []).map((a: any) => [a.question_id, a.response_value]));
-                                          (questions || []).forEach((q: any, idx: number) => {
-                                            const qId = q.compliance_questions?.id;
-                                            const qText = q.compliance_questions?.question_text || `Question ${idx + 1}`;
-                                            let respObj: any = {};
-                                            try { respObj = JSON.parse(answerMap.get(qId) || '{}'); } catch {}
-                                            const ans = respObj?.answer ? String(respObj.answer).toUpperCase() : '—';
-                                            const comment = respObj?.comment || '';
-                                            drawLine(`${idx + 1}. ${qText}`, true);
-                                            drawLine(`Answer: ${ans}`);
-                                            if (comment) drawLine(`Comment: ${comment}`);
-                                            y -= 6;
-                                          });
-
-                                          const bytes = await doc.save();
-                                          const blob = new Blob([bytes], { type: 'application/pdf' });
-                                          const url = URL.createObjectURL(blob);
-                                          const a = document.createElement('a');
-                                          const safeName = `${typeData.name}-${item.employee.name}-${item.record.period_identifier}`.replace(/[^a-z0-9\-_. ]/gi, '_');
-                                          a.href = url;
-                                          a.download = `${safeName}.pdf`;
-                                          document.body.appendChild(a);
-                                          a.click();
-                                          a.remove();
-                                          URL.revokeObjectURL(url);
-                                          toast({ title: 'PDF ready', description: 'Download started.' });
-                                        } catch (e) {
-                                          console.error('PDF generation failed', e);
-                                          toast({ title: 'PDF failed', description: 'Could not generate questionnaire PDF.', variant: 'destructive' });
-                                        }
-                                      }}
-                                    >
-                                      <Download className="w-4 h-4" />
-                                    </Button>
-                                  )}
 
                                   {/* Edit Record */}
                                   <EditComplianceRecordModal
