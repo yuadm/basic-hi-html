@@ -1182,13 +1182,6 @@ export type Database = {
             referencedRelation: "branches"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_employees_branch_id"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
         ]
       }
       job_applications: {
