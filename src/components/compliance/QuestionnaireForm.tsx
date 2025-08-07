@@ -245,11 +245,97 @@ export function QuestionnaireForm({
       }
     });
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+  setFormErrors(errors);
+  return Object.keys(errors).length === 0;
+};
 
-  const saveAsDraft = async () => {
+// Default Spot Check questions used when a questionnaire isn't linked yet
+const defaultSpotCheckQuestions = [
+  "Care Worker arrives at the Service User's home on time",
+  "Care Worker has keys for entry/Alerts the Service User upon arrival / key safe number",
+  "Care Worker is wearing a valid and current ID badge",
+  "Care Worker practices safe hygiene (use of PPE clothing, gloves/aprons etc.)",
+  "Care Worker checks Service User's care plan upon arrival",
+  "Equipment (hoists etc) used properly",
+  "Care Worker practices proper food safety and hygiene principles",
+  "Care Worker is vigilant for hazards in the Service Users home",
+  "Care Worker communicates with the Service User (tasks to be done maintaining confidentiality)",
+  "Care Worker asks Service User if he/she is satisfied with the service",
+  "Care Worker completes Daily Report forms satisfactorily",
+  "Snacks left for the Service User are covered and stored properly",
+  "Care Worker leaves premises, locking doors behind him/ her"
+];
+
+const createDefaultQuestionnaire = async () => {
+  setIsLoading(true);
+  try {
+    // 1) Create questionnaire
+    const { data: questionnaire, error: questionnaireError } = await supabase
+      .from('compliance_questionnaires')
+      .insert({
+        name: 'Spot Check Questionnaire',
+        description: 'Standard spot check form for care workers',
+        compliance_type_id: complianceTypeId,
+        is_active: true
+      })
+      .select()
+      .single();
+    if (questionnaireError) throw questionnaireError;
+
+    // 2) Create questions
+    const { data: createdQuestions, error: questionsError } = await supabase
+      .from('compliance_questions')
+      .insert(
+        defaultSpotCheckQuestions.map((text, index) => ({
+          question_text: text,
+          question_type: 'yes_no',
+          is_required: true,
+          options: null,
+          order_index: index
+        }))
+      )
+      .select();
+    if (questionsError) throw questionsError;
+
+    // 3) Link questions to questionnaire
+    const { error: linkError } = await supabase
+      .from('compliance_questionnaire_questions')
+      .insert(
+        (createdQuestions || []).map((q: any, index: number) => ({
+          questionnaire_id: questionnaire.id,
+          question_id: q.id,
+          order_index: index
+        }))
+      );
+    if (linkError) throw linkError;
+
+    // 4) Update compliance type to reference this questionnaire
+    const { error: updateError } = await supabase
+      .from('compliance_types')
+      .update({ questionnaire_id: questionnaire.id })
+      .eq('id', complianceTypeId);
+    if (updateError) throw updateError;
+
+    toast({
+      title: 'Questionnaire created',
+      description: 'Default Spot Check questionnaire has been linked. Loading…'
+    });
+
+    // Reload data
+    await fetchQuestionnaireData();
+  } catch (error: any) {
+    console.error('Error creating default questionnaire:', error);
+    toast({
+      title: 'Failed to create questionnaire',
+      description: error?.message || 'Please ensure you have admin permissions.',
+      variant: 'destructive'
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const saveAsDraft = async () => {
     setIsLoading(true);
     try {
       const draftData = {
@@ -373,9 +459,15 @@ export function QuestionnaireForm({
                 Please contact your administrator to set up a questionnaire, or use the Date/Text entry options instead.
               </p>
             </div>
-            <Button variant="outline" onClick={onComplete}>
-              Go Back
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button onClick={createDefaultQuestionnaire} disabled={isLoading} className="flex-1 sm:flex-none">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Default Questionnaire
+              </Button>
+              <Button variant="outline" onClick={onComplete} className="flex-1 sm:flex-none">
+                Go Back
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
