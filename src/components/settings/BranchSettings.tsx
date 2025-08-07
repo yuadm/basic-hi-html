@@ -1,11 +1,21 @@
 
 import { useState, useEffect } from "react";
-import { Building2, Save, Plus, Edit, Trash2, Users } from "lucide-react";
+import { Building2, Save, Plus, Edit, Trash2, Users, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,6 +34,8 @@ export function BranchSettings() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [newBranchName, setNewBranchName] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -181,30 +193,25 @@ export function BranchSettings() {
     }
   };
 
-  const handleDeleteBranch = async (branchId: string) => {
-    const branchToDelete = branches.find(b => b.id === branchId);
-    
-    // Check if there are employees assigned to this branch
-    if (branchToDelete && branchToDelete.employee_count && branchToDelete.employee_count > 0) {
-      const confirmMessage = `⚠️ WARNING: This branch has ${branchToDelete.employee_count} employee(s) assigned to it.\n\nDeleting this branch will PERMANENTLY DELETE all assigned employees and their data. This action cannot be undone.\n\nAre you sure you want to continue?`;
-      
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-    } else {
-      if (!confirm('Are you sure you want to delete this branch? This action cannot be undone.')) {
-        return;
-      }
+  const handleDeleteBranch = (branchId: string) => {
+    const branch = branches.find(b => b.id === branchId);
+    if (branch) {
+      setBranchToDelete(branch);
+      setIsDeleteDialogOpen(true);
     }
+  };
+
+  const confirmDeleteBranch = async () => {
+    if (!branchToDelete) return;
 
     try {
       setSaving(true);
-      console.log('Deleting branch:', branchId);
+      console.log('Deleting branch:', branchToDelete.id);
 
       const { error } = await supabase
         .from('branches')
         .delete()
-        .eq('id', branchId);
+        .eq('id', branchToDelete.id);
 
       if (error) {
         console.error('Error deleting branch:', error);
@@ -217,13 +224,16 @@ export function BranchSettings() {
       }
 
       console.log('Branch deleted successfully');
-      setBranches(branches.filter(branch => branch.id !== branchId));
+      setBranches(branches.filter(branch => branch.id !== branchToDelete.id));
       toast({
         title: "Success",
-        description: branchToDelete && branchToDelete.employee_count && branchToDelete.employee_count > 0 
+        description: branchToDelete.employee_count && branchToDelete.employee_count > 0 
           ? `Branch and ${branchToDelete.employee_count} employee(s) deleted successfully`
           : "Branch deleted successfully",
       });
+      
+      setIsDeleteDialogOpen(false);
+      setBranchToDelete(null);
       
       // Refresh the branches to update employee counts
       fetchBranches();
@@ -432,6 +442,68 @@ export function BranchSettings() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Branch Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Delete Branch
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              {branchToDelete?.employee_count && branchToDelete.employee_count > 0 ? (
+                <>
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                    <p className="font-semibold text-destructive">⚠️ Critical Warning</p>
+                    <p className="text-sm mt-1">
+                      This branch has <strong>{branchToDelete.employee_count} employee(s)</strong> assigned to it.
+                    </p>
+                  </div>
+                  <p>
+                    Deleting "<strong>{branchToDelete?.name}</strong>" will <strong>permanently delete</strong> all assigned employees and their data. 
+                    This action cannot be undone.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Are you absolutely sure you want to continue?
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p>
+                    Are you sure you want to delete the branch "<strong>{branchToDelete?.name}</strong>"?
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    This action cannot be undone.
+                  </p>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setBranchToDelete(null);
+              }}
+              disabled={saving}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteBranch}
+              disabled={saving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {saving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
+              Delete Branch
+              {branchToDelete?.employee_count && branchToDelete.employee_count > 0 && 
+                ` & ${branchToDelete.employee_count} Employee(s)`
+              }
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
