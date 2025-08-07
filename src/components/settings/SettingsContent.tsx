@@ -12,6 +12,8 @@ import { ApplicationSkillsSettings } from "./ApplicationSkillsSettings";
 import { ApplicationPersonalSettings } from "./ApplicationPersonalSettings";
 import { ApplicationStatusSettings } from "./ApplicationStatusSettings";
 import { ApplicationFieldSettings } from "./ApplicationFieldSettings";
+import { ApplicationStepSettings } from "./ApplicationStepSettings";
+import { ApplicationEmergencySettings } from "./ApplicationEmergencySettings";
 
 export function SettingsContent() {
 
@@ -30,7 +32,7 @@ export function SettingsContent() {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-13">
           <TabsTrigger value="company" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Company
@@ -58,6 +60,14 @@ export function SettingsContent() {
           <TabsTrigger value="fields" className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
             Fields
+          </TabsTrigger>
+          <TabsTrigger value="steps" className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            App Steps
+          </TabsTrigger>
+          <TabsTrigger value="emergency" className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Emergency
           </TabsTrigger>
           <TabsTrigger value="branches" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
@@ -119,6 +129,14 @@ export function SettingsContent() {
 
         <TabsContent value="fields" className="space-y-6">
           <ApplicationFieldSettings />
+        </TabsContent>
+
+        <TabsContent value="steps" className="space-y-6">
+          <ApplicationStepSettings />
+        </TabsContent>
+
+        <TabsContent value="emergency" className="space-y-6">
+          <ApplicationEmergencySettings />
         </TabsContent>
       </Tabs>
     </div>

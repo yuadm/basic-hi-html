@@ -49,6 +49,36 @@ export type Database = {
           },
         ]
       }
+      application_emergency_settings: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          setting_type: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          setting_type: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          setting_type?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       application_field_settings: {
         Row: {
           created_at: string
@@ -118,6 +148,30 @@ export type Database = {
           setting_type?: string
           updated_at?: string
           value?: string
+        }
+        Relationships: []
+      }
+      application_reference_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -257,6 +311,45 @@ export type Database = {
           status_color?: string
           status_label?: string
           status_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      application_step_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_name: string
+          display_order: number
+          id: string
+          is_enabled: boolean
+          is_required: boolean
+          step_config: Json | null
+          step_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_name: string
+          display_order?: number
+          id?: string
+          is_enabled?: boolean
+          is_required?: boolean
+          step_config?: Json | null
+          step_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          display_order?: number
+          id?: string
+          is_enabled?: boolean
+          is_required?: boolean
+          step_config?: Json | null
+          step_name?: string
           updated_at?: string
         }
         Relationships: []
