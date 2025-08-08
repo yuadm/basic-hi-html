@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Download, FileCheck, Eye } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
+import { useEffect } from "react";
 interface SignedDocument {
   id: string;
   final_document_path: string;
@@ -22,6 +22,8 @@ interface SignedDocument {
 }
 
 export function CompletedDocuments() {
+  const queryClient = useQueryClient();
+
   // Fetch completed documents
   const { data: completedDocs, isLoading } = useQuery({
     queryKey: ["signed-documents"],
@@ -40,8 +42,25 @@ export function CompletedDocuments() {
       
       if (error) throw error;
       return data as SignedDocument[];
-    }
+    },
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
+    staleTime: 0,
   });
+
+  // Realtime updates when new signed_documents are inserted
+  useEffect(() => {
+    const channel = supabase
+      .channel('signed-documents-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'signed_documents' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['signed-documents'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const getDocumentUrl = (filePath: string) => {
     const { data } = supabase.storage
