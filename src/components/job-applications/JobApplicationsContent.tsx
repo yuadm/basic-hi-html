@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Search, Eye, FileText, Edit, Trash2, Send, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateJobApplicationPdf } from "@/lib/job-application-pdf";
 
 // Helper function to format dates from YYYY-MM-DD to MM/DD/YYYY
 const formatDateDisplay = (dateString: string | null | undefined): string => {
@@ -448,21 +449,117 @@ function ApplicationDetails({
   const [editData, setEditData] = useState(application);
   const { toast } = useToast();
 
-  const downloadApplication = () => {
-    const dataStr = JSON.stringify(application, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `job-application-${application.personal_info?.fullName || application.personal_info?.firstName + ' ' + application.personal_info?.lastName || 'unknown'}-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    
-    toast({
-      title: "Download Started",
-      description: "Application data has been downloaded as JSON file",
-    });
+  const downloadApplication = async () => {
+    try {
+      const pi = application.personal_info || {};
+      const fullName = pi.fullName || `${pi.firstName || ''} ${pi.lastName || ''}`.trim();
+
+      const personalInfo = {
+        title: pi.title || '',
+        fullName,
+        email: pi.email || '',
+        confirmEmail: pi.confirmEmail || pi.email || '',
+        telephone: pi.telephone || '',
+        dateOfBirth: pi.dateOfBirth || pi.dob || '',
+        streetAddress: pi.streetAddress || pi.address || '',
+        streetAddress2: pi.streetAddress2 || pi.address2 || '',
+        town: pi.town || pi.city || '',
+        borough: pi.borough || '',
+        postcode: pi.postcode || '',
+        englishProficiency: pi.englishProficiency || '',
+        otherLanguages: Array.isArray(pi.otherLanguages)
+          ? pi.otherLanguages
+          : (pi.otherLanguages ? String(pi.otherLanguages).split(',').map((s:string)=>s.trim()).filter(Boolean) : []),
+        positionAppliedFor: pi.positionAppliedFor || '',
+        personalCareWillingness: pi.personalCareWillingness || '',
+        hasDBS: pi.hasDBS || '',
+        hasCarAndLicense: pi.hasCarAndLicense || '',
+        nationalInsuranceNumber: pi.nationalInsuranceNumber || '',
+      };
+
+      const av = application.availability || {};
+      const availability = {
+        timeSlots: av.timeSlots || av.selectedSlots || {},
+        hoursPerWeek: av.hoursPerWeek || '',
+        hasRightToWork: typeof av.hasRightToWork === 'boolean' ? (av.hasRightToWork ? 'Yes' : 'No') : (av.hasRightToWork || ''),
+      };
+
+      const ec = application.emergency_contact || {};
+      const emergencyContact = {
+        fullName: ec.fullName || '',
+        relationship: ec.relationship || '',
+        contactNumber: ec.contactNumber || '',
+        howDidYouHear: ec.howDidYouHear || '',
+      };
+
+      const eh = application.employment_history || {};
+      const recent = eh.recentEmployer || null;
+      const previous = Array.isArray(eh.previousEmployers) ? eh.previousEmployers : [];
+      const previouslyEmployed = typeof eh.previouslyEmployed === 'boolean'
+        ? (eh.previouslyEmployed ? 'yes' : 'no')
+        : (eh.previouslyEmployed || ((recent || previous.length) ? 'yes' : 'no'));
+
+      const references: Record<string, any> = {};
+      let refCount = 0;
+      const addRef = (ref: any) => {
+        if (!ref) return;
+        const hasAny = ref.name || ref.company || ref.email || ref.contactNumber || ref.jobTitle || ref.address;
+        if (!hasAny) return;
+        refCount += 1;
+        references[`reference${refCount}`] = {
+          name: ref.name || '',
+          company: ref.company || '',
+          jobTitle: ref.jobTitle || ref.position || '',
+          email: ref.email || '',
+          contactNumber: ref.contactNumber || ref.telephone || '',
+          address: ref.address || '',
+          address2: ref.address2 || '',
+          town: ref.town || '',
+          postcode: ref.postcode || '',
+        };
+      };
+      const rinfo = application.reference_info || {};
+      addRef(rinfo.reference1);
+      addRef(rinfo.reference2);
+      if (Array.isArray(rinfo.references)) rinfo.references.forEach(addRef);
+      if (Array.isArray(rinfo.additionalReferences)) rinfo.additionalReferences.forEach(addRef);
+      if (recent) addRef(recent);
+      previous.forEach(addRef);
+
+      const skillsExperience = {
+        skills: application.skills_experience?.skills || application.skills_experience || {},
+      };
+
+      const declaration = application.declarations || {};
+      const termsPolicy = application.consent || {};
+
+      await generateJobApplicationPdf({
+        personalInfo,
+        availability,
+        emergencyContact,
+        employmentHistory: {
+          previouslyEmployed,
+          recentEmployer: recent || undefined,
+          previousEmployers: previous || [],
+        },
+        references: references as any,
+        skillsExperience,
+        declaration,
+        termsPolicy,
+      });
+
+      toast({
+        title: "PDF Generated",
+        description: "The application has been downloaded as a PDF.",
+      });
+    } catch (err) {
+      console.error('PDF generation failed', err);
+      toast({
+        title: "PDF Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -522,7 +619,7 @@ function ApplicationDetails({
             className="flex items-center gap-2"
           >
             <FileText className="w-4 h-4" />
-            Download
+            Download PDF
           </Button>
           {isEditing ? (
             <div className="flex gap-2">
