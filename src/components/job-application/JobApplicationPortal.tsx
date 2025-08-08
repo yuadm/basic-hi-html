@@ -14,6 +14,7 @@ import { ReferencesStep } from './steps/ReferencesStep';
 import { SkillsExperienceStep } from './steps/SkillsExperienceStep';
 import { DeclarationStep } from './steps/DeclarationStep';
 import { TermsPolicyStep } from './steps/TermsPolicyStep';
+import { generateJobApplicationPdf } from '@/lib/job-application-pdf';
 
 const initialFormData: JobApplicationData = {
   personalInfo: {
@@ -108,6 +109,15 @@ function JobApplicationPortalContent() {
     setFormData(prev => ({ ...prev, termsPolicy: { ...prev.termsPolicy, [field]: value } }));
   };
 
+  const handleDownloadPdf = async () => {
+    try {
+      await generateJobApplicationPdf(formData);
+    } catch (err) {
+      console.error('PDF generation failed', err);
+      toast({ title: 'PDF Error', description: 'Failed to generate PDF. Please try again.', variant: 'destructive' });
+    }
+  };
+
   const nextStep = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1);
@@ -171,6 +181,9 @@ function JobApplicationPortalContent() {
             <p className="text-sm text-muted-foreground">
               You should receive a confirmation email at <strong>{formData.personalInfo.email}</strong> within the next few minutes.
             </p>
+            <Button variant="outline" onClick={handleDownloadPdf} className="w-full">
+              Download a copy (PDF)
+            </Button>
             <Button onClick={() => window.location.href = '/'} className="w-full">
               Return to Homepage
             </Button>
@@ -299,15 +312,20 @@ function JobApplicationPortalContent() {
                 Previous
               </Button>
               
-              {currentStep === totalSteps ? (
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!canProceed() || isSubmitting}
-                  className="min-w-[120px]"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
-                </Button>
-              ) : (
+                {currentStep === totalSteps ? (
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleDownloadPdf}>
+                      Download PDF
+                    </Button>
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={!canProceed() || isSubmitting}
+                      className="min-w-[120px]"
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                    </Button>
+                  </div>
+                ) : (
                 <Button
                   onClick={nextStep}
                   disabled={!canProceed()}
