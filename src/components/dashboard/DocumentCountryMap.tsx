@@ -48,11 +48,35 @@ export function DocumentCountryMap() {
     return "hsl(var(--primary) / 0.18)";
   };
 
+  const totalDocuments = useMemo(() => {
+    return Object.values(counts).reduce((a, b) => a + b, 0);
+  }, [counts]);
+
+  const topCountries = useMemo(() => {
+    return Object.entries(counts)
+      .map(([country, count]) => ({
+        country: country.charAt(0).toUpperCase() + country.slice(1),
+        count,
+        percentage: totalDocuments > 0 ? ((count / totalDocuments) * 100).toFixed(1) : "0.0"
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [counts, totalDocuments]);
+
   return (
-    <div className="w-full">
-      <div className="w-full aspect-[16/9] rounded-xl border bg-card">
-        {!loading && (
-          <ComposableMap projectionConfig={{ scale: 155 }} style={{ width: "100%", height: "100%" }}>
+    <div className="w-full space-y-6">
+      {/* World Map */}
+      <div className="w-full aspect-[2/1] rounded-xl border bg-card shadow-lg">
+        {loading ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <ComposableMap 
+            projectionConfig={{ scale: 180 }} 
+            style={{ width: "100%", height: "100%" }}
+            className="rounded-xl"
+          >
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => {
@@ -64,18 +88,35 @@ export function DocumentCountryMap() {
                     "";
                   const key = rawName.toLowerCase();
                   const value = counts[key] || 0;
+                  const percentage = totalDocuments > 0 ? ((value / totalDocuments) * 100).toFixed(1) : "0.0";
+                  
                   return (
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
                       style={{
-                        default: { fill: getFill(value), outline: "none" },
-                        hover: { fill: "hsl(var(--primary) / 0.7)", outline: "none" },
-                        pressed: { fill: "hsl(var(--primary) / 0.7)", outline: "none" },
+                        default: { 
+                          fill: getFill(value), 
+                          outline: "none",
+                          stroke: "hsl(var(--border))",
+                          strokeWidth: 0.5
+                        },
+                        hover: { 
+                          fill: "hsl(var(--primary) / 0.8)", 
+                          outline: "none",
+                          stroke: "hsl(var(--primary))",
+                          strokeWidth: 1
+                        },
+                        pressed: { 
+                          fill: "hsl(var(--primary) / 0.9)", 
+                          outline: "none",
+                          stroke: "hsl(var(--primary))",
+                          strokeWidth: 1
+                        },
                       }}
                     >
                       <title>
-                        {rawName}: {value}
+                        {rawName}: {value} documents ({percentage}%)
                       </title>
                     </Geography>
                   );
@@ -85,8 +126,42 @@ export function DocumentCountryMap() {
           </ComposableMap>
         )}
       </div>
-      <div className="mt-3 text-xs text-muted-foreground">
-        Hover countries to see document counts. Data from document_tracker.country.
+
+      {/* Top Countries Statistics */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Top Countries by Documents</h3>
+          <span className="text-sm text-muted-foreground">Total: {totalDocuments} documents</span>
+        </div>
+        
+        <div className="grid gap-3">
+          {topCountries.map((item, index) => (
+            <div key={item.country} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-xs font-medium text-primary">
+                  {index + 1}
+                </div>
+                <span className="font-medium">{item.country}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="text-sm font-medium">{item.count} documents</div>
+                  <div className="text-xs text-muted-foreground">{item.percentage}%</div>
+                </div>
+                <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-primary rounded-full transition-all duration-500"
+                    style={{ width: `${item.percentage}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="text-xs text-muted-foreground">
+        Hover countries on the map to see detailed statistics. Data from document_tracker.country.
       </div>
     </div>
   );
