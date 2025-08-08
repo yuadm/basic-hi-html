@@ -94,7 +94,6 @@ export function DocumentCountryMap() {
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => {
-                  // Try multiple name props just in case
                   const rawName =
                     (geo.properties?.name as string) ||
                     (geo.properties?.NAME as string) ||
@@ -113,13 +112,15 @@ export function DocumentCountryMap() {
                           fill: getFill(value), 
                           outline: "none",
                           stroke: "hsl(var(--border))",
-                          strokeWidth: 0.5
+                          strokeWidth: 0.5,
+                          transition: "all 0.1s ease-in-out"
                         },
                         hover: { 
                           fill: "hsl(var(--primary) / 0.8)", 
                           outline: "none",
                           stroke: "hsl(var(--primary))",
-                          strokeWidth: 1
+                          strokeWidth: 1,
+                          cursor: "pointer"
                         },
                         pressed: { 
                           fill: "hsl(var(--primary) / 0.9)", 
