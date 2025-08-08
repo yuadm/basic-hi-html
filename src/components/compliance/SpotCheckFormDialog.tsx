@@ -117,7 +117,7 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Complete Spot Check</DialogTitle>
           <DialogDescription>Fill out the spot check form below</DialogDescription>
@@ -171,7 +171,8 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
           {/* Observation section */}
           <div className="space-y-3">
             <h3 className="text-base font-semibold">B: OBSERVATION</h3>
-            <div className="grid grid-cols-12 gap-2 text-sm">
+            {/* Desktop/tablet grid */}
+            <div className="hidden md:grid grid-cols-12 gap-2 text-sm">
               <div className="col-span-6 font-medium">Item</div>
               <div className="col-span-2 font-medium">Yes</div>
               <div className="col-span-2 font-medium">No</div>
@@ -188,6 +189,7 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
                         name={`obs-${item.id}`}
                         checked={current?.value === "yes"}
                         onChange={() => updateObservation(item.id, { value: "yes", comments: current?.comments })}
+                        aria-label={`${item.label} - Yes`}
                       />
                     </div>
                     <div className="col-span-2 py-2">
@@ -196,6 +198,7 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
                         name={`obs-${item.id}`}
                         checked={current?.value === "no"}
                         onChange={() => updateObservation(item.id, { value: "no" })}
+                        aria-label={`${item.label} - No`}
                       />
                     </div>
                     <div className="col-span-2 py-1">
@@ -207,6 +210,46 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
                       />
                     </div>
                   </React.Fragment>
+                );
+              })}
+            </div>
+
+            {/* Mobile stacked cards */}
+            <div className="md:hidden space-y-3">
+              {observationItems.map((item) => {
+                const current = form.observations.find((o) => o.id === item.id);
+                return (
+                  <div key={item.id} className="rounded-lg border p-3 space-y-2">
+                    <div className="font-medium text-sm">{item.label}</div>
+                    <div className="flex items-center gap-6">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="radio"
+                          name={`obs-mobile-${item.id}`}
+                          checked={current?.value === "yes"}
+                          onChange={() => updateObservation(item.id, { value: "yes", comments: current?.comments })}
+                          aria-label={`${item.label} - Yes`}
+                        />
+                        <span>Yes</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="radio"
+                          name={`obs-mobile-${item.id}`}
+                          checked={current?.value === "no"}
+                          onChange={() => updateObservation(item.id, { value: "no" })}
+                          aria-label={`${item.label} - No`}
+                        />
+                        <span>No</span>
+                      </label>
+                    </div>
+                    <Input
+                      disabled={current?.value !== "no"}
+                      placeholder={current?.value === "no" ? "Required for 'No'" : "Optional"}
+                      value={current?.comments || ""}
+                      onChange={(e) => updateObservation(item.id, { comments: e.target.value })}
+                    />
+                  </div>
                 );
               })}
             </div>
