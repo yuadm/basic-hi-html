@@ -1604,6 +1604,54 @@ export type Database = {
           },
         ]
       }
+      spot_check_records: {
+        Row: {
+          care_worker1: string
+          care_worker2: string | null
+          carried_by: string
+          check_date: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          observations: Json
+          service_user_name: string
+          time_from: string
+          time_to: string
+          updated_at: string
+        }
+        Insert: {
+          care_worker1: string
+          care_worker2?: string | null
+          carried_by: string
+          check_date: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          observations?: Json
+          service_user_name: string
+          time_from: string
+          time_to: string
+          updated_at?: string
+        }
+        Update: {
+          care_worker1?: string
+          care_worker2?: string | null
+          carried_by?: string
+          check_date?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          observations?: Json
+          service_user_name?: string
+          time_from?: string
+          time_to?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           created_at: string
