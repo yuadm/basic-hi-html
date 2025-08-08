@@ -21,7 +21,7 @@ import { format, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/contexts/PermissionsContext";
-import { QuestionnaireForm } from "./QuestionnaireForm";
+
 
 interface AddComplianceRecordModalProps {
   employeeId?: string;
@@ -48,7 +48,7 @@ export function AddComplianceRecordModal({
   const [isLoading, setIsLoading] = useState(false);
   const [completionDate, setCompletionDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
-  const [recordType, setRecordType] = useState<'date' | 'new' | 'questionnaire'>('date');
+  const [recordType, setRecordType] = useState<'date' | 'new'>('date');
   const [newText, setNewText] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeId || '');
   const [selectedEmployeeName, setSelectedEmployeeName] = useState(employeeName || '');
@@ -236,24 +236,6 @@ export function AddComplianceRecordModal({
         });
         return;
       }
-          } else if (recordType === 'questionnaire') {
-      // For questionnaire, we need to check if one exists first
-      const { data: complianceType } = await supabase
-        .from('compliance_types')
-        .select('questionnaire_id')
-        .eq('id', complianceTypeId)
-        .single();
-      
-      if (!complianceType?.questionnaire_id) {
-        toast({
-          title: "No questionnaire available",
-          description: "This compliance type doesn't have a questionnaire assigned. Please use Date or Text entry instead.",
-          variant: "destructive",
-        });
-        return;
-      }
-      // The QuestionnaireForm handles submission
-      return;
     }
 
     setIsLoading(true);
@@ -267,7 +249,7 @@ export function AddComplianceRecordModal({
         completion_date: recordType === 'date' 
           ? format(completionDate, 'yyyy-MM-dd') 
           : newText, // Store text directly in completion_date
-        completion_method: recordType === 'date' ? 'date_entry' : recordType === 'new' ? 'text_entry' : 'questionnaire',
+        completion_method: recordType === 'date' ? 'date_entry' : 'text_entry',
         notes: notes.trim() || null,
         status: recordType === 'new' ? 'compliant' : 'completed',
         created_at: new Date().toISOString(),
@@ -309,35 +291,6 @@ export function AddComplianceRecordModal({
     </Button>
   );
 
-  // If questionnaire mode is selected, show the questionnaire form in a larger dialog
-  if (recordType === 'questionnaire') {
-    return (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          {trigger || defaultTrigger}
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Complete Compliance Questionnaire</DialogTitle>
-            <DialogDescription>
-              Complete the questionnaire for {complianceTypeName}
-            </DialogDescription>
-          </DialogHeader>
-          <QuestionnaireForm
-            complianceTypeId={complianceTypeId}
-            complianceTypeName={complianceTypeName}
-            employeeId={selectedEmployeeId}
-            employeeName={selectedEmployeeName}
-            periodIdentifier={selectedPeriod}
-            onComplete={() => {
-              setIsOpen(false);
-              onRecordAdded();
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -399,14 +352,14 @@ export function AddComplianceRecordModal({
 
           <div className="space-y-2">
             <Label>Record Type</Label>
-            <Select value={recordType} onValueChange={(value: 'date' | 'new' | 'questionnaire') => setRecordType(value)}>
+            <Select value={recordType} onValueChange={(value: 'date' | 'new') => setRecordType(value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="date">Date</SelectItem>
                 <SelectItem value="new">New (before employee joined)</SelectItem>
-                <SelectItem value="questionnaire">Complete Questionnaire</SelectItem>
+                
               </SelectContent>
             </Select>
           </div>
