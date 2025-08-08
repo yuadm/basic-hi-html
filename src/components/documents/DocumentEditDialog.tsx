@@ -10,7 +10,9 @@ import { DateTextPicker } from "@/components/ui/date-text-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import countries from "world-countries";
 
+const COUNTRY_NAMES = countries.map((c) => c.name.common).sort();
 interface Document {
   id: string;
   employee_id: string;
@@ -341,12 +343,21 @@ export function DocumentEditDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
+              <Select
                 value={editDocument.country}
-                onChange={(e) => setEditDocument(prev => ({ ...prev, country: e.target.value }))}
-                placeholder="e.g., United Kingdom"
-              />
+                onValueChange={(val) => setEditDocument(prev => ({ ...prev, country: val }))}
+              >
+                <SelectTrigger id="country">
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent className="z-[60] bg-popover">
+                  {COUNTRY_NAMES.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="nationality_status">Nationality Status</Label>

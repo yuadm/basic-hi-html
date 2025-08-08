@@ -3,6 +3,7 @@ import { Users, Calendar, FileX, Shield, TrendingUp, Clock } from "lucide-react"
 import { StatCard } from "./StatCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { DocumentCountryMap } from "./DocumentCountryMap";
 
 interface DashboardStats {
   totalEmployees: number;
@@ -219,6 +220,20 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Documents by Country */}
+        <section aria-labelledby="documents-by-country" className="card-premium p-6 space-y-4 animate-slide-up">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+              <FileX className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 id="documents-by-country" className="text-lg font-semibold">Documents by Country</h2>
+              <p className="text-sm text-muted-foreground">Interactive world map of document distribution</p>
+            </div>
+          </div>
+          <DocumentCountryMap />
+        </section>
       </div>
     </div>
   );
