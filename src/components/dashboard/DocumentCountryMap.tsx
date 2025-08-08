@@ -16,18 +16,32 @@ export function DocumentCountryMap() {
       try {
         const { data, error } = await supabase
           .from("document_tracker")
-          .select("country");
+          .select("country, employee_id");
         if (error) throw error;
-        const map: CountryCounts = {};
+        
+        // Count unique employees per country
+        const employeesByCountry: Record<string, Set<string>> = {};
         (data || []).forEach((row: any) => {
-          const name = (row?.country || "").trim();
-          if (!name) return;
-          const key = name.toLowerCase();
-          map[key] = (map[key] || 0) + 1;
+          const country = (row?.country || "").trim();
+          const employeeId = row?.employee_id;
+          if (!country || !employeeId) return;
+          
+          const key = country.toLowerCase();
+          if (!employeesByCountry[key]) {
+            employeesByCountry[key] = new Set();
+          }
+          employeesByCountry[key].add(employeeId);
         });
+        
+        // Convert to counts
+        const map: CountryCounts = {};
+        Object.entries(employeesByCountry).forEach(([country, employeeSet]) => {
+          map[country] = employeeSet.size;
+        });
+        
         setCounts(map);
       } catch (e) {
-        console.error("Failed to load country distribution", e);
+        console.error("Failed to load employee country distribution", e);
       } finally {
         setLoading(false);
       }
@@ -48,7 +62,7 @@ export function DocumentCountryMap() {
     return "hsl(var(--primary) / 0.18)";
   };
 
-  const totalDocuments = useMemo(() => {
+  const totalEmployees = useMemo(() => {
     return Object.values(counts).reduce((a, b) => a + b, 0);
   }, [counts]);
 
@@ -57,11 +71,11 @@ export function DocumentCountryMap() {
       .map(([country, count]) => ({
         country: country.charAt(0).toUpperCase() + country.slice(1),
         count,
-        percentage: totalDocuments > 0 ? ((count / totalDocuments) * 100).toFixed(1) : "0.0"
+        percentage: totalEmployees > 0 ? ((count / totalEmployees) * 100).toFixed(1) : "0.0"
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
-  }, [counts, totalDocuments]);
+  }, [counts, totalEmployees]);
 
   return (
     <div className="w-full space-y-6">
@@ -88,7 +102,7 @@ export function DocumentCountryMap() {
                     "";
                   const key = rawName.toLowerCase();
                   const value = counts[key] || 0;
-                  const percentage = totalDocuments > 0 ? ((value / totalDocuments) * 100).toFixed(1) : "0.0";
+                  const percentage = totalEmployees > 0 ? ((value / totalEmployees) * 100).toFixed(1) : "0.0";
                   
                   return (
                     <Geography
@@ -116,7 +130,7 @@ export function DocumentCountryMap() {
                       }}
                     >
                       <title>
-                        {rawName}: {value} documents ({percentage}%)
+                        {rawName}: {value} employees ({percentage}%)
                       </title>
                     </Geography>
                   );
@@ -130,8 +144,8 @@ export function DocumentCountryMap() {
       {/* Top Countries Statistics */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Top Countries by Documents</h3>
-          <span className="text-sm text-muted-foreground">Total: {totalDocuments} documents</span>
+          <h3 className="text-lg font-semibold">Top Countries by Employees</h3>
+          <span className="text-sm text-muted-foreground">Total: {totalEmployees} employees</span>
         </div>
         
         <div className="grid gap-3">
@@ -145,7 +159,7 @@ export function DocumentCountryMap() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <div className="text-sm font-medium">{item.count} documents</div>
+                  <div className="text-sm font-medium">{item.count} employees</div>
                   <div className="text-xs text-muted-foreground">{item.percentage}%</div>
                 </div>
                 <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
@@ -161,7 +175,7 @@ export function DocumentCountryMap() {
       </div>
 
       <div className="text-xs text-muted-foreground">
-        Hover countries on the map to see detailed statistics. Data from document_tracker.country.
+        Hover countries on the map to see employee distribution. Data based on employee documents by country.
       </div>
     </div>
   );
