@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.5";
 
@@ -118,11 +119,16 @@ serve(async (req) => {
           continue;
         }
 
-        // Calculate archive dates
-        const { data: archiveDates } = await supabase
+        // Calculate archive dates (pass frequency explicitly to match function signature)
+        const { data: archiveDates, error: archiveDatesError } = await supabase
           .rpc('calculate_archive_dates', {
+            frequency: type.frequency,
             base_year: archivalYear
           });
+
+        if (archiveDatesError) {
+          console.error('Error calculating archive dates:', archiveDatesError);
+        }
 
         const archiveData = {
           compliance_type_id: type.id,
@@ -131,8 +137,8 @@ serve(async (req) => {
           period_identifier: `${archivalYear}`,
           data_summary: statistics || {},
           completion_statistics: statistics || {},
-          archive_due_date: archiveDates[0]?.archive_due_date,
-          download_available_date: archiveDates[0]?.download_available_date,
+          archive_due_date: archiveDates?.[0]?.archive_due_date,
+          download_available_date: archiveDates?.[0]?.download_available_date,
           archival_status: 'processing',
           archival_started_at: new Date().toISOString(),
           total_records_archived: recordCount || 0,

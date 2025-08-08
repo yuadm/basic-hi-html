@@ -257,9 +257,13 @@ export function AddComplianceRecordModal({
     try {
       // Save spot check form when provided
       if (recordType === 'spotcheck' && spotcheckData) {
-        const { data: userRes } = await supabase.auth.getUser();
+        // Serialize observations to plain JSON to satisfy the Supabase Json type
+        const observationsPayload = spotcheckData.observations
+          ? JSON.parse(JSON.stringify(spotcheckData.observations))
+          : null;
+
         await supabase.from('spot_check_records').insert({
-          created_by: userRes?.user?.id ?? null,
+          // Note: created_by removed to match table definition
           service_user_name: spotcheckData.serviceUserName,
           care_worker1: spotcheckData.careWorker1,
           care_worker2: spotcheckData.careWorker2 || null,
@@ -267,12 +271,13 @@ export function AddComplianceRecordModal({
           time_from: spotcheckData.timeFrom,
           time_to: spotcheckData.timeTo,
           carried_by: spotcheckData.carriedBy,
-          observations: spotcheckData.observations,
+          observations: observationsPayload as any,
           employee_id: selectedEmployeeId,
           compliance_type_id: complianceTypeId,
           period_identifier: selectedPeriod,
         });
       }
+
       const recordData = {
         employee_id: selectedEmployeeId,
         compliance_type_id: complianceTypeId,
