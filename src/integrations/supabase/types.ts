@@ -1610,11 +1610,14 @@ export type Database = {
           care_worker2: string | null
           carried_by: string
           check_date: string
+          compliance_type_id: string | null
           created_at: string
           created_by: string | null
+          employee_id: string | null
           id: string
           notes: string | null
           observations: Json
+          period_identifier: string | null
           service_user_name: string
           time_from: string
           time_to: string
@@ -1625,11 +1628,14 @@ export type Database = {
           care_worker2?: string | null
           carried_by: string
           check_date: string
+          compliance_type_id?: string | null
           created_at?: string
           created_by?: string | null
+          employee_id?: string | null
           id?: string
           notes?: string | null
           observations?: Json
+          period_identifier?: string | null
           service_user_name: string
           time_from: string
           time_to: string
@@ -1640,11 +1646,14 @@ export type Database = {
           care_worker2?: string | null
           carried_by?: string
           check_date?: string
+          compliance_type_id?: string | null
           created_at?: string
           created_by?: string | null
+          employee_id?: string | null
           id?: string
           notes?: string | null
           observations?: Json
+          period_identifier?: string | null
           service_user_name?: string
           time_from?: string
           time_to?: string

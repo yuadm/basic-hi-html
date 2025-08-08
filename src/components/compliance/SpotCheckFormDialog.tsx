@@ -41,6 +41,16 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
   const { companySettings } = useCompany();
   const { toast } = useToast();
 
+  const [errors, setErrors] = useState<{
+    serviceUserName?: string;
+    careWorker1?: string;
+    date?: string;
+    timeFrom?: string;
+    timeTo?: string;
+    carriedBy?: string;
+    observations?: Record<string, string>;
+  }>({});
+
   const [form, setForm] = useState<SpotCheckFormData>({
     serviceUserName: "",
     careWorker1: "",
@@ -94,23 +104,39 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
   };
 
   const handleSubmit = () => {
-    // Basic validation
-    if (!form.serviceUserName || !form.careWorker1 || !form.date || !form.timeFrom || !form.timeTo || !form.carriedBy) {
-      toast({ title: "Missing information", description: "Please fill in all required fields.", variant: "destructive" });
-      return;
-    }
+    const newErrors: typeof errors = { observations: {} };
+
+    if (!form.serviceUserName) newErrors.serviceUserName = "Required";
+    if (!form.careWorker1) newErrors.careWorker1 = "Required";
+    if (!form.date) newErrors.date = "Required";
+    if (!form.timeFrom) newErrors.timeFrom = "Required";
+    if (!form.timeTo) newErrors.timeTo = "Required";
+    if (!form.carriedBy) newErrors.carriedBy = "Required";
 
     for (const obs of form.observations) {
       if (!obs.value) {
-        toast({ title: "Incomplete observations", description: "Please select Yes or No for all observations.", variant: "destructive" });
-        return;
-      }
-      if (obs.value === "no" && !obs.comments?.trim()) {
-        toast({ title: "Comments required", description: "Provide comments for all 'No' responses.", variant: "destructive" });
-        return;
+        newErrors.observations![obs.id] = "Select Yes or No";
+      } else if (obs.value === "no" && !obs.comments?.trim()) {
+        newErrors.observations![obs.id] = "Comments are required for 'No'";
       }
     }
 
+    const hasErrors =
+      !!newErrors.serviceUserName ||
+      !!newErrors.careWorker1 ||
+      !!newErrors.date ||
+      !!newErrors.timeFrom ||
+      !!newErrors.timeTo ||
+      !!newErrors.carriedBy ||
+      Object.keys(newErrors.observations || {}).length > 0;
+
+    if (hasErrors) {
+      setErrors(newErrors);
+      toast({ title: "Please fix the highlighted fields", variant: "destructive" });
+      return;
+    }
+
+    setErrors({});
     onSubmit(form);
     onOpenChange(false);
   };
@@ -140,11 +166,24 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Service User's Name</Label>
-              <Input value={form.serviceUserName} onChange={(e) => updateField("serviceUserName", e.target.value)} />
+              <Input
+                value={form.serviceUserName}
+                onChange={(e) => updateField("serviceUserName", e.target.value)}
+                aria-invalid={!!errors.serviceUserName}
+                className={errors.serviceUserName ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {errors.serviceUserName && <p className="text-destructive text-xs mt-1">{errors.serviceUserName}</p>}
             </div>
             <div className="space-y-1">
               <Label>Care Worker(s) attending</Label>
-              <Input value={form.careWorker1} onChange={(e) => updateField("careWorker1", e.target.value)} placeholder="Name 1" />
+              <Input
+                value={form.careWorker1}
+                onChange={(e) => updateField("careWorker1", e.target.value)}
+                placeholder="Name 1"
+                aria-invalid={!!errors.careWorker1}
+                className={errors.careWorker1 ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {errors.careWorker1 && <p className="text-destructive text-xs mt-1">{errors.careWorker1}</p>}
             </div>
             <div className="space-y-1">
               <Label>Care Worker(s) attending</Label>
@@ -152,19 +191,46 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
             </div>
             <div className="space-y-1">
               <Label>Date of spot check</Label>
-              <Input type="date" value={form.date} onChange={(e) => updateField("date", e.target.value)} />
+              <Input
+                type="date"
+                value={form.date}
+                onChange={(e) => updateField("date", e.target.value)}
+                aria-invalid={!!errors.date}
+                className={errors.date ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {errors.date && <p className="text-destructive text-xs mt-1">{errors.date}</p>}
             </div>
             <div className="space-y-1">
               <Label>Time of spot check (From)</Label>
-              <Input type="time" value={form.timeFrom} onChange={(e) => updateField("timeFrom", e.target.value)} />
+              <Input
+                type="time"
+                value={form.timeFrom}
+                onChange={(e) => updateField("timeFrom", e.target.value)}
+                aria-invalid={!!errors.timeFrom}
+                className={errors.timeFrom ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {errors.timeFrom && <p className="text-destructive text-xs mt-1">{errors.timeFrom}</p>}
             </div>
             <div className="space-y-1">
               <Label>Time of spot check (To)</Label>
-              <Input type="time" value={form.timeTo} onChange={(e) => updateField("timeTo", e.target.value)} />
+              <Input
+                type="time"
+                value={form.timeTo}
+                onChange={(e) => updateField("timeTo", e.target.value)}
+                aria-invalid={!!errors.timeTo}
+                className={errors.timeTo ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {errors.timeTo && <p className="text-destructive text-xs mt-1">{errors.timeTo}</p>}
             </div>
             <div className="space-y-1 md:col-span-2">
               <Label>Spot Check carried out by</Label>
-              <Input value={form.carriedBy} onChange={(e) => updateField("carriedBy", e.target.value)} />
+              <Input
+                value={form.carriedBy}
+                onChange={(e) => updateField("carriedBy", e.target.value)}
+                aria-invalid={!!errors.carriedBy}
+                className={errors.carriedBy ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {errors.carriedBy && <p className="text-destructive text-xs mt-1">{errors.carriedBy}</p>}
             </div>
           </div>
 
@@ -180,6 +246,7 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
 
               {observationItems.map((item) => {
                 const current = form.observations.find((o) => o.id === item.id);
+                const err = errors.observations?.[item.id];
                 return (
                   <React.Fragment key={item.id}>
                     <div className="col-span-6 py-2">{item.label}</div>
@@ -207,7 +274,10 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
                         placeholder={current?.value === "no" ? "Required for 'No'" : "Optional"}
                         value={current?.comments || ""}
                         onChange={(e) => updateObservation(item.id, { comments: e.target.value })}
+                        aria-invalid={!!err}
+                        className={err ? "border-destructive focus-visible:ring-destructive" : ""}
                       />
+                      {err && <p className="text-destructive text-xs mt-1">{err}</p>}
                     </div>
                   </React.Fragment>
                 );
@@ -218,6 +288,7 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
             <div className="md:hidden space-y-3">
               {observationItems.map((item) => {
                 const current = form.observations.find((o) => o.id === item.id);
+                const err = errors.observations?.[item.id];
                 return (
                   <div key={item.id} className="rounded-lg border p-3 space-y-2">
                     <div className="font-medium text-sm">{item.label}</div>
@@ -248,7 +319,10 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
                       placeholder={current?.value === "no" ? "Required for 'No'" : "Optional"}
                       value={current?.comments || ""}
                       onChange={(e) => updateObservation(item.id, { comments: e.target.value })}
+                      aria-invalid={!!err}
+                      className={err ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
+                    {err && <p className="text-destructive text-xs mt-1">{err}</p>}
                   </div>
                 );
               })}
