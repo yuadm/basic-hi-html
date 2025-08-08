@@ -48,11 +48,20 @@ export function CompletedDocuments() {
     staleTime: 0,
   });
 
-  // Realtime updates when new signed_documents are inserted
+  // Realtime updates for signed documents and signing requests
   useEffect(() => {
     const channel = supabase
-      .channel('signed-documents-changes')
+      .channel('document-signing-updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'signed_documents' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['signed-documents'] });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'signed_documents' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['signed-documents'] });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'signing_requests' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['signed-documents'] });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'signing_request_recipients' }, () => {
         queryClient.invalidateQueries({ queryKey: ['signed-documents'] });
       })
       .subscribe();
