@@ -21,7 +21,9 @@ import { format, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import SpotCheckFormDialog, { SpotCheckFormData } from "@/components/compliance/SpotCheckFormDialog";
+import { generateSpotCheckPdf } from "@/lib/spot-check-pdf";
 
 interface AddComplianceRecordModalProps {
   employeeId?: string;
@@ -59,6 +61,7 @@ export function AddComplianceRecordModal({
   const [branches, setBranches] = useState<Array<{id: string, name: string}>>([]);
   const { toast } = useToast();
   const { getAccessibleBranches, isAdmin } = usePermissions();
+  const { companySettings } = useCompany();
 
   // Fetch employees if not provided
   useEffect(() => {
@@ -256,11 +259,14 @@ export function AddComplianceRecordModal({
         employee_id: selectedEmployeeId,
         compliance_type_id: complianceTypeId,
         period_identifier: selectedPeriod,
-        // For "new" records, store the text directly in completion_date
-        completion_date: recordType === 'date' 
-          ? format(completionDate, 'yyyy-MM-dd') 
-          : newText, // Store text directly in completion_date
-        completion_method: recordType === 'date' ? 'date_entry' : 'text_entry',
+        // For "new" records, store the text directly in completion_date; for spotcheck use the form date
+        completion_date:
+          recordType === 'date'
+            ? format(completionDate, 'yyyy-MM-dd')
+            : recordType === 'spotcheck'
+              ? (spotcheckData?.date || format(new Date(), 'yyyy-MM-dd'))
+              : newText,
+        completion_method: recordType === 'date' ? 'date_entry' : (recordType === 'spotcheck' ? 'spotcheck' : 'text_entry'),
         notes: notes.trim() || null,
         status: recordType === 'new' ? 'compliant' : 'completed',
         created_at: new Date().toISOString(),
@@ -454,12 +460,30 @@ export function AddComplianceRecordModal({
             >
               Cancel
             </Button>
+            {recordType === 'spotcheck' && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => spotcheckData ? generateSpotCheckPdf(spotcheckData, companySettings) : undefined}
+                disabled={!spotcheckData}
+              >
+                Download PDF
+              </Button>
+            )}
             <Button type="submit" disabled={isLoading}>
               {isLoading ? "Adding..." : "Add Record"}
             </Button>
           </div>
         </form>
       </DialogContent>
+      <SpotCheckFormDialog
+        open={spotcheckOpen}
+        onOpenChange={setSpotcheckOpen}
+        onSubmit={(data) => {
+          setSpotcheckData(data);
+          setSpotcheckOpen(false);
+        }}
+      />
     </Dialog>
   );
 }
