@@ -14,6 +14,14 @@ function formatDateDDMMYYYY(value?: string): string {
   return value
 }
 
+function formatFromTo(from?: string, to?: string) {
+  const f = formatDateDDMMYYYY(from)
+  const t = formatDateDDMMYYYY(to)
+  if (f && t) return `${f} - ${t}`
+  return f || t || ''
+}
+
+
 // Text writing helper with wrapping and pagination
 interface WriterCtx {
   doc: PDFDocument
@@ -79,14 +87,125 @@ function addSpacer(ctx: WriterCtx, amount = 8) {
 }
 
 function addSectionTitle(ctx: WriterCtx, title: string) {
-  addSpacer(ctx, 4)
-  drawText(ctx, title, { bold: true, size: ctx.fontSize + 2 })
-  addSpacer(ctx, 4)
+  addSpacer(ctx, 8)
+  drawText(ctx, title, { bold: true, size: ctx.fontSize + 3 })
+  // underline divider
+  const lineY = ctx.y - 2
+  ctx.page.drawRectangle({
+    x: ctx.margin,
+    y: lineY,
+    width: ctx.page.getWidth() - ctx.margin * 2,
+    height: 1,
+    color: rgb(0.85, 0.85, 0.85),
+  })
+  ctx.y = lineY - 6
 }
+
 
 function addKeyValue(ctx: WriterCtx, label: string, value?: string) {
   drawText(ctx, `${label}: ${value ?? ''}`)
 }
+
+// Layout helpers for nicer, two-column design
+const GUTTER = 18
+
+function getColWidth(ctx: WriterCtx) {
+  return (ctx.page.getWidth() - ctx.margin * 2 - GUTTER) / 2
+}
+
+function wrapLines(font: any, size: number, text: string, maxWidth: number) {
+  const words = (text ?? '').toString().split(/\s+/)
+  let line = ''
+  const lines: string[] = []
+  for (const w of words) {
+    const testLine = line ? `${line} ${w}` : w
+    const width = font.widthOfTextAtSize(testLine, size)
+    if (width > maxWidth) {
+      if (line) lines.push(line)
+      line = w
+    } else {
+      line = testLine
+    }
+  }
+  if (line) lines.push(line)
+  return lines
+}
+
+function drawTextAt(
+  ctx: WriterCtx,
+  text: string,
+  x: number,
+  yStart: number,
+  width: number,
+  options?: { bold?: boolean; size?: number }
+) {
+  const font = options?.bold ? ctx.boldFont : ctx.font
+  const size = options?.size ?? ctx.fontSize
+  const lines = wrapLines(font, size, text ?? '', width)
+  let y = yStart
+  for (const l of lines) {
+    ctx.page.drawText(l, {
+      x,
+      y: y - ctx.lineHeight,
+      size,
+      font,
+      color: rgb(ctx.color.r, ctx.color.g, ctx.color.b),
+    })
+    y -= ctx.lineHeight
+  }
+  return lines.length * ctx.lineHeight
+}
+
+function measureKeyValueHeight(ctx: WriterCtx, value: string | undefined, width: number) {
+  const valueLines = wrapLines(ctx.font, ctx.fontSize, String(value ?? ''), width)
+  // one line for label + value lines
+  return ctx.lineHeight + valueLines.length * ctx.lineHeight
+}
+
+function drawKeyValueInArea(
+  ctx: WriterCtx,
+  label: string,
+  value: string | undefined,
+  x: number,
+  yStart: number,
+  width: number
+) {
+  // Label
+  ctx.page.drawText(label, {
+    x,
+    y: yStart - ctx.lineHeight,
+    size: ctx.fontSize,
+    font: ctx.boldFont,
+    color: rgb(ctx.color.r, ctx.color.g, ctx.color.b),
+  })
+  // Value
+  const used = drawTextAt(ctx, String(value ?? ''), x, yStart - ctx.lineHeight, width)
+  return ctx.lineHeight + used
+}
+
+function renderTwoColGrid(ctx: WriterCtx, pairs: Array<[string, string | undefined]>) {
+  const colWidth = getColWidth(ctx)
+  const leftX = ctx.margin
+  const rightX = ctx.margin + colWidth + GUTTER
+  const rowGap = 8
+
+  for (let i = 0; i < pairs.length; i += 2) {
+    const left = pairs[i]
+    const right = pairs[i + 1]
+    const leftH = measureKeyValueHeight(ctx, left?.[1], colWidth)
+    const rightH = right ? measureKeyValueHeight(ctx, right[1], colWidth) : 0
+    const rowHeight = Math.max(leftH, rightH)
+
+    ensureSpace(ctx, rowHeight + rowGap)
+    const yStart = ctx.y
+
+    if (left) drawKeyValueInArea(ctx, left[0], left[1], leftX, yStart, colWidth)
+    if (right) drawKeyValueInArea(ctx, right[0], right[1], rightX, yStart, colWidth)
+
+    ctx.y -= rowHeight + rowGap
+  }
+}
+
 
 export async function generateJobApplicationPdf(data: JobApplicationData) {
   const doc = await PDFDocument.create()
@@ -116,85 +235,110 @@ export async function generateJobApplicationPdf(data: JobApplicationData) {
 
   // Personal Information
   addSectionTitle(ctx, '1. Personal Information')
-  addKeyValue(ctx, 'Title', data.personalInfo?.title)
-  addKeyValue(ctx, 'Full Name', data.personalInfo?.fullName)
-  addKeyValue(ctx, 'Email', data.personalInfo?.email)
-  addKeyValue(ctx, 'Telephone', data.personalInfo?.telephone)
-  addKeyValue(ctx, 'Date of Birth', formatDateDDMMYYYY(data.personalInfo?.dateOfBirth))
-  addKeyValue(ctx, 'Address Line 1', data.personalInfo?.streetAddress)
-  addKeyValue(ctx, 'Address Line 2', data.personalInfo?.streetAddress2)
-  addKeyValue(ctx, 'Town/City', data.personalInfo?.town)
-  addKeyValue(ctx, 'Borough', data.personalInfo?.borough)
-  addKeyValue(ctx, 'Postcode', data.personalInfo?.postcode)
-  addKeyValue(ctx, 'English Proficiency', data.personalInfo?.englishProficiency)
-  addKeyValue(ctx, 'Other Languages', (data.personalInfo?.otherLanguages || []).join(', '))
-  addKeyValue(ctx, 'Personal Care Willingness', data.personalInfo?.personalCareWillingness)
-  addKeyValue(ctx, 'DBS', data.personalInfo?.hasDBS)
-  addKeyValue(ctx, 'Car & Driving License', data.personalInfo?.hasCarAndLicense)
-  addKeyValue(ctx, 'National Insurance Number', data.personalInfo?.nationalInsuranceNumber)
+  const pi = data.personalInfo || ({} as any)
+  const piPairs: Array<[string, string | undefined]> = [
+    ['Title', pi.title],
+    ['Full Name', pi.fullName],
+    ['Email', pi.email],
+    ['Telephone/Mobile', pi.telephone],
+    ['Date of Birth', formatDateDDMMYYYY(pi.dateOfBirth)],
+    ['Street Address', pi.streetAddress],
+    ['Street Address Second Line', pi.streetAddress2],
+    ['Town', pi.town],
+    ['Borough', pi.borough],
+    ['Postcode', pi.postcode],
+    ['Proficiency in English (if not first language)', pi.englishProficiency],
+    ['Which other languages do you speak?', (pi.otherLanguages || []).join(', ')],
+    ['Position applied for', pi.positionAppliedFor],
+    ['Are you willing to do personal care for?', pi.personalCareWillingness],
+    ['Do you have a recent or updated DBS?', pi.hasDBS],
+    ['National Insurance Number', pi.nationalInsuranceNumber],
+    ['Do you currently have your own car and licence?', pi.hasCarAndLicense],
+  ]
+  renderTwoColGrid(ctx, piPairs)
+
 
   // Availability
   addSectionTitle(ctx, '2. Availability')
-  addKeyValue(ctx, 'Hours per Week', data.availability?.hoursPerWeek)
-  addKeyValue(ctx, 'Right to Work in UK', data.availability?.hasRightToWork)
-  const timeSlots = data.availability?.timeSlots || {}
+  const av = data.availability || ({} as any)
+  const avaPairs: Array<[string, string | undefined]> = [
+    ['How many hours per week are you willing to work?', av.hoursPerWeek],
+    ['Do you have current right to live and work in the UK?', av.hasRightToWork],
+  ]
+  renderTwoColGrid(ctx, avaPairs)
+
+  const timeSlots = av.timeSlots || {}
   const slotEntries = Object.entries(timeSlots)
   if (slotEntries.length) {
-    drawText(ctx, 'Selected Time Slots:', { bold: true })
-    for (const [slotId, days] of slotEntries) {
-      addKeyValue(ctx, `- ${slotId}`, (days || []).join(', '))
-    }
+    drawText(ctx, 'Selected Time Slots', { bold: true })
+    const slotPairs = slotEntries.map(([slotId, days]) => [
+      String(slotId),
+      Array.isArray(days) ? (days as string[]).join(', ') : String(days ?? ''),
+    ]) as Array<[string, string]>
+    renderTwoColGrid(ctx, slotPairs)
   }
+
 
   // Emergency Contact
   addSectionTitle(ctx, '3. Emergency Contact')
-  addKeyValue(ctx, 'Full Name', data.emergencyContact?.fullName)
-  addKeyValue(ctx, 'Relationship', data.emergencyContact?.relationship)
-  addKeyValue(ctx, 'Contact Number', data.emergencyContact?.contactNumber)
-  addKeyValue(ctx, 'How Did You Hear About Us', data.emergencyContact?.howDidYouHear)
+  const ec = data.emergencyContact || ({} as any)
+  renderTwoColGrid(ctx, [
+    ['Full Name', ec.fullName],
+    ['Relationship', ec.relationship],
+    ['Contact number', ec.contactNumber],
+    ['How did you Hear about us', ec.howDidYouHear],
+  ])
+
 
   // Employment History
   addSectionTitle(ctx, '4. Employment History')
-  addKeyValue(ctx, 'Previously Employed', data.employmentHistory?.previouslyEmployed)
+  addKeyValue(ctx, 'Were you previously been employed?', data.employmentHistory?.previouslyEmployed)
   if (data.employmentHistory?.previouslyEmployed === 'yes') {
     const recent = data.employmentHistory?.recentEmployer as any
     if (recent) {
       drawText(ctx, 'Most Recent Employer', { bold: true })
-      addKeyValue(ctx, 'Company', recent.company)
-      addKeyValue(ctx, 'Name', recent.name)
-      addKeyValue(ctx, 'Email', recent.email)
-      addKeyValue(ctx, 'Position', recent.position)
-      addKeyValue(ctx, 'Address 1', recent.address)
-      addKeyValue(ctx, 'Address 2', recent.address2)
-      addKeyValue(ctx, 'Town', recent.town)
-      addKeyValue(ctx, 'Postcode', recent.postcode)
-      addKeyValue(ctx, 'Telephone', recent.telephone)
-      addKeyValue(ctx, 'From', formatDateDDMMYYYY(recent.from))
-      addKeyValue(ctx, 'To', formatDateDDMMYYYY(recent.to))
-      addKeyValue(ctx, 'Leaving Date', formatDateDDMMYYYY(recent.leavingDate))
-      addKeyValue(ctx, 'Key Tasks', recent.keyTasks)
-      addKeyValue(ctx, 'Reason For Leaving', recent.reasonForLeaving)
+      renderTwoColGrid(ctx, [
+        ['Company', recent.company],
+        ['Name', recent.name],
+        ['Email', recent.email],
+        ['Position Held', recent.position],
+        ['Address', recent.address],
+        ['Address 2', recent.address2],
+        ['Town', recent.town],
+        ['Postcode', recent.postcode],
+        ['Telephone Number', recent.telephone],
+        ['From to', formatFromTo(recent.from, recent.to)],
+        ['Leaving date or notice (if relevant)', formatDateDDMMYYYY(recent.leavingDate)],
+        ['Reason for leaving', recent.reasonForLeaving],
+      ])
+      if (recent.keyTasks) {
+        drawText(ctx, 'Key Tasks/Responsibilities', { bold: true })
+        drawText(ctx, recent.keyTasks)
+      }
     }
 
     const prevList = data.employmentHistory?.previousEmployers || []
     if (prevList.length) {
-      drawText(ctx, 'Previous Employers', { bold: true })
-      prevList.forEach((emp, idx) => {
-        drawText(ctx, `#${idx + 1}`, { bold: true })
-        addKeyValue(ctx, 'Company', emp.company)
-        addKeyValue(ctx, 'Name', emp.name)
-        addKeyValue(ctx, 'Email', emp.email)
-        addKeyValue(ctx, 'Position', emp.position)
-        addKeyValue(ctx, 'Address 1', emp.address)
-        addKeyValue(ctx, 'Address 2', emp.address2)
-        addKeyValue(ctx, 'Town', emp.town)
-        addKeyValue(ctx, 'Postcode', emp.postcode)
-        addKeyValue(ctx, 'Telephone', emp.telephone)
-        addKeyValue(ctx, 'From', formatDateDDMMYYYY(emp.from))
-        addKeyValue(ctx, 'To', formatDateDDMMYYYY(emp.to))
-        addKeyValue(ctx, 'Leaving Date', formatDateDDMMYYYY(emp.leavingDate))
-        addKeyValue(ctx, 'Key Tasks', emp.keyTasks)
-        addKeyValue(ctx, 'Reason For Leaving', emp.reasonForLeaving)
+      drawText(ctx, 'Previous employers (from most recent)', { bold: true })
+      prevList.forEach((emp) => {
+        renderTwoColGrid(ctx, [
+          ['Company', emp.company],
+          ['Name', emp.name],
+          ['Email', emp.email],
+          ['Position Held', emp.position],
+          ['Address', emp.address],
+          ['Address 2', emp.address2],
+          ['Town', emp.town],
+          ['Postcode', emp.postcode],
+          ['Telephone Number', emp.telephone],
+          ['From to', formatFromTo(emp.from, emp.to)],
+          ['Leaving date or notice (if relevant)', formatDateDDMMYYYY(emp.leavingDate)],
+          ['Reason for leaving', emp.reasonForLeaving],
+        ])
+        if (emp.keyTasks) {
+          drawText(ctx, 'Key Tasks/Responsibilities', { bold: true })
+          drawText(ctx, emp.keyTasks)
+        }
         addSpacer(ctx, 6)
       })
     }
