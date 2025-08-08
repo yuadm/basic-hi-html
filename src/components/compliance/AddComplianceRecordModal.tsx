@@ -21,7 +21,7 @@ import { format, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/contexts/PermissionsContext";
-
+import SpotCheckFormDialog, { SpotCheckFormData } from "@/components/compliance/SpotCheckFormDialog";
 
 interface AddComplianceRecordModalProps {
   employeeId?: string;
@@ -48,8 +48,10 @@ export function AddComplianceRecordModal({
   const [isLoading, setIsLoading] = useState(false);
   const [completionDate, setCompletionDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
-  const [recordType, setRecordType] = useState<'date' | 'new'>('date');
+  const [recordType, setRecordType] = useState<'date' | 'new' | 'spotcheck'>('date');
   const [newText, setNewText] = useState('');
+  const [spotcheckOpen, setSpotcheckOpen] = useState(false);
+  const [spotcheckData, setSpotcheckData] = useState<SpotCheckFormData | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeId || '');
   const [selectedEmployeeName, setSelectedEmployeeName] = useState(employeeName || '');
   const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurrentPeriodIdentifier(frequency));
@@ -236,6 +238,15 @@ export function AddComplianceRecordModal({
         });
         return;
       }
+    } else if (recordType === 'spotcheck') {
+      if (!spotcheckData) {
+        toast({
+          title: "Spot check incomplete",
+          description: "Please complete the spot check form.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -352,14 +363,24 @@ export function AddComplianceRecordModal({
 
           <div className="space-y-2">
             <Label>Record Type</Label>
-            <Select value={recordType} onValueChange={(value: 'date' | 'new') => setRecordType(value)}>
+            <Select
+              value={recordType}
+              onValueChange={(value: 'date' | 'new' | 'spotcheck') => {
+                setRecordType(value);
+                if (value === 'spotcheck') {
+                  setSpotcheckOpen(true);
+                }
+              }}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="date">Date</SelectItem>
                 <SelectItem value="new">New (before employee joined)</SelectItem>
-                
+                {complianceTypeName?.toLowerCase().includes('spot') && (
+                  <SelectItem value="spotcheck">Complete Spot Check</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
