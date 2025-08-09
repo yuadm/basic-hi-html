@@ -14,7 +14,7 @@ interface CompanyInfo {
 export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: CompanyInfo) {
   const doc = await PDFDocument.create()
   doc.registerFontkit(fontkit)
-  const page = doc.addPage()
+  let page = doc.addPage()
   const regularBytes = await fetch(DejaVuSansRegularUrl).then(r => r.arrayBuffer())
   const boldBytes = await fetch(DejaVuSansBoldUrl).then(r => r.arrayBuffer())
   const font = await doc.embedFont(new Uint8Array(regularBytes), { subset: true })
@@ -77,39 +77,126 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
   const colNo = 60
   const colComments = page.getWidth() - margin - (tableX + colItem + colYes + colNo)
 
-  const rowHeight = 24
-  const drawTableCell = (text: string, x: number, width: number, opts?: { bold?: boolean; align?: 'left' | 'center' }) => {
-    const f = opts?.bold ? boldFont : font
-    const size = 11
-    const content = text ?? ''
-    const textWidth = f.widthOfTextAtSize(content, size)
-    const tx = opts?.align === 'center' ? x + (width - textWidth) / 2 : x + 6
-    page.drawText(content, { x: tx, y: y - rowHeight + 7, size, font: f, color: rgb(0,0,0) })
-  }
-  const drawRowDivider = () => {
-    page.drawRectangle({ x: tableX, y: y - rowHeight + 5, width: page.getWidth() - margin * 2, height: 1, color: rgb(0.92,0.92,0.92) })
+  const textSize = 11
+  const baseRowHeight = 24
+  const cellPadX = 6
+  const cellPadY = 6
+
+  const wrapText = (text: string, width: number, f = font) => {
+    const words = (text || '').split(/\s+/).filter(Boolean)
+    const lines: string[] = []
+    let line = ''
+    const maxWidth = width - cellPadX * 2
+
+    const pushHardWrapped = (word: string) => {
+      let remaining = word
+      while (remaining.length > 0 && f.widthOfTextAtSize(remaining, textSize) > maxWidth) {
+        let cut = Math.min(remaining.length, 50)
+        while (cut > 1 && f.widthOfTextAtSize(remaining.slice(0, cut), textSize) > maxWidth) {
+          cut--
+        }
+        lines.push(remaining.slice(0, cut))
+        remaining = remaining.slice(cut)
+      }
+      if (remaining) {
+        if (f.widthOfTextAtSize(remaining, textSize) <= maxWidth) {
+          if (!line) line = remaining
+          else if (f.widthOfTextAtSize(line + ' ' + remaining, textSize) <= maxWidth) line = line + ' ' + remaining
+          else { lines.push(line); line = remaining }
+        }
+      }
+    }
+
+    for (const word of words) {
+      const test = line ? line + ' ' + word : word
+      if (f.widthOfTextAtSize(test, textSize) <= maxWidth) {
+        line = test
+      } else {
+        if (!line) {
+          pushHardWrapped(word)
+        } else {
+          lines.push(line)
+          line = ''
+          if (f.widthOfTextAtSize(word, textSize) <= maxWidth) {
+            line = word
+          } else {
+            pushHardWrapped(word)
+          }
+        }
+      }
+    }
+    if (line) lines.push(line)
+    return lines.length ? lines : ['']
   }
 
-  // Header row
-  page.drawRectangle({ x: tableX, y: y - rowHeight + 5, width: page.getWidth() - margin * 2, height: rowHeight, color: rgb(0.95,0.96,1) })
-  drawTableCell('Item', tableX, colItem, { bold: true })
-  drawTableCell('Yes', tableX + colItem, colYes, { bold: true, align: 'center' })
-  drawTableCell('No', tableX + colItem + colYes, colNo, { bold: true, align: 'center' })
-  drawTableCell('Observation/comments (required for all no responses)', tableX + colItem + colYes + colNo, colComments, { bold: true })
-  y -= rowHeight
-  drawRowDivider()
+  const measureCellHeight = (text: string, width: number, f = font) => {
+    const lines = wrapText(text, width, f)
+    return Math.max(baseRowHeight, lines.length * lineHeight + cellPadY * 2)
+  }
+
+  const drawHeader = () => {
+    const headerHeight = 28
+    page.drawRectangle({ x: tableX, y: y - headerHeight + 5, width: page.getWidth() - margin * 2, height: headerHeight, color: rgb(0.95,0.96,1) })
+    const boldF = boldFont
+    const yesX = tableX + colItem
+    const noX = yesX + colYes
+    const commentsX = noX + colNo
+    page.drawText('Item', { x: tableX + cellPadX, y: y - headerHeight + 9, size: 11, font: boldF, color: rgb(0,0,0) })
+    const centerHeader = (text: string, x: number, width: number) => {
+      const tw = boldF.widthOfTextAtSize(text, 11)
+      page.drawText(text, { x: x + (width - tw) / 2, y: y - headerHeight + 9, size: 11, font: boldF, color: rgb(0,0,0) })
+    }
+    centerHeader('Yes', yesX, colYes)
+    centerHeader('No', noX, colNo)
+    page.drawText('Observation/comments (required for all no responses)', { x: commentsX + cellPadX, y: y - headerHeight + 9, size: 11, font: boldF, color: rgb(0,0,0) })
+    y -= headerHeight
+    page.drawRectangle({ x: tableX, y: y - 1 + 5, width: page.getWidth() - margin * 2, height: 1, color: rgb(0.92,0.92,0.92) })
+  }
+
+  const ensureSpace = (needed: number) => {
+    if (y - needed < margin) {
+      page = doc.addPage()
+      y = page.getHeight() - margin
+      drawHeader()
+    }
+  }
+
+  // initial header
+  drawHeader()
 
   data.observations.forEach((obs, i) => {
-    // Alternate row background for readability
+    const itemHeight = measureCellHeight(obs.label || '', colItem)
+    const commentsHeight = measureCellHeight(obs.comments || '', colComments)
+    let currentRowHeight = Math.max(itemHeight, commentsHeight, baseRowHeight)
+
+    ensureSpace(currentRowHeight)
+
     if (i % 2 === 0) {
-      page.drawRectangle({ x: tableX, y: y - rowHeight + 5, width: page.getWidth() - margin * 2, height: rowHeight, color: rgb(0.98,0.98,0.99) })
+      page.drawRectangle({ x: tableX, y: y - currentRowHeight + 5, width: page.getWidth() - margin * 2, height: currentRowHeight, color: rgb(0.98,0.98,0.99) })
     }
-    drawTableCell(obs.label, tableX, colItem)
-    drawTableCell(obs.value === 'yes' ? '✔' : '', tableX + colItem, colYes, { align: 'center' })
-    drawTableCell(obs.value === 'no' ? '✔' : '', tableX + colItem + colYes, colNo, { align: 'center' })
-    drawTableCell(obs.comments || '', tableX + colItem + colYes + colNo, colComments)
-    y -= rowHeight
-    drawRowDivider()
+
+    const itemLines = wrapText(obs.label || '', colItem)
+    itemLines.forEach((line, idx) => {
+      page.drawText(line, { x: tableX + cellPadX, y: y - cellPadY - (idx + 1) * lineHeight, size: textSize, font, color: rgb(0,0,0) })
+    })
+
+    const centerY = y - currentRowHeight / 2 - textSize / 2 + 4
+    if (obs.value === 'yes') {
+      const tw = font.widthOfTextAtSize('✔', textSize)
+      page.drawText('✔', { x: tableX + colItem + (colYes - tw) / 2, y: centerY, size: textSize, font, color: rgb(0,0,0) })
+    }
+    if (obs.value === 'no') {
+      const tw = font.widthOfTextAtSize('✔', textSize)
+      page.drawText('✔', { x: tableX + colItem + colYes + (colNo - tw) / 2, y: centerY, size: textSize, font, color: rgb(0,0,0) })
+    }
+
+    const commentsLines = wrapText(obs.comments || '', colComments)
+    commentsLines.forEach((line, idx) => {
+      page.drawText(line, { x: tableX + colItem + colYes + colNo + cellPadX, y: y - cellPadY - (idx + 1) * lineHeight, size: textSize, font, color: rgb(0,0,0) })
+    })
+
+    y -= currentRowHeight
+    page.drawRectangle({ x: tableX, y: y - 1 + 5, width: page.getWidth() - margin * 2, height: 1, color: rgb(0.92,0.92,0.92) })
   })
 
   addSpacer(12)
