@@ -72,10 +72,12 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
 
   // Table headers
   const tableX = margin
-  const colItem = 300
-  const colYes = 60
-  const colNo = 60
-  const colComments = page.getWidth() - margin - (tableX + colItem + colYes + colNo)
+  // Responsive column widths: smaller Item column, compact Yes/No, larger Comments
+  const availableWidth = page.getWidth() - margin * 2
+  const colYes = 40
+  const colNo = 40
+  const colItem = Math.max(180, Math.min(240, Math.floor(availableWidth * 0.32)))
+  const colComments = availableWidth - (colItem + colYes + colNo)
 
   const textSize = 11
   const baseRowHeight = 24
@@ -135,22 +137,61 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
   }
 
   const drawHeader = () => {
-    const headerHeight = 28
-    page.drawRectangle({ x: tableX, y: y - headerHeight + 5, width: page.getWidth() - margin * 2, height: headerHeight, color: rgb(0.95,0.96,1) })
+    const headerHeight = 30
+    page.drawRectangle({
+      x: tableX,
+      y: y - headerHeight + 5,
+      width: page.getWidth() - margin * 2,
+      height: headerHeight,
+      color: rgb(0.95, 0.96, 1),
+    })
     const boldF = boldFont
     const yesX = tableX + colItem
     const noX = yesX + colYes
     const commentsX = noX + colNo
-    page.drawText('Item', { x: tableX + cellPadX, y: y - headerHeight + 9, size: 11, font: boldF, color: rgb(0,0,0) })
+
+    page.drawText('Item', {
+      x: tableX + cellPadX,
+      y: y - headerHeight + 9,
+      size: 11,
+      font: boldF,
+      color: rgb(0, 0, 0),
+    })
+
     const centerHeader = (text: string, x: number, width: number) => {
-      const tw = boldF.widthOfTextAtSize(text, 11)
-      page.drawText(text, { x: x + (width - tw) / 2, y: y - headerHeight + 9, size: 11, font: boldF, color: rgb(0,0,0) })
+      const size = 11
+      const tw = boldF.widthOfTextAtSize(text, size)
+      page.drawText(text, {
+        x: x + (width - tw) / 2,
+        y: y - headerHeight + 9,
+        size,
+        font: boldF,
+        color: rgb(0, 0, 0),
+      })
     }
     centerHeader('Yes', yesX, colYes)
     centerHeader('No', noX, colNo)
-    page.drawText('Observation/comments (required for all no responses)', { x: commentsX + cellPadX, y: y - headerHeight + 9, size: 11, font: boldF, color: rgb(0,0,0) })
+
+    // Shorter label to fit the page, with small size to avoid overflow
+    const commentsHeader = 'Observation/comments'
+    const commentsHeaderSize =
+      boldF.widthOfTextAtSize(commentsHeader, 11) <= colComments - cellPadX * 2 ? 11 : 10
+    page.drawText(commentsHeader, {
+      x: commentsX + cellPadX,
+      y: y - headerHeight + 9,
+      size: commentsHeaderSize,
+      font: boldF,
+      color: rgb(0, 0, 0),
+    })
+
     y -= headerHeight
-    page.drawRectangle({ x: tableX, y: y - 1 + 5, width: page.getWidth() - margin * 2, height: 1, color: rgb(0.92,0.92,0.92) })
+    page.drawRectangle({
+      x: tableX,
+      y: y - 1 + 5,
+      width: page.getWidth() - margin * 2,
+      height: 1,
+      color: rgb(0.92, 0.92, 0.92),
+    })
   }
 
   const ensureSpace = (needed: number) => {
