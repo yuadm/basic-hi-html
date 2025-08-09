@@ -14,13 +14,11 @@ export function CompanySettings() {
   const { companySettings, updateCompanySettings, loading } = useCompany();
   const [formData, setFormData] = useState(companySettings);
   const [logoUploading, setLogoUploading] = useState(false);
-  const [logoPreviewSrc, setLogoPreviewSrc] = useState<string | undefined>(companySettings.logo);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     setFormData(companySettings);
-    setLogoPreviewSrc(companySettings.logo);
     
     // Apply favicon immediately if logo exists or restore from localStorage
     if (companySettings.logo) {
@@ -49,19 +47,20 @@ export function CompanySettings() {
       
       img.onload = () => {
         // Calculate new dimensions
-        let { width, height } = img as HTMLImageElement;
+        let { width, height } = img;
         const aspectRatio = width / height;
         
-        // Max dimensions
-        const maxDim = 1920;
+        // Start with reasonable max dimensions
+        const maxWidth = 1920;
+        const maxHeight = 1920;
         
-        if (width > maxDim || height > maxDim) {
+        if (width > maxWidth || height > maxHeight) {
           if (width > height) {
-            height = Math.round(maxDim / aspectRatio);
-            width = maxDim;
+            width = maxWidth;
+            height = maxWidth / aspectRatio;
           } else {
-            width = Math.round(maxDim * aspectRatio);
-            height = maxDim;
+            height = maxHeight;
+            width = maxHeight * aspectRatio;
           }
         }
         
@@ -73,63 +72,40 @@ export function CompanySettings() {
           return;
         }
         
-        // Clear to preserve transparency
-        ctx.clearRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
         
-        const originalType = (file.type || '').toLowerCase();
-        const isJpeg = originalType.includes('jpeg') || originalType.includes('jpg');
-        // Keep alpha for non-JPEG formats
-        const outputType = isJpeg ? 'image/jpeg' : 'image/png';
-        const baseName = file.name.replace(/\.[^/.]+$/, '');
-        const ext = isJpeg ? 'jpg' : 'png';
-        
-        const tryQuality = (quality: number) => {
+        // Function to resize with quality adjustment
+        const tryQuality = (quality: number): void => {
           canvas.toBlob((blob) => {
             if (!blob) {
               reject(new Error('Failed to create blob'));
               return;
             }
+            
+            // Check file size (convert to KB)
             const sizeKB = blob.size / 1024;
-            if (isJpeg && sizeKB > maxSizeKB && quality > 0.1) {
-              tryQuality(Math.max(0.1, quality - 0.1));
-              return;
+            
+            if (sizeKB <= maxSizeKB || quality <= 0.1) {
+              // Create a new File from the blob
+              const resizedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(resizedFile);
+            } else {
+              // Try with lower quality
+              tryQuality(quality - 0.1);
             }
-            const resizedFile = new File([blob], `${baseName}.${ext}`, {
-              type: outputType,
-              lastModified: Date.now(),
-            });
-            resolve(resizedFile);
-          }, outputType, isJpeg ? quality : undefined);
+          }, 'image/jpeg', quality);
         };
         
-        // Start with high quality for JPEG; PNG ignores quality but preserves alpha
+        // Start with high quality and reduce if needed
         tryQuality(0.9);
       };
       
       img.onerror = () => reject(new Error('Failed to load image'));
       img.src = URL.createObjectURL(file);
     });
-  };
-
-  // Helpers to handle public URL failures by falling back to a signed URL
-  const parseBucketAndPath = (url: string) => {
-    const marker = '/object/public/';
-    const idx = url?.indexOf(marker) ?? -1;
-    if (idx === -1) return null;
-    const path = url.substring(idx + marker.length);
-    const [bucket, ...rest] = path.split('/');
-    return { bucket, key: rest.join('/') };
-  };
-
-  const fallbackToSigned = async (url?: string) => {
-    if (!url) return undefined;
-    const parsed = parseBucketAndPath(url);
-    if (!parsed) return undefined;
-    const { data, error } = await supabase.storage
-      .from(parsed.bucket)
-      .createSignedUrl(parsed.key, 60 * 60 * 24 * 7);
-    return error ? undefined : data?.signedUrl;
   };
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,7 +183,6 @@ export function CompanySettings() {
 
       // Update form data
       setFormData(prev => ({ ...prev, logo: publicUrl }));
-      setLogoPreviewSrc(publicUrl);
 
       // Update favicon
       updateFavicon(publicUrl);
@@ -234,20 +209,10 @@ export function CompanySettings() {
     const existingLinks = document.querySelectorAll('link[rel*="icon"]');
     existingLinks.forEach(link => link.remove());
 
-    // Infer MIME type from URL
-    const mimeFromExt = (url: string) => {
-      const clean = url.split('?')[0].toLowerCase();
-      if (clean.endsWith('.svg')) return 'image/svg+xml';
-      if (clean.endsWith('.png')) return 'image/png';
-      if (clean.endsWith('.webp')) return 'image/webp';
-      if (clean.endsWith('.jpg') || clean.endsWith('.jpeg')) return 'image/jpeg';
-      return 'image/png';
-    };
-
     // Add new favicon
     const link = document.createElement('link');
     link.rel = 'icon';
-    link.type = mimeFromExt(logoUrl);
+    link.type = 'image/png';
     link.href = logoUrl;
     document.head.appendChild(link);
     
@@ -291,18 +256,11 @@ export function CompanySettings() {
           <div className="flex items-center gap-4">
             {formData.logo ? (
               <div className="relative">
-                <div className="w-16 h-16 rounded-full overflow-hidden bg-transparent">
-                  <img
-                    src={logoPreviewSrc || formData.logo}
-                    alt="Company Logo"
-                    className="w-full h-full object-contain"
-                    loading="lazy"
-                    onError={async () => {
-                      const signed = await fallbackToSigned(formData.logo);
-                      setLogoPreviewSrc(signed || '/placeholder.svg');
-                    }}
-                  />
-                </div>
+                <img
+                  src={formData.logo}
+                  alt="Company Logo"
+                  className="w-16 h-16 object-contain rounded-lg bg-card p-2"
+                />
                 <Button
                   variant="destructive"
                   size="sm"
@@ -313,7 +271,7 @@ export function CompanySettings() {
                 </Button>
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-full border-2 border-dashed border-border bg-transparent flex items-center justify-center">
+              <div className="w-16 h-16 rounded-lg border-2 border-dashed border-border bg-muted/50 flex items-center justify-center">
                 <Building2 className="w-8 h-8 text-muted-foreground" />
               </div>
             )}

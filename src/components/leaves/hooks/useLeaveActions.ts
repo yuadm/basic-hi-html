@@ -18,17 +18,18 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
 
     const currentTaken = employee.leave_taken || 0;
     const currentRemaining = employee.remaining_leave_days || 28;
-    const leaveAllowance = typeof (employee as any).leave_allowance === 'number' ? (employee as any).leave_allowance : 28;
     
-    let newTaken: number, newRemaining: number;
+    let newTaken, newRemaining;
     
     if (operation === 'add') {
-      // Adding leave (approving a leave or increasing days)
+      // Adding leave (approving a leave)
       newTaken = currentTaken + days;
       newRemaining = Math.max(0, currentRemaining - days);
     } else {
-      // Subtracting leave (rejecting/reverting a leave or decreasing days)
+      // Subtracting leave (rejecting or reverting a leave)
       newTaken = Math.max(0, currentTaken - days);
+      // Use leave_allowance from database or default to 28
+      const leaveAllowance = 28; // Default allowance
       newRemaining = Math.min(leaveAllowance, currentRemaining + days);
     }
 
@@ -86,47 +87,12 @@ export function useLeaveActions({ leaves, employees, leaveTypes, refetchData }: 
     notes: string;
   }) => {
     try {
-      // Find the existing leave to compare changes
-      const oldLeave = leaves.find(l => l.id === leaveId);
-
       const { error } = await supabase
         .from('leave_requests')
         .update(data)
         .eq('id', leaveId);
 
       if (error) throw error;
-
-      // Adjust balances if the leave was already approved and edits affect deduction behavior
-      if (oldLeave && oldLeave.status === 'approved') {
-        const oldType = leaveTypes.find(lt => lt.id === oldLeave.leave_type_id);
-        const newType = leaveTypes.find(lt => lt.id === data.leave_type_id);
-        const oldReduces = !!oldType?.reduces_balance;
-        const newReduces = !!newType?.reduces_balance;
-
-        const oldDays = typeof oldLeave.days_requested === 'number' ? oldLeave.days_requested : (oldLeave.days ?? 0) || 0;
-        const newDays = data.days_requested ?? 0;
-
-        // If employee changed, restore on old (if needed) and deduct on new (if needed)
-        if (oldLeave.employee_id !== data.employee_id) {
-          if (oldReduces && oldDays > 0) {
-            await updateEmployeeLeaveBalance(oldLeave.employee_id, oldDays, 'subtract');
-          }
-          if (newReduces && newDays > 0) {
-            await updateEmployeeLeaveBalance(data.employee_id, newDays, 'add');
-          }
-        } else {
-          // Same employee, handle type/days changes
-          if (oldReduces && !newReduces) {
-            if (oldDays > 0) await updateEmployeeLeaveBalance(oldLeave.employee_id, oldDays, 'subtract');
-          } else if (!oldReduces && newReduces) {
-            if (newDays > 0) await updateEmployeeLeaveBalance(oldLeave.employee_id, newDays, 'add');
-          } else if (oldReduces && newReduces) {
-            const delta = (newDays || 0) - (oldDays || 0);
-            if (delta > 0) await updateEmployeeLeaveBalance(oldLeave.employee_id, delta, 'add');
-            else if (delta < 0) await updateEmployeeLeaveBalance(oldLeave.employee_id, Math.abs(delta), 'subtract');
-          }
-        }
-      }
 
       toast({
         title: "Leave updated",

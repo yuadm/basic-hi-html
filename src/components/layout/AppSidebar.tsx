@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -35,7 +35,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
-import { supabase } from "@/integrations/supabase/client";
 
 const navigationItems = [
   {
@@ -122,38 +121,13 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
 
-  const [logoSrc, setLogoSrc] = useState(companySettings.logo);
-  useEffect(() => {
-    setLogoSrc(companySettings.logo);
-  }, [companySettings.logo]);
-
-  const parseBucketAndPath = (url: string) => {
-    const marker = '/object/public/';
-    const idx = url?.indexOf(marker) ?? -1;
-    if (idx === -1) return null;
-    const path = url.substring(idx + marker.length);
-    const [bucket, ...rest] = path.split('/');
-    return { bucket, key: rest.join('/') };
-  };
-
-  const fallbackToSigned = async () => {
-    if (!companySettings.logo) return;
-    const parsed = parseBucketAndPath(companySettings.logo);
-    if (!parsed) return;
-    const { data, error } = await supabase.storage
-      .from(parsed.bucket)
-      .createSignedUrl(parsed.key, 60 * 60 * 24 * 7);
-    if (!error && data?.signedUrl) {
-      setLogoSrc(data.signedUrl);
-    }
-  };
-
   const isActive = (path: string) => {
     if (path === "/") {
       return currentPath === "/";
     }
     return currentPath.startsWith(path);
   };
+
   const getNavClassName = (path: string) => {
     const active = isActive(path);
     return cn(
@@ -187,20 +161,12 @@ export function AppSidebar() {
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-transparent flex items-center justify-center overflow-hidden">
+              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center overflow-hidden">
                 {companySettings.logo ? (
                   <img
-                    src={logoSrc || '/placeholder.svg'}
+                    src={companySettings.logo}
                     alt="Company Logo"
                     className="w-full h-full object-contain"
-                    loading="lazy"
-                    onError={() => {
-                      if (logoSrc && !logoSrc.includes('token=')) {
-                        fallbackToSigned();
-                      } else {
-                        setLogoSrc('/placeholder.svg');
-                      }
-                    }}
                   />
                 ) : (
                   <Shield className="w-5 h-5 text-white" />
