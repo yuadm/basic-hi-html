@@ -1,7 +1,9 @@
 import { PDFDocument, rgb } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 import DejaVuSansRegularUrl from '@/assets/fonts/dejavu/DejaVuSans.ttf'
 import DejaVuSansBoldUrl from '@/assets/fonts/dejavu/DejaVuSans-Bold.ttf'
 import { format } from 'date-fns'
+
 import type { SpotCheckFormData } from '@/components/compliance/SpotCheckFormDialog'
 
 interface CompanyInfo {
@@ -11,6 +13,7 @@ interface CompanyInfo {
 
 export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: CompanyInfo) {
   const doc = await PDFDocument.create()
+  doc.registerFontkit(fontkit)
   const page = doc.addPage()
   const regularBytes = await fetch(DejaVuSansRegularUrl).then(r => r.arrayBuffer())
   const boldBytes = await fetch(DejaVuSansBoldUrl).then(r => r.arrayBuffer())
