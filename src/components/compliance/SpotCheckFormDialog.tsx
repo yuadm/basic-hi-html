@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,9 +38,12 @@ interface SpotCheckFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: SpotCheckFormData) => void;
+  initialData?: SpotCheckFormData | null;
+  periodIdentifier?: string; // e.g., 2025-Q2
+  frequency?: string; // e.g., 'quarterly'
 }
 
-export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: SpotCheckFormDialogProps) {
+export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit, initialData, periodIdentifier, frequency }: SpotCheckFormDialogProps) {
   const { companySettings } = useCompany();
   const { toast } = useToast();
 
@@ -81,16 +87,38 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit }: Sp
     []
   );
 
-  // Initialize observations on open
-  React.useEffect(() => {
-    if (open) {
-      setForm((prev) => ({
-        ...prev,
-        observations: observationItems.map((item) => ({ id: item.id, label: item.label })),
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+// Initialize form on open
+React.useEffect(() => {
+  if (!open) return;
+
+  // Build base observations from template
+  const baseObservations = observationItems.map((item) => ({ id: item.id, label: item.label } as SpotCheckObservation));
+
+  if (initialData) {
+    // Merge initial observations with base list to ensure consistency
+    const mergedObservations = baseObservations.map((base) => {
+      const existing = initialData.observations.find((o) => o.id === base.id);
+      return existing ? { ...base, value: existing.value, comments: existing.comments } : base;
+    });
+
+    setForm({
+      serviceUserName: initialData.serviceUserName || "",
+      careWorker1: initialData.careWorker1 || "",
+      careWorker2: initialData.careWorker2 || "",
+      date: initialData.date || "",
+      timeFrom: initialData.timeFrom || "",
+      timeTo: initialData.timeTo || "",
+      carriedBy: initialData.carriedBy || "",
+      observations: mergedObservations,
+    });
+  } else {
+    setForm((prev) => ({
+      ...prev,
+      observations: baseObservations,
+    }));
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [open, initialData, observationItems]);
 
   const updateField = (key: keyof SpotCheckFormData, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
