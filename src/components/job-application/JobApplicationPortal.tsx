@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +15,8 @@ import { SkillsExperienceStep } from './steps/SkillsExperienceStep';
 import { DeclarationStep } from './steps/DeclarationStep';
 import { TermsPolicyStep } from './steps/TermsPolicyStep';
 import { generateJobApplicationPdf } from '@/lib/job-application-pdf';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ReviewSummary } from './ReviewSummary';
 
 const initialFormData: JobApplicationData = {
   personalInfo: {
@@ -72,8 +74,35 @@ function JobApplicationPortalContent() {
   const [formData, setFormData] = useState<JobApplicationData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const { companySettings } = useCompany();
   const { toast } = useToast();
+
+  const DRAFT_KEY = 'job_application_draft';
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved?.formData) setFormData(saved.formData);
+        if (saved?.currentStep) setCurrentStep(saved.currentStep);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ formData, currentStep }));
+    } catch {}
+  }, [formData, currentStep]);
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+      toast({ title: 'Draft cleared', description: 'Your draft has been removed.' });
+    } catch {}
+  };
 
   const totalSteps = 8;
 
@@ -115,6 +144,23 @@ function JobApplicationPortalContent() {
     } catch (err) {
       console.error('PDF generation failed', err);
       toast({ title: 'PDF Error', description: 'Failed to generate PDF. Please try again.', variant: 'destructive' });
+    }
+  };
+
+  const handleDownloadJson = () => {
+    try {
+      const blob = new Blob([JSON.stringify(formData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'job-application.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('JSON download failed', err);
+      toast({ title: 'Download Error', description: 'Failed to download JSON.', variant: 'destructive' });
     }
   };
 
@@ -258,6 +304,8 @@ function JobApplicationPortalContent() {
                 src={companySettings.logo}
                 alt={companySettings.name}
                 className="h-12 w-12 object-contain"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -265,7 +313,7 @@ function JobApplicationPortalContent() {
               </div>
             )}
             <div className="text-left">
-              <h1 className="text-2xl font-bold">{companySettings.name}</h1>
+              <div className="text-2xl font-bold">{companySettings.name}</div>
               <p className="text-muted-foreground">{companySettings.tagline}</p>
             </div>
           </div>
@@ -282,7 +330,7 @@ function JobApplicationPortalContent() {
           </Button>
           
           <div className="text-center mb-6">
-            <h2 className="text-3xl font-bold mb-2">Job Application</h2>
+            <h1 className="text-3xl font-bold mb-2">Job Application</h1>
             <p className="text-muted-foreground">Step {currentStep} of {totalSteps}: {getStepTitle()}</p>
           </div>
 
@@ -311,9 +359,12 @@ function JobApplicationPortalContent() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Previous
               </Button>
-              
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setIsReviewOpen(true)}>
+                  Preview
+                </Button>
                 {currentStep === totalSteps ? (
-                  <div className="flex gap-2">
+                  <>
                     <Button variant="outline" onClick={handleDownloadPdf}>
                       Download PDF
                     </Button>
@@ -324,17 +375,33 @@ function JobApplicationPortalContent() {
                     >
                       {isSubmitting ? 'Submitting...' : 'Submit Application'}
                     </Button>
-                  </div>
+                  </>
                 ) : (
-                <Button
-                  onClick={nextStep}
-                  disabled={!canProceed()}
-                >
-                  Next
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              )}
+                  <Button
+                    onClick={nextStep}
+                    disabled={!canProceed()}
+                  >
+                    Next
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                )}
+              </div>
             </div>
+
+            <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
+              <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>Review your application</DialogTitle>
+                  <DialogDescription>Check your details before submitting.</DialogDescription>
+                </DialogHeader>
+                <ReviewSummary data={formData} />
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button variant="outline" onClick={handleDownloadJson}>Download JSON</Button>
+                  <Button variant="outline" onClick={handleDownloadPdf}>Download PDF</Button>
+                  <Button onClick={() => setIsReviewOpen(false)}>Close</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>
