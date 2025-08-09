@@ -14,11 +14,13 @@ export function CompanySettings() {
   const { companySettings, updateCompanySettings, loading } = useCompany();
   const [formData, setFormData] = useState(companySettings);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [logoPreviewSrc, setLogoPreviewSrc] = useState<string | undefined>(companySettings.logo);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     setFormData(companySettings);
+    setLogoPreviewSrc(companySettings.logo);
     
     // Apply favicon immediately if logo exists or restore from localStorage
     if (companySettings.logo) {
@@ -110,6 +112,26 @@ export function CompanySettings() {
     });
   };
 
+  // Helpers to handle public URL failures by falling back to a signed URL
+  const parseBucketAndPath = (url: string) => {
+    const marker = '/object/public/';
+    const idx = url?.indexOf(marker) ?? -1;
+    if (idx === -1) return null;
+    const path = url.substring(idx + marker.length);
+    const [bucket, ...rest] = path.split('/');
+    return { bucket, key: rest.join('/') };
+  };
+
+  const fallbackToSigned = async (url?: string) => {
+    if (!url) return undefined;
+    const parsed = parseBucketAndPath(url);
+    if (!parsed) return undefined;
+    const { data, error } = await supabase.storage
+      .from(parsed.bucket)
+      .createSignedUrl(parsed.key, 60 * 60 * 24 * 7);
+    return error ? undefined : data?.signedUrl;
+  };
+
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -185,6 +207,7 @@ export function CompanySettings() {
 
       // Update form data
       setFormData(prev => ({ ...prev, logo: publicUrl }));
+      setLogoPreviewSrc(publicUrl);
 
       // Update favicon
       updateFavicon(publicUrl);
@@ -270,10 +293,14 @@ export function CompanySettings() {
               <div className="relative">
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-transparent">
                   <img
-                    src={formData.logo}
+                    src={logoPreviewSrc || formData.logo}
                     alt="Company Logo"
                     className="w-full h-full object-contain"
                     loading="lazy"
+                    onError={async () => {
+                      const signed = await fallbackToSigned(formData.logo);
+                      setLogoPreviewSrc(signed || '/placeholder.svg');
+                    }}
                   />
                 </div>
                 <Button
