@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, Users, CheckCircle, AlertTriangle, Clock, Shield, Eye, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { ArrowLeft, Calendar, Users, CheckCircle, AlertTriangle, Clock, Shield, Eye, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter, Download } from "lucide-react";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,8 @@ import { CompliancePeriodView } from "./CompliancePeriodView";
 import { AddComplianceRecordModal } from "./AddComplianceRecordModal";
 import { EditComplianceRecordModal } from "./EditComplianceRecordModal";
 import { format } from "date-fns";
+import { generateSpotCheckPdf } from "@/lib/spot-check-pdf";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface ComplianceType {
   id: string;
@@ -77,6 +79,7 @@ interface ComplianceRecord {
   created_at: string;
   updated_at: string;
   completed_by: string | null;
+  completion_method?: string;
 }
 
 interface EmployeeComplianceStatus {
@@ -95,6 +98,7 @@ export function ComplianceTypeContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getAccessibleBranches, isAdmin } = usePermissions();
+  const { companySettings } = useCompany();
   
   const [complianceType, setComplianceType] = useState<ComplianceType | null>(
     location.state?.complianceType || null
@@ -514,6 +518,48 @@ export function ComplianceTypeContent() {
     }
   };
 
+  const handleDownloadSpotCheck = async (employeeId: string, period: string) => {
+    if (!id) return;
+    try {
+      const { data, error } = await supabase
+        .from('spot_check_records')
+        .select('service_user_name, care_worker1, care_worker2, check_date, time_from, time_to, carried_by, observations')
+        .eq('employee_id', employeeId)
+        .eq('compliance_type_id', id)
+        .eq('period_identifier', period)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        toast({
+          title: 'No spot check found',
+          description: 'No spot check form was saved for this period.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const formData = {
+        serviceUserName: (data as any).service_user_name || '',
+        careWorker1: (data as any).care_worker1 || '',
+        careWorker2: (data as any).care_worker2 || '',
+        date: (data as any).check_date || '',
+        timeFrom: (data as any).time_from || '',
+        timeTo: (data as any).time_to || '',
+        carriedBy: (data as any).carried_by || '',
+        observations: ((data as any).observations as any) || [],
+      } as import('./SpotCheckFormDialog').SpotCheckFormData;
+
+      await generateSpotCheckPdf(formData, companySettings);
+    } catch (err) {
+      console.error('Error generating spot check PDF:', err);
+      toast({ title: 'Error', description: 'Could not generate the spot check PDF.', variant: 'destructive' });
+    }
+  };
+
   const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pending') => {
     setFilteredStatus(filteredStatus === status ? null : status);
   };
@@ -904,6 +950,16 @@ export function ComplianceTypeContent() {
                               
                               {item.record && (
                                 <>
+                                  {item.record.completion_method === 'spotcheck' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="hover-scale"
+                                      onClick={() => handleDownloadSpotCheck(item.employee.id, item.record!.period_identifier)}
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </Button>
+                                  )}
                                   {/* View Dialog */}
                                   <Dialog>
                                     <DialogTrigger asChild>
