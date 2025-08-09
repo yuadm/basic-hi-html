@@ -83,14 +83,17 @@ serve(async (req) => {
 
     // Ensure Supabase Auth user exists and set the same password
     let authUserId: string | null = null;
-    const { data: userByEmail, error: getUserError } = await supabase.auth.admin.getUserByEmail(employeeRec.email);
-    if (getUserError) {
-      console.error('Auth admin getUserByEmail error:', getUserError);
-    }
 
-    if (userByEmail?.user) {
-      authUserId = userByEmail.user.id;
-      const { error: updateAuthError } = await supabase.auth.admin.updateUserById(userByEmail.user.id, {
+    // listUsers API exists in supabase-js v2; get first page and match by email
+    const { data: list, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (listErr) {
+      console.error('Auth admin listUsers error:', listErr);
+    }
+    const existing = list?.users?.find((u) => u.email?.toLowerCase() === employeeRec.email.toLowerCase());
+
+    if (existing) {
+      authUserId = existing.id;
+      const { error: updateAuthError } = await supabase.auth.admin.updateUserById(existing.id, {
         password: '123456',
         user_metadata: {
           role: 'employee',
@@ -126,7 +129,7 @@ serve(async (req) => {
         .update({ user_id: authUserId })
         .eq('id', employeeId);
       if (linkError) {
-        console.warn('Failed to link employee to auth user:', linkError.message);
+        console.warn('Failed to link employee to auth user:', linkError?.message);
       }
     }
 
@@ -143,11 +146,11 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in admin-reset-employee-password function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An unexpected error occurred' 
+        error: error?.message || 'An unexpected error occurred' 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
