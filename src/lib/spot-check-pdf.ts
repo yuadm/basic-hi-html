@@ -87,8 +87,8 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
 
   data.observations.forEach((obs) => {
     drawTableCell(obs.label, tableX, colItem)
-    drawTableCell(obs.value === 'yes' ? '✔' : '', tableX + colItem, colYes)
-    drawTableCell(obs.value === 'no' ? '✘' : '', tableX + colItem + colYes, colNo)
+    drawTableCell(obs.value === 'yes' ? 'X' : '', tableX + colItem, colYes)
+    drawTableCell(obs.value === 'no' ? 'X' : '', tableX + colItem + colYes, colNo)
     drawTableCell(obs.comments || '', tableX + colItem + colYes + colNo, colComments)
     y -= 18
     drawRowDivider()
