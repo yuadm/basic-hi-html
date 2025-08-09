@@ -42,12 +42,13 @@ import {
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCompany } from "@/contexts/CompanyContext";
 import { CompliancePeriodView } from "./CompliancePeriodView";
 import { AddComplianceRecordModal } from "./AddComplianceRecordModal";
 import { EditComplianceRecordModal } from "./EditComplianceRecordModal";
 import { format } from "date-fns";
 import { generateSpotCheckPdf } from "@/lib/spot-check-pdf";
-import { useCompany } from "@/contexts/CompanyContext";
+import SpotCheckFormDialog, { SpotCheckFormData } from "./SpotCheckFormDialog";
 
 interface ComplianceType {
   id: string;

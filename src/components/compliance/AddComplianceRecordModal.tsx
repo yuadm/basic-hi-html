@@ -498,9 +498,11 @@ export function AddComplianceRecordModal({
           </div>
         </form>
       </DialogContent>
-      <SpotCheckFormDialog
+<SpotCheckFormDialog
         open={spotcheckOpen}
         onOpenChange={setSpotcheckOpen}
+        periodIdentifier={selectedPeriod}
+        frequency={frequency}
         onSubmit={(data) => {
           setSpotcheckData(data);
           setSpotcheckOpen(false);

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { Check, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -217,17 +218,44 @@ React.useEffect(() => {
               <Label>Care Worker(s) attending</Label>
               <Input value={form.careWorker2} onChange={(e) => updateField("careWorker2", e.target.value)} placeholder="Name 2 (optional)" />
             </div>
-            <div className="space-y-1">
-              <Label>Date of spot check</Label>
-              <Input
-                type="date"
-                value={form.date}
-                onChange={(e) => updateField("date", e.target.value)}
-                aria-invalid={!!errors.date}
-                className={errors.date ? "border-destructive focus-visible:ring-destructive" : ""}
-              />
-              {errors.date && <p className="text-destructive text-xs mt-1">{errors.date}</p>}
-            </div>
+<div className="space-y-1">
+  <Label>Date of spot check</Label>
+  <Popover>
+    <PopoverTrigger asChild>
+      <Button
+        variant="outline"
+        className="w-full justify-start text-left font-normal"
+        aria-invalid={!!errors.date}
+      >
+        {form.date ? format(new Date(form.date), "PPP") : "Pick a date"}
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="w-auto p-0" align="start">
+      <Calendar
+        mode="single"
+        selected={form.date ? new Date(form.date) : undefined}
+        onSelect={(date) => date && updateField("date", format(date, "yyyy-MM-dd"))}
+        disabled={(date) => {
+          if (frequency?.toLowerCase() === 'quarterly' && periodIdentifier?.includes('-Q')) {
+            const [y, qStr] = periodIdentifier.split('-Q');
+            const year = parseInt(y);
+            const q = parseInt(qStr);
+            if (!isNaN(year) && !isNaN(q)) {
+              const startMonth = (q - 1) * 3;
+              const minDate = new Date(year, startMonth, 1);
+              const maxDate = new Date(year, startMonth + 3, 0);
+              return date < minDate || date > maxDate;
+            }
+          }
+          return false;
+        }}
+        initialFocus
+        className="p-3 pointer-events-auto"
+      />
+    </PopoverContent>
+  </Popover>
+  {errors.date && <p className="text-destructive text-xs mt-1">{errors.date}</p>}
+</div>
             <div className="space-y-1">
               <Label>Time of spot check (From)</Label>
               <Input
@@ -279,33 +307,36 @@ React.useEffect(() => {
                   <React.Fragment key={item.id}>
                     <div className="col-span-6 py-2">{item.label}</div>
                     <div className="col-span-2 py-2">
-                      <input
-                        type="radio"
-                        name={`obs-${item.id}`}
-                        checked={current?.value === "yes"}
-                        onChange={() => updateObservation(item.id, { value: "yes", comments: current?.comments })}
-                        aria-label={`${item.label} - Yes`}
-                      />
+<Button
+  variant={current?.value === "yes" ? "default" : "outline"}
+  size="sm"
+  className="w-full justify-center"
+  onClick={() => updateObservation(item.id, { value: "yes", comments: current?.comments })}
+  aria-label={`${item.label} - Yes`}
+>
+  <Check className="h-4 w-4" />
+</Button>
                     </div>
                     <div className="col-span-2 py-2">
-                      <input
-                        type="radio"
-                        name={`obs-${item.id}`}
-                        checked={current?.value === "no"}
-                        onChange={() => updateObservation(item.id, { value: "no" })}
-                        aria-label={`${item.label} - No`}
-                      />
+<Button
+  variant={current?.value === "no" ? "destructive" : "outline"}
+  size="sm"
+  className="w-full justify-center"
+  onClick={() => updateObservation(item.id, { value: "no" })}
+  aria-label={`${item.label} - No`}
+>
+  <X className="h-4 w-4" />
+</Button>
                     </div>
                     <div className="col-span-2 py-1">
-                      <Input
-                        disabled={current?.value !== "no"}
-                        placeholder={current?.value === "no" ? "Required for 'No'" : "Optional"}
-                        value={current?.comments || ""}
-                        onChange={(e) => updateObservation(item.id, { comments: e.target.value })}
-                        aria-invalid={!!err}
-                        className={err ? "border-destructive focus-visible:ring-destructive" : ""}
-                      />
-                      {err && <p className="text-destructive text-xs mt-1">{err}</p>}
+<Input
+  placeholder={current?.value === "no" ? "Required for 'No'" : "Optional"}
+  value={current?.comments || ""}
+  onChange={(e) => updateObservation(item.id, { comments: e.target.value })}
+  aria-invalid={!!err}
+  className={err ? "border-destructive focus-visible:ring-destructive" : ""}
+/>
+{err && <p className="text-destructive text-xs mt-1">{err}</p>}
                     </div>
                   </React.Fragment>
                 );
@@ -320,37 +351,34 @@ React.useEffect(() => {
                 return (
                   <div key={item.id} className="rounded-lg border p-3 space-y-2">
                     <div className="font-medium text-sm">{item.label}</div>
-                    <div className="flex items-center gap-6">
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="radio"
-                          name={`obs-mobile-${item.id}`}
-                          checked={current?.value === "yes"}
-                          onChange={() => updateObservation(item.id, { value: "yes", comments: current?.comments })}
-                          aria-label={`${item.label} - Yes`}
-                        />
-                        <span>Yes</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="radio"
-                          name={`obs-mobile-${item.id}`}
-                          checked={current?.value === "no"}
-                          onChange={() => updateObservation(item.id, { value: "no" })}
-                          aria-label={`${item.label} - No`}
-                        />
-                        <span>No</span>
-                      </label>
-                    </div>
-                    <Input
-                      disabled={current?.value !== "no"}
-                      placeholder={current?.value === "no" ? "Required for 'No'" : "Optional"}
-                      value={current?.comments || ""}
-                      onChange={(e) => updateObservation(item.id, { comments: e.target.value })}
-                      aria-invalid={!!err}
-                      className={err ? "border-destructive focus-visible:ring-destructive" : ""}
-                    />
-                    {err && <p className="text-destructive text-xs mt-1">{err}</p>}
+<div className="flex items-center gap-3">
+  <Button
+    variant={current?.value === "yes" ? "default" : "outline"}
+    size="sm"
+    className="flex-1 justify-center"
+    onClick={() => updateObservation(item.id, { value: "yes", comments: current?.comments })}
+    aria-label={`${item.label} - Yes`}
+  >
+    <Check className="h-4 w-4" />
+  </Button>
+  <Button
+    variant={current?.value === "no" ? "destructive" : "outline"}
+    size="sm"
+    className="flex-1 justify-center"
+    onClick={() => updateObservation(item.id, { value: "no" })}
+    aria-label={`${item.label} - No`}
+  >
+    <X className="h-4 w-4" />
+  </Button>
+</div>
+<Input
+  placeholder={current?.value === "no" ? "Required for 'No'" : "Optional"}
+  value={current?.comments || ""}
+  onChange={(e) => updateObservation(item.id, { comments: e.target.value })}
+  aria-invalid={!!err}
+  className={err ? "border-destructive focus-visible:ring-destructive" : ""}
+/>
+{err && <p className="text-destructive text-xs mt-1">{err}</p>}
                   </div>
                 );
               })}
