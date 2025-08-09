@@ -115,6 +115,12 @@ export function ComplianceTypeContent() {
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [completedByUsers, setCompletedByUsers] = useState<{ [key: string]: { name: string; created_at: string } }>({});
 
+  // Spot check edit state
+  const [spotcheckEditOpen, setSpotcheckEditOpen] = useState(false);
+  const [spotcheckInitialData, setSpotcheckInitialData] = useState<SpotCheckFormData | null>(null);
+  const [spotcheckRowId, setSpotcheckRowId] = useState<string | null>(null);
+  const [spotcheckTarget, setSpotcheckTarget] = useState<{ employeeId: string; period: string } | null>(null);
+
   // Get unique branches for filter - filtered by user access
   const uniqueBranches = useMemo(() => {
     const accessibleBranches = getAccessibleBranches();
@@ -561,9 +567,109 @@ export function ComplianceTypeContent() {
     }
   };
 
-  const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pending') => {
-    setFilteredStatus(filteredStatus === status ? null : status);
-  };
+const handleOpenSpotcheckEdit = async (employeeId: string, period: string) => {
+  if (!id) return;
+  try {
+    const { data, error } = await supabase
+      .from('spot_check_records')
+      .select('id, service_user_name, care_worker1, care_worker2, check_date, time_from, time_to, carried_by, observations')
+      .eq('employee_id', employeeId)
+      .eq('compliance_type_id', id)
+      .eq('period_identifier', period)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    const initial: SpotCheckFormData = {
+      serviceUserName: (data as any)?.service_user_name || '',
+      careWorker1: (data as any)?.care_worker1 || '',
+      careWorker2: (data as any)?.care_worker2 || '',
+      date: (data as any)?.check_date || '',
+      timeFrom: (data as any)?.time_from || '',
+      timeTo: (data as any)?.time_to || '',
+      carriedBy: (data as any)?.carried_by || '',
+      observations: (((data as any)?.observations) as any) || [],
+    };
+
+    setSpotcheckInitialData(initial);
+    setSpotcheckRowId((data as any)?.id || null);
+    setSpotcheckTarget({ employeeId, period });
+    setSpotcheckEditOpen(true);
+  } catch (err) {
+    console.error('Error loading spot check form:', err);
+    toast({ title: 'Error', description: 'Could not load spot check form.', variant: 'destructive' });
+  }
+};
+
+const handleSaveSpotcheckEdit = async (formData: SpotCheckFormData) => {
+  if (!id || !spotcheckTarget) return;
+  try {
+    const observationsPayload: any = formData.observations ? JSON.parse(JSON.stringify(formData.observations)) : null;
+
+    if (spotcheckRowId) {
+      const { error: updateErr } = await supabase
+        .from('spot_check_records')
+        .update({
+          service_user_name: formData.serviceUserName,
+          care_worker1: formData.careWorker1,
+          care_worker2: formData.careWorker2 || null,
+          check_date: formData.date,
+          time_from: formData.timeFrom,
+          time_to: formData.timeTo,
+          carried_by: formData.carriedBy,
+          observations: observationsPayload,
+        })
+        .eq('id', spotcheckRowId);
+      if (updateErr) throw updateErr;
+    } else {
+      const { error: insertErr } = await supabase
+        .from('spot_check_records')
+        .insert({
+          service_user_name: formData.serviceUserName,
+          care_worker1: formData.careWorker1,
+          care_worker2: formData.careWorker2 || null,
+          check_date: formData.date,
+          time_from: formData.timeFrom,
+          time_to: formData.timeTo,
+          carried_by: formData.carriedBy,
+          observations: observationsPayload,
+          employee_id: spotcheckTarget.employeeId,
+          compliance_type_id: id,
+          period_identifier: spotcheckTarget.period,
+        });
+      if (insertErr) throw insertErr;
+    }
+
+    const { error: recErr } = await supabase
+      .from('compliance_period_records')
+      .update({
+        completion_date: formData.date,
+        completion_method: 'spotcheck',
+        updated_at: new Date().toISOString(),
+        status: 'completed',
+      })
+      .eq('employee_id', spotcheckTarget.employeeId)
+      .eq('compliance_type_id', id)
+      .eq('period_identifier', spotcheckTarget.period);
+    if (recErr) throw recErr;
+
+    toast({ title: 'Spot check updated', description: 'The spot check form has been saved.' });
+    setSpotcheckEditOpen(false);
+    setSpotcheckRowId(null);
+    setSpotcheckInitialData(null);
+    setSpotcheckTarget(null);
+    fetchData();
+  } catch (err) {
+    console.error('Error saving spot check form:', err);
+    toast({ title: 'Error', description: 'Could not save the spot check form.', variant: 'destructive' });
+  }
+};
+
+const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pending') => {
+  setFilteredStatus(filteredStatus === status ? null : status);
+};
 
   const getFilteredEmployeeList = () => {
     return filteredAndSortedEmployees;
