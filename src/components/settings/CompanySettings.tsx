@@ -47,20 +47,19 @@ export function CompanySettings() {
       
       img.onload = () => {
         // Calculate new dimensions
-        let { width, height } = img;
+        let { width, height } = img as HTMLImageElement;
         const aspectRatio = width / height;
         
-        // Start with reasonable max dimensions
-        const maxWidth = 1920;
-        const maxHeight = 1920;
+        // Max dimensions
+        const maxDim = 1920;
         
-        if (width > maxWidth || height > maxHeight) {
+        if (width > maxDim || height > maxDim) {
           if (width > height) {
-            width = maxWidth;
-            height = maxWidth / aspectRatio;
+            height = Math.round(maxDim / aspectRatio);
+            width = maxDim;
           } else {
-            height = maxHeight;
-            width = maxHeight * aspectRatio;
+            width = Math.round(maxDim * aspectRatio);
+            height = maxDim;
           }
         }
         
@@ -72,34 +71,37 @@ export function CompanySettings() {
           return;
         }
         
+        // Clear to preserve transparency
+        ctx.clearRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Function to resize with quality adjustment
-        const tryQuality = (quality: number): void => {
+        const originalType = (file.type || '').toLowerCase();
+        const isJpeg = originalType.includes('jpeg') || originalType.includes('jpg');
+        // Keep alpha for non-JPEG formats
+        const outputType = isJpeg ? 'image/jpeg' : 'image/png';
+        const baseName = file.name.replace(/\.[^/.]+$/, '');
+        const ext = isJpeg ? 'jpg' : 'png';
+        
+        const tryQuality = (quality: number) => {
           canvas.toBlob((blob) => {
             if (!blob) {
               reject(new Error('Failed to create blob'));
               return;
             }
-            
-            // Check file size (convert to KB)
             const sizeKB = blob.size / 1024;
-            
-            if (sizeKB <= maxSizeKB || quality <= 0.1) {
-              // Create a new File from the blob
-              const resizedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now(),
-              });
-              resolve(resizedFile);
-            } else {
-              // Try with lower quality
-              tryQuality(quality - 0.1);
+            if (isJpeg && sizeKB > maxSizeKB && quality > 0.1) {
+              tryQuality(Math.max(0.1, quality - 0.1));
+              return;
             }
-          }, 'image/jpeg', quality);
+            const resizedFile = new File([blob], `${baseName}.${ext}`, {
+              type: outputType,
+              lastModified: Date.now(),
+            });
+            resolve(resizedFile);
+          }, outputType, isJpeg ? quality : undefined);
         };
         
-        // Start with high quality and reduce if needed
+        // Start with high quality for JPEG; PNG ignores quality but preserves alpha
         tryQuality(0.9);
       };
       
@@ -209,10 +211,20 @@ export function CompanySettings() {
     const existingLinks = document.querySelectorAll('link[rel*="icon"]');
     existingLinks.forEach(link => link.remove());
 
+    // Infer MIME type from URL
+    const mimeFromExt = (url: string) => {
+      const clean = url.split('?')[0].toLowerCase();
+      if (clean.endsWith('.svg')) return 'image/svg+xml';
+      if (clean.endsWith('.png')) return 'image/png';
+      if (clean.endsWith('.webp')) return 'image/webp';
+      if (clean.endsWith('.jpg') || clean.endsWith('.jpeg')) return 'image/jpeg';
+      return 'image/png';
+    };
+
     // Add new favicon
     const link = document.createElement('link');
     link.rel = 'icon';
-    link.type = 'image/png';
+    link.type = mimeFromExt(logoUrl);
     link.href = logoUrl;
     document.head.appendChild(link);
     
@@ -256,11 +268,14 @@ export function CompanySettings() {
           <div className="flex items-center gap-4">
             {formData.logo ? (
               <div className="relative">
-                <img
-                  src={formData.logo}
-                  alt="Company Logo"
-                  className="w-16 h-16 object-contain rounded-lg bg-card p-2"
-                />
+                <div className="w-16 h-16 rounded-full overflow-hidden bg-transparent">
+                  <img
+                    src={formData.logo}
+                    alt="Company Logo"
+                    className="w-full h-full object-contain"
+                    loading="lazy"
+                  />
+                </div>
                 <Button
                   variant="destructive"
                   size="sm"
@@ -271,7 +286,7 @@ export function CompanySettings() {
                 </Button>
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-lg border-2 border-dashed border-border bg-muted/50 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full border-2 border-dashed border-border bg-transparent flex items-center justify-center">
                 <Building2 className="w-8 h-8 text-muted-foreground" />
               </div>
             )}
