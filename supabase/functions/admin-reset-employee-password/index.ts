@@ -45,6 +45,17 @@ serve(async (req) => {
       throw new Error('Admin access required');
     }
 
+    // Fetch employee to get email and name
+    const { data: employeeRec, error: empFetchError } = await supabase
+      .from('employees')
+      .select('id, email, name')
+      .eq('id', employeeId)
+      .single();
+
+    if (empFetchError || !employeeRec?.email) {
+      throw new Error('Employee not found or missing email');
+    }
+
     // Hash the default password "123456"
     const { data: hashedPassword, error: hashError } = await supabase
       .rpc('hash_password', { password: '123456' });
@@ -68,6 +79,55 @@ serve(async (req) => {
     if (updateError) {
       console.error('Employee update error:', updateError);
       throw new Error('Failed to reset employee password');
+    }
+
+    // Ensure Supabase Auth user exists and set the same password
+    let authUserId: string | null = null;
+    const { data: userByEmail, error: getUserError } = await supabase.auth.admin.getUserByEmail(employeeRec.email);
+    if (getUserError) {
+      console.error('Auth admin getUserByEmail error:', getUserError);
+    }
+
+    if (userByEmail?.user) {
+      authUserId = userByEmail.user.id;
+      const { error: updateAuthError } = await supabase.auth.admin.updateUserById(userByEmail.user.id, {
+        password: '123456',
+        user_metadata: {
+          role: 'employee',
+          employee_id: employeeId,
+          name: employeeRec.name,
+        },
+      });
+      if (updateAuthError) {
+        console.error('Auth admin update password error:', updateAuthError);
+      }
+    } else {
+      const { data: created, error: createUserError } = await supabase.auth.admin.createUser({
+        email: employeeRec.email,
+        password: '123456',
+        email_confirm: true,
+        user_metadata: {
+          role: 'employee',
+          employee_id: employeeId,
+          name: employeeRec.name,
+        },
+      });
+      if (createUserError) {
+        console.error('Auth admin createUser error:', createUserError);
+      } else {
+        authUserId = created.user?.id ?? null;
+      }
+    }
+
+    // Link employee record to auth user if available
+    if (authUserId) {
+      const { error: linkError } = await supabase
+        .from('employees')
+        .update({ user_id: authUserId })
+        .eq('id', employeeId);
+      if (linkError) {
+        console.warn('Failed to link employee to auth user:', linkError.message);
+      }
     }
 
     console.log(`Password reset for employee ${employeeId} by admin ${user.id}`);
