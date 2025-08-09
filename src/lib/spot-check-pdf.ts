@@ -1,4 +1,6 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { PDFDocument, rgb } from 'pdf-lib'
+import DejaVuSansRegularUrl from '@/assets/fonts/dejavu/DejaVuSans.ttf'
+import DejaVuSansBoldUrl from '@/assets/fonts/dejavu/DejaVuSans-Bold.ttf'
 import { format } from 'date-fns'
 import type { SpotCheckFormData } from '@/components/compliance/SpotCheckFormDialog'
 
@@ -10,8 +12,10 @@ interface CompanyInfo {
 export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: CompanyInfo) {
   const doc = await PDFDocument.create()
   const page = doc.addPage()
-  const font = await doc.embedFont(StandardFonts.Helvetica)
-  const boldFont = await doc.embedFont(StandardFonts.HelveticaBold)
+  const regularBytes = await fetch(DejaVuSansRegularUrl).then(r => r.arrayBuffer())
+  const boldBytes = await fetch(DejaVuSansBoldUrl).then(r => r.arrayBuffer())
+  const font = await doc.embedFont(new Uint8Array(regularBytes), { subset: true })
+  const boldFont = await doc.embedFont(new Uint8Array(boldBytes), { subset: true })
 
   const margin = 40
   const lineHeight = 16
@@ -70,27 +74,38 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
   const colNo = 60
   const colComments = page.getWidth() - margin - (tableX + colItem + colYes + colNo)
 
-  const drawTableCell = (text: string, x: number, width: number, bold = false) => {
-    page.drawText(text ?? '', { x, y: y - 14, size: 11, font: bold ? boldFont : font, color: rgb(0,0,0) })
+  const rowHeight = 24
+  const drawTableCell = (text: string, x: number, width: number, opts?: { bold?: boolean; align?: 'left' | 'center' }) => {
+    const f = opts?.bold ? boldFont : font
+    const size = 11
+    const content = text ?? ''
+    const textWidth = f.widthOfTextAtSize(content, size)
+    const tx = opts?.align === 'center' ? x + (width - textWidth) / 2 : x + 6
+    page.drawText(content, { x: tx, y: y - rowHeight + 7, size, font: f, color: rgb(0,0,0) })
   }
   const drawRowDivider = () => {
-    page.drawRectangle({ x: tableX, y: y - 18, width: page.getWidth() - margin * 2, height: 1, color: rgb(0.92,0.92,0.92) })
+    page.drawRectangle({ x: tableX, y: y - rowHeight + 5, width: page.getWidth() - margin * 2, height: 1, color: rgb(0.92,0.92,0.92) })
   }
 
   // Header row
-  drawTableCell('Item', tableX, colItem, true)
-  drawTableCell('Yes', tableX + colItem, colYes, true)
-  drawTableCell('No', tableX + colItem + colYes, colNo, true)
-  drawTableCell('Comments', tableX + colItem + colYes + colNo, colComments, true)
-  y -= 20
+  page.drawRectangle({ x: tableX, y: y - rowHeight + 5, width: page.getWidth() - margin * 2, height: rowHeight, color: rgb(0.95,0.96,1) })
+  drawTableCell('Item', tableX, colItem, { bold: true })
+  drawTableCell('Yes', tableX + colItem, colYes, { bold: true, align: 'center' })
+  drawTableCell('No', tableX + colItem + colYes, colNo, { bold: true, align: 'center' })
+  drawTableCell('Observation/comments (required for all no responses)', tableX + colItem + colYes + colNo, colComments, { bold: true })
+  y -= rowHeight
   drawRowDivider()
 
-  data.observations.forEach((obs) => {
+  data.observations.forEach((obs, i) => {
+    // Alternate row background for readability
+    if (i % 2 === 0) {
+      page.drawRectangle({ x: tableX, y: y - rowHeight + 5, width: page.getWidth() - margin * 2, height: rowHeight, color: rgb(0.98,0.98,0.99) })
+    }
     drawTableCell(obs.label, tableX, colItem)
-    drawTableCell(obs.value === 'yes' ? 'X' : '', tableX + colItem, colYes)
-    drawTableCell(obs.value === 'no' ? 'X' : '', tableX + colItem + colYes, colNo)
+    drawTableCell(obs.value === 'yes' ? '✔' : '', tableX + colItem, colYes, { align: 'center' })
+    drawTableCell(obs.value === 'no' ? '✔' : '', tableX + colItem + colYes, colNo, { align: 'center' })
     drawTableCell(obs.comments || '', tableX + colItem + colYes + colNo, colComments)
-    y -= 18
+    y -= rowHeight
     drawRowDivider()
   })
 
