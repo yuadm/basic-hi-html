@@ -320,14 +320,21 @@ function JobApplicationPortalContent() {
         </div>
 
         <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => window.history.back()}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Homepage
-          </Button>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => window.history.back()}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Homepage
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={clearDraft}
+            >
+              Clear Draft
+            </Button>
+          </div>
           
           <div className="text-center mb-6">
             <h1 className="text-3xl font-bold mb-2">Job Application</h1>
