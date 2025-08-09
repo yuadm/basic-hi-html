@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Calendar, Save } from "lucide-react";
+import { Calendar, Save, RotateCcw, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,14 @@ interface LeaveSettingsData {
   max_carry_over_days: number;
 }
 
+interface FiscalSettings {
+  default_leave_days: number;
+  fiscal_year_start_month: number;
+  fiscal_year_start_day: number;
+  enable_auto_reset: boolean;
+  last_auto_reset_at?: string | null;
+}
+
 export function LeaveSettings() {
   const [settings, setSettings] = useState<LeaveSettingsData>({
     default_leave_days: 28,
@@ -28,8 +36,20 @@ export function LeaveSettings() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const [fySettings, setFySettings] = useState<FiscalSettings>({
+    default_leave_days: 28,
+    fiscal_year_start_month: 4,
+    fiscal_year_start_day: 1,
+    enable_auto_reset: true,
+    last_auto_reset_at: null,
+  });
+  const [fySaving, setFySaving] = useState(false);
+  const [runningReset, setRunningReset] = useState(false);
+  const [runningCheck, setRunningCheck] = useState(false);
+
   useEffect(() => {
     fetchSettings();
+    fetchFiscalSettings();
   }, []);
 
   const fetchSettings = async () => {
@@ -51,6 +71,112 @@ export function LeaveSettings() {
       console.error('Error fetching leave settings:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFiscalSettings = async () => {
+    try {
+      const { data, error } = await (supabase as any).rpc('get_leave_settings');
+      if (error) {
+        console.error('Error fetching fiscal settings:', error);
+        return;
+      }
+      if (data) {
+        const d: any = data as any;
+        setFySettings({
+          default_leave_days: Number(d.default_leave_days) || 28,
+          fiscal_year_start_month: Number(d.fiscal_year_start_month) || 4,
+          fiscal_year_start_day: Number(d.fiscal_year_start_day) || 1,
+          enable_auto_reset: d.enable_auto_reset ?? true,
+          last_auto_reset_at: d.last_auto_reset_at ?? null,
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching fiscal settings:', err);
+    }
+  };
+
+  const saveFiscalSettings = async () => {
+    try {
+      setFySaving(true);
+      const { data: existing, error: selError } = await supabase
+        .from('system_settings')
+        .select('id, setting_value')
+        .eq('setting_key', 'leave_settings')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (selError) {
+        throw selError;
+      }
+      const existingValue = (existing as any)?.setting_value || {};
+      const settingValue = {
+        ...existingValue,
+        default_leave_days: fySettings.default_leave_days,
+        fiscal_year_start_month: fySettings.fiscal_year_start_month,
+        fiscal_year_start_day: fySettings.fiscal_year_start_day,
+        enable_auto_reset: fySettings.enable_auto_reset,
+        last_auto_reset_at: existingValue.last_auto_reset_at ?? fySettings.last_auto_reset_at ?? null,
+      } as any;
+      if ((existing as any)?.id) {
+        const { error: updError } = await supabase
+          .from('system_settings')
+          .update({ setting_value: settingValue, updated_at: new Date().toISOString() })
+          .eq('id', (existing as any).id);
+        if (updError) throw updError;
+      } else {
+        const { error: insError } = await supabase
+          .from('system_settings')
+          .insert([{
+            setting_key: 'leave_settings',
+            setting_value: settingValue,
+            description: 'Leave management settings',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }]);
+        if (insError) throw insError;
+      }
+      toast({ title: 'Saved', description: 'Fiscal year & auto-reset settings saved.' });
+      await fetchFiscalSettings();
+    } catch (error) {
+      console.error('Error saving fiscal settings:', error);
+      toast({ title: 'Error', description: 'Failed to save fiscal settings', variant: 'destructive' });
+    } finally {
+      setFySaving(false);
+    }
+  };
+
+  const handleManualReset = async () => {
+    try {
+      setRunningReset(true);
+      const { data, error } = await (supabase as any).rpc('reset_all_leave_balances');
+      if (error) throw error;
+      const count = data as number;
+      toast({ title: 'Balances reset', description: `${count} employee balances updated.` });
+    } catch (error) {
+      console.error('Manual reset failed:', error);
+      toast({ title: 'Error', description: 'Manual reset failed', variant: 'destructive' });
+    } finally {
+      setRunningReset(false);
+    }
+  };
+
+  const handleRunAnnualCheck = async () => {
+    try {
+      setRunningCheck(true);
+      const { data, error } = await (supabase as any).rpc('run_leave_annual_reset_if_needed');
+      if (error) throw error;
+      const result = data as string;
+      toast({
+        title: 'Annual reset',
+        description: result === 'reset_performed' ? 'Annual reset performed.' : 'No reset needed today.',
+      });
+      await fetchFiscalSettings();
+    } catch (error) {
+      console.error('Annual reset check failed:', error);
+      toast({ title: 'Error', description: 'Annual reset check failed', variant: 'destructive' });
+    } finally {
+      setRunningCheck(false);
     }
   };
 
@@ -235,6 +361,88 @@ export function LeaveSettings() {
               <Save className="w-4 h-4 mr-2" />
               Save Leave Settings
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="card-premium animate-fade-in">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <Calendar className="w-6 h-6 text-primary" />
+            Fiscal Year & Auto Reset
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="fy-start-month">Fiscal Year Start Month</Label>
+              <Input
+                id="fy-start-month"
+                type="number"
+                min={1}
+                max={12}
+                value={fySettings.fiscal_year_start_month}
+                onChange={(e) => setFySettings((prev) => ({ ...prev, fiscal_year_start_month: parseInt(e.target.value || '0') || 1 }))}
+              />
+              <p className="text-sm text-muted-foreground">1 = January, 4 = April, etc.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fy-start-day">Fiscal Year Start Day</Label>
+              <Input
+                id="fy-start-day"
+                type="number"
+                min={1}
+                max={31}
+                value={fySettings.fiscal_year_start_day}
+                onChange={(e) => setFySettings((prev) => ({ ...prev, fiscal_year_start_day: parseInt(e.target.value || '0') || 1 }))}
+              />
+              <p className="text-sm text-muted-foreground">Day of month the new leave year starts</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fy-default-days">Default Leave Days (for resets)</Label>
+              <Input
+                id="fy-default-days"
+                type="number"
+                min={0}
+                value={fySettings.default_leave_days}
+                onChange={(e) => setFySettings((prev) => ({ ...prev, default_leave_days: parseInt(e.target.value || '0') || 0 }))}
+              />
+              <p className="text-sm text-muted-foreground">Used when resetting all balances</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable Automatic Annual Reset</Label>
+              <p className="text-sm text-muted-foreground">Automatically reset balances on fiscal year start</p>
+            </div>
+            <Switch
+              checked={fySettings.enable_auto_reset}
+              onCheckedChange={(checked) => setFySettings((prev) => ({ ...prev, enable_auto_reset: checked }))}
+            />
+          </div>
+
+          {fySettings.last_auto_reset_at && (
+            <p className="text-sm text-muted-foreground">Last auto reset: {new Date(fySettings.last_auto_reset_at).toLocaleString()}</p>
+          )}
+
+          <div className="flex flex-wrap gap-3 justify-between">
+            <Button onClick={saveFiscalSettings} disabled={fySaving} className="bg-gradient-primary hover:opacity-90">
+              <Save className="w-4 h-4 mr-2" />
+              {fySaving ? 'Saving...' : 'Save Fiscal Settings'}
+            </Button>
+            <div className="flex gap-3">
+              <Button onClick={handleManualReset} disabled={runningReset} variant="outline">
+                <RotateCcw className="w-4 h-4 mr-2" />
+                {runningReset ? 'Resetting…' : 'Reset All Leave Balances Now'}
+              </Button>
+              <Button onClick={handleRunAnnualCheck} disabled={runningCheck} variant="outline">
+                <RefreshCcw className="w-4 h-4 mr-2" />
+                {runningCheck ? 'Checking…' : 'Run Annual Reset Check Now'}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
