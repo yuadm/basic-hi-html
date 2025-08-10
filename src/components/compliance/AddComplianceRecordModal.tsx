@@ -503,6 +503,12 @@ export function AddComplianceRecordModal({
         onOpenChange={setSpotcheckOpen}
         periodIdentifier={selectedPeriod}
         frequency={frequency}
+        complianceTypeId={complianceTypeId}
+        branchId={(() => {
+          const emp = employees.find(e => e.id === selectedEmployeeId);
+          const b = branches.find(br => br.name === (emp?.branch || ''));
+          return b?.id || null;
+        })()}
         onSubmit={(data) => {
           setSpotcheckData(data);
           setSpotcheckOpen(false);
