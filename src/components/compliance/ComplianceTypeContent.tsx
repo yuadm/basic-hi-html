@@ -1221,6 +1221,8 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
         initialData={spotcheckInitialData || undefined}
         periodIdentifier={spotcheckTarget?.period}
         frequency={complianceType?.frequency}
+        complianceTypeId={complianceType?.id}
+        branchId={employees.find(e => e.id === (spotcheckTarget?.employeeId || ''))?.branch_id || null}
         onSubmit={handleSaveSpotcheckEdit}
       />
     </div>
