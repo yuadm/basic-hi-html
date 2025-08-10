@@ -12,7 +12,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, Eye, FileText, Edit, Trash2, Send, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateJobApplicationPdf } from "@/lib/job-application-pdf";
-
+import { ReviewSummary } from "@/components/job-application/ReviewSummary";
+import { DatePickerWithRange } from "@/components/ui/date-picker";
+import { DateRange } from "react-day-picker";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 // Helper function to format dates from YYYY-MM-DD to MM/DD/YYYY
 const formatDateDisplay = (dateString: string | null | undefined): string => {
   if (!dateString) return 'Not provided';
@@ -58,21 +61,76 @@ export function JobApplicationsContent() {
   const [sortField, setSortField] = useState<JobApplicationSortField>('created_at');
   const [sortDirection, setSortDirection] = useState<JobApplicationSortDirection>('desc');
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [statusOptions, setStatusOptions] = useState<string[]>(['new','reviewing','interviewed','accepted','rejected']);
   const { toast } = useToast();
+  useEffect(() => {
+    fetchStatusOptions();
+  }, []);
 
   useEffect(() => {
+    setLoading(true);
     fetchApplications();
-  }, []);
+  }, [searchTerm, statusFilter, sortField, sortDirection, dateRange, page, pageSize]);
+
+  const fetchStatusOptions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('application_status_settings')
+        .select('status_name, display_order, is_active')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+      if (!error && data) {
+        const opts = data.map((d: any) => d.status_name).filter(Boolean);
+        if (opts.length) setStatusOptions(opts);
+      }
+    } catch (e) {
+      // ignore, use defaults
+    }
+  };
 
   const fetchApplications = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('job_applications')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' });
+
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      if (dateRange?.from) {
+        query = query.gte('created_at', dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        const toDate = new Date(dateRange.to);
+        toDate.setDate(toDate.getDate() + 1); // exclusive upper bound
+        query = query.lt('created_at', toDate.toISOString());
+      }
+
+      if (searchTerm.trim().length >= 2) {
+        const term = `%${searchTerm.trim()}%`;
+        query = query.or(
+          `personal_info->>fullName.ilike.${term},personal_info->>email.ilike.${term},personal_info->>positionAppliedFor.ilike.${term}`
+        );
+      }
+
+      if (sortField === 'created_at') {
+        query = query.order('created_at', { ascending: sortDirection === 'asc' });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      const from = (page - 1) * pageSize;
+      const toIdx = from + pageSize - 1;
+      const { data, error, count } = await query.range(from, toIdx);
 
       if (error) throw error;
       setApplications(data || []);
+      setTotalCount(count || 0);
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
@@ -84,7 +142,6 @@ export function JobApplicationsContent() {
       setLoading(false);
     }
   };
-
   const deleteApplication = async (id: string) => {
     try {
       const { error } = await supabase
@@ -186,50 +243,43 @@ Please complete and return this reference as soon as possible.`;
     return sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
   };
 
-  const filteredApplications = applications.filter(app => {
-    const matchesSearch = app.personal_info?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.personal_info?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.personal_info?.positionAppliedFor?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }).sort((a, b) => {
-    let aVal: any;
-    let bVal: any;
-    
-    switch (sortField) {
-      case 'applicant_name':
-        aVal = a.personal_info?.fullName || '';
-        bVal = b.personal_info?.fullName || '';
-        break;
-      case 'position':
-        aVal = a.personal_info?.positionAppliedFor || '';
-        bVal = b.personal_info?.positionAppliedFor || '';
-        break;
-      case 'created_at':
-        aVal = new Date(a.created_at).getTime();
-        bVal = new Date(b.created_at).getTime();
-        break;
-      case 'postcode':
-        aVal = a.personal_info?.postcode || '';
-        bVal = b.personal_info?.postcode || '';
-        break;
-      case 'english_proficiency':
-        aVal = a.personal_info?.englishProficiency || '';
-        bVal = b.personal_info?.englishProficiency || '';
-        break;
-      default:
-        return 0;
-    }
-    
-    if (typeof aVal === 'string' && typeof bVal === 'string') {
-      const comparison = aVal.localeCompare(bVal);
-      return sortDirection === 'asc' ? comparison : -comparison;
-    } else {
-      const comparison = aVal - bVal;
-      return sortDirection === 'asc' ? comparison : -comparison;
-    }
-  });
+  const displayedApplications = sortField === 'created_at'
+    ? applications
+    : [...applications].sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+      
+      switch (sortField) {
+        case 'applicant_name':
+          aVal = a.personal_info?.fullName || '';
+          bVal = b.personal_info?.fullName || '';
+          break;
+        case 'position':
+          aVal = a.personal_info?.positionAppliedFor || '';
+          bVal = b.personal_info?.positionAppliedFor || '';
+          break;
+        case 'postcode':
+          aVal = a.personal_info?.postcode || '';
+          bVal = b.personal_info?.postcode || '';
+          break;
+        case 'english_proficiency':
+          aVal = a.personal_info?.englishProficiency || '';
+          bVal = b.personal_info?.englishProficiency || '';
+          break;
+        default:
+          return 0;
+      }
+      
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        const comparison = aVal.localeCompare(bVal);
+        return sortDirection === 'asc' ? comparison : -comparison;
+      } else {
+        const comparison = (aVal || 0) - (bVal || 0);
+        return sortDirection === 'asc' ? comparison : -comparison;
+      }
+    });
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   if (loading) {
     return (
       <div className="p-6">
@@ -246,41 +296,39 @@ Please complete and return this reference as soon as possible.`;
           <p className="text-muted-foreground">Manage and review job applications</p>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold">{applications.length}</div>
+          <div className="text-2xl font-bold">{totalCount}</div>
           <div className="text-sm text-muted-foreground">Total Applications</div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 items-center">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             placeholder="Search by name, email, or position..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setPage(1); setSearchTerm(e.target.value); }}
             className="pl-10"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(val) => { setPage(1); setStatusFilter(val); }}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="new">New</SelectItem>
-            <SelectItem value="reviewing">Reviewing</SelectItem>
-            <SelectItem value="interviewed">Interviewed</SelectItem>
-            <SelectItem value="accepted">Accepted</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
+            {statusOptions.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
+        <DatePickerWithRange date={dateRange} setDate={(d) => { setPage(1); setDateRange(d); }} />
       </div>
-
       {/* Applications Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Applications ({filteredApplications.length})</CardTitle>
+          <CardTitle>Applications ({totalCount})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -336,7 +384,7 @@ Please complete and return this reference as soon as possible.`;
                  </TableRow>
                </TableHeader>
               <TableBody>
-                {filteredApplications.map((application) => (
+                {displayedApplications.map((application) => (
                   <TableRow key={application.id}>
                     <TableCell>
                       <div className="font-medium">
@@ -420,7 +468,50 @@ Please complete and return this reference as soon as possible.`;
         </CardContent>
       </Card>
 
-      {filteredApplications.length === 0 && (
+      {totalCount > pageSize && (
+        <Pagination className="mt-4">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (page > 1) setPage(page - 1);
+                }}
+              />
+            </PaginationItem>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+              const pageNumber = start + i;
+              if (pageNumber > totalPages) return null;
+              return (
+                <PaginationItem key={pageNumber}>
+                  <PaginationLink
+                    href="#"
+                    isActive={pageNumber === page}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setPage(pageNumber);
+                    }}
+                  >
+                    {pageNumber}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            })}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (page < totalPages) setPage(page + 1);
+                }}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
+      {displayedApplications.length === 0 && (
         <div className="text-center py-12">
           <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No applications found</h3>
@@ -448,106 +539,128 @@ function ApplicationDetails({
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(application);
   const { toast } = useToast();
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+
+  const toJobAppData = () => {
+    const pi = application.personal_info || {};
+    const fullName = pi.fullName || `${pi.firstName || ''} ${pi.lastName || ''}`.trim();
+
+    const personalInfo = {
+      title: pi.title || '',
+      fullName,
+      email: pi.email || '',
+      confirmEmail: pi.confirmEmail || pi.email || '',
+      telephone: pi.telephone || '',
+      dateOfBirth: pi.dateOfBirth || pi.dob || '',
+      streetAddress: pi.streetAddress || pi.address || '',
+      streetAddress2: pi.streetAddress2 || pi.address2 || '',
+      town: pi.town || pi.city || '',
+      borough: pi.borough || '',
+      postcode: pi.postcode || '',
+      englishProficiency: pi.englishProficiency || '',
+      otherLanguages: Array.isArray(pi.otherLanguages)
+        ? pi.otherLanguages
+        : (pi.otherLanguages ? String(pi.otherLanguages).split(',').map((s:string)=>s.trim()).filter(Boolean) : []),
+      positionAppliedFor: pi.positionAppliedFor || '',
+      personalCareWillingness: pi.personalCareWillingness || '',
+      hasDBS: pi.hasDBS || '',
+      hasCarAndLicense: pi.hasCarAndLicense || '',
+      nationalInsuranceNumber: pi.nationalInsuranceNumber || '',
+    };
+
+    const av = application.availability || {};
+    const availability = {
+      timeSlots: av.timeSlots || av.selectedSlots || {},
+      hoursPerWeek: av.hoursPerWeek || '',
+      hasRightToWork: typeof av.hasRightToWork === 'boolean' ? (av.hasRightToWork ? 'Yes' : 'No') : (av.hasRightToWork || ''),
+    };
+
+    const ec = application.emergency_contact || {};
+    const emergencyContact = {
+      fullName: ec.fullName || '',
+      relationship: ec.relationship || '',
+      contactNumber: ec.contactNumber || '',
+      howDidYouHear: ec.howDidYouHear || '',
+    };
+
+    const eh = application.employment_history || {};
+    const recent = eh.recentEmployer || null;
+    const previous = Array.isArray(eh.previousEmployers) ? eh.previousEmployers : [];
+    const previouslyEmployed = typeof eh.previouslyEmployed === 'boolean'
+      ? (eh.previouslyEmployed ? 'yes' : 'no')
+      : (eh.previouslyEmployed || ((recent || previous.length) ? 'yes' : 'no'));
+
+    const references: Record<string, any> = {};
+    let refCount = 0;
+    const addRef = (ref: any) => {
+      if (!ref) return;
+      const hasAny = ref.name || ref.company || ref.email || ref.contactNumber || ref.jobTitle || ref.address;
+      if (!hasAny) return;
+      refCount += 1;
+      references[`reference${refCount}`] = {
+        name: ref.name || '',
+        company: ref.company || '',
+        jobTitle: ref.jobTitle || ref.position || '',
+        email: ref.email || '',
+        contactNumber: ref.contactNumber || ref.telephone || '',
+        address: ref.address || '',
+        address2: ref.address2 || '',
+        town: ref.town || '',
+        postcode: ref.postcode || '',
+      };
+    };
+    const rinfo = application.reference_info || {};
+    addRef(rinfo.reference1);
+    addRef(rinfo.reference2);
+    if (Array.isArray(rinfo.references)) rinfo.references.forEach(addRef);
+    if (Array.isArray(rinfo.additionalReferences)) rinfo.additionalReferences.forEach(addRef);
+    if (recent) addRef(recent);
+    previous.forEach(addRef);
+
+    const skillsExperience = {
+      skills: application.skills_experience?.skills || application.skills_experience || {},
+    };
+
+    const declaration = application.declarations || {};
+    const termsPolicy = application.consent || {};
+
+    return {
+      personalInfo,
+      availability,
+      emergencyContact,
+      employmentHistory: {
+        previouslyEmployed,
+        recentEmployer: recent || undefined,
+        previousEmployers: previous || [],
+      },
+      references: references as any,
+      skillsExperience,
+      declaration,
+      termsPolicy,
+    };
+  };
+
+  const handleDownloadJson = () => {
+    try {
+      const data = toJobAppData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'job-application.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('JSON download failed', err);
+      toast({ title: 'Download Error', description: 'Failed to download JSON.', variant: 'destructive' });
+    }
+  };
 
   const downloadApplication = async () => {
     try {
-      const pi = application.personal_info || {};
-      const fullName = pi.fullName || `${pi.firstName || ''} ${pi.lastName || ''}`.trim();
-
-      const personalInfo = {
-        title: pi.title || '',
-        fullName,
-        email: pi.email || '',
-        confirmEmail: pi.confirmEmail || pi.email || '',
-        telephone: pi.telephone || '',
-        dateOfBirth: pi.dateOfBirth || pi.dob || '',
-        streetAddress: pi.streetAddress || pi.address || '',
-        streetAddress2: pi.streetAddress2 || pi.address2 || '',
-        town: pi.town || pi.city || '',
-        borough: pi.borough || '',
-        postcode: pi.postcode || '',
-        englishProficiency: pi.englishProficiency || '',
-        otherLanguages: Array.isArray(pi.otherLanguages)
-          ? pi.otherLanguages
-          : (pi.otherLanguages ? String(pi.otherLanguages).split(',').map((s:string)=>s.trim()).filter(Boolean) : []),
-        positionAppliedFor: pi.positionAppliedFor || '',
-        personalCareWillingness: pi.personalCareWillingness || '',
-        hasDBS: pi.hasDBS || '',
-        hasCarAndLicense: pi.hasCarAndLicense || '',
-        nationalInsuranceNumber: pi.nationalInsuranceNumber || '',
-      };
-
-      const av = application.availability || {};
-      const availability = {
-        timeSlots: av.timeSlots || av.selectedSlots || {},
-        hoursPerWeek: av.hoursPerWeek || '',
-        hasRightToWork: typeof av.hasRightToWork === 'boolean' ? (av.hasRightToWork ? 'Yes' : 'No') : (av.hasRightToWork || ''),
-      };
-
-      const ec = application.emergency_contact || {};
-      const emergencyContact = {
-        fullName: ec.fullName || '',
-        relationship: ec.relationship || '',
-        contactNumber: ec.contactNumber || '',
-        howDidYouHear: ec.howDidYouHear || '',
-      };
-
-      const eh = application.employment_history || {};
-      const recent = eh.recentEmployer || null;
-      const previous = Array.isArray(eh.previousEmployers) ? eh.previousEmployers : [];
-      const previouslyEmployed = typeof eh.previouslyEmployed === 'boolean'
-        ? (eh.previouslyEmployed ? 'yes' : 'no')
-        : (eh.previouslyEmployed || ((recent || previous.length) ? 'yes' : 'no'));
-
-      const references: Record<string, any> = {};
-      let refCount = 0;
-      const addRef = (ref: any) => {
-        if (!ref) return;
-        const hasAny = ref.name || ref.company || ref.email || ref.contactNumber || ref.jobTitle || ref.address;
-        if (!hasAny) return;
-        refCount += 1;
-        references[`reference${refCount}`] = {
-          name: ref.name || '',
-          company: ref.company || '',
-          jobTitle: ref.jobTitle || ref.position || '',
-          email: ref.email || '',
-          contactNumber: ref.contactNumber || ref.telephone || '',
-          address: ref.address || '',
-          address2: ref.address2 || '',
-          town: ref.town || '',
-          postcode: ref.postcode || '',
-        };
-      };
-      const rinfo = application.reference_info || {};
-      addRef(rinfo.reference1);
-      addRef(rinfo.reference2);
-      if (Array.isArray(rinfo.references)) rinfo.references.forEach(addRef);
-      if (Array.isArray(rinfo.additionalReferences)) rinfo.additionalReferences.forEach(addRef);
-      if (recent) addRef(recent);
-      previous.forEach(addRef);
-
-      const skillsExperience = {
-        skills: application.skills_experience?.skills || application.skills_experience || {},
-      };
-
-      const declaration = application.declarations || {};
-      const termsPolicy = application.consent || {};
-
-      await generateJobApplicationPdf({
-        personalInfo,
-        availability,
-        emergencyContact,
-        employmentHistory: {
-          previouslyEmployed,
-          recentEmployer: recent || undefined,
-          previousEmployers: previous || [],
-        },
-        references: references as any,
-        skillsExperience,
-        declaration,
-        termsPolicy,
-      });
-
+      await generateJobApplicationPdf(toJobAppData() as any);
       toast({
         title: "PDF Generated",
         description: "The application has been downloaded as a PDF.",
@@ -561,7 +674,6 @@ function ApplicationDetails({
       });
     }
   };
-
   const handleSave = async () => {
     try {
       const { error } = await supabase
@@ -621,6 +733,15 @@ function ApplicationDetails({
             <FileText className="w-4 h-4" />
             Download PDF
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSummaryOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            Summary
+          </Button>
           {isEditing ? (
             <div className="flex gap-2">
               <Button size="sm" onClick={handleSave}>Save</Button>
@@ -634,6 +755,20 @@ function ApplicationDetails({
           )}
         </div>
       </div>
+
+      <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Application Summary</DialogTitle>
+          </DialogHeader>
+          <ReviewSummary data={toJobAppData() as any} />
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="outline" onClick={handleDownloadJson}>Download JSON</Button>
+            <Button variant="outline" onClick={downloadApplication}>Download PDF</Button>
+            <Button onClick={() => setIsSummaryOpen(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Personal Information */}
       <Card>
