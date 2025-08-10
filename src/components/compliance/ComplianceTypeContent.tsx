@@ -1108,34 +1108,29 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                                 />
                               )}
                               
-{item.record && (
-  <>
-    {item.record.completion_method === 'spotcheck' && (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="hover-scale"
-        onClick={() => handleDownloadSpotCheck(item.employee.id, item.record!.period_identifier)}
-      >
-        <Download className="w-4 h-4" />
-      </Button>
-    )}
-    {item.record.completion_method === 'supervision' && (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="hover-scale"
-        onClick={() => handleDownloadSupervision(item.record!)}
-      >
-        <Download className="w-4 h-4" />
-      </Button>
-    )}
-    {item.record.completion_method === 'supervision' && item.record.status !== 'completed' && (
-      <Badge className="bg-warning/10 text-warning border-warning/20">Not completed</Badge>
-    )}
-    {/* View Dialog */}
-  </>
+                              {item.record && (
+                                <>
+{item.record.completion_method === 'spotcheck' && (
+  <Button
+    variant="ghost"
+    size="sm"
+    className="hover-scale"
+    onClick={() => handleDownloadSpotCheck(item.employee.id, item.record!.period_identifier)}
+  >
+    <Download className="w-4 h-4" />
+  </Button>
 )}
+{item.record.completion_method === 'supervision' && (
+  <Button
+    variant="ghost"
+    size="sm"
+    className="hover-scale"
+    onClick={() => handleDownloadSupervision(item.record!)}
+  >
+    <Download className="w-4 h-4" />
+  </Button>
+)}
+                                  {/* View Dialog */}
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <Button variant="ghost" size="sm" className="hover-scale">
@@ -1268,6 +1263,8 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
                                   </AlertDialog>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
