@@ -131,10 +131,12 @@ export function AppSidebar() {
   const getNavClassName = (path: string) => {
     const active = isActive(path);
     return cn(
-      "group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-md transition-colors",
+      "group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
+      "hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5",
+      "hover:shadow-sm hover:scale-[1.02]",
       active
-        ? "bg-sidebar-accent text-sidebar-primary ring-1 ring-sidebar-border border-l-2 border-primary"
-        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
+        ? "bg-gradient-primary text-primary-foreground shadow-glow"
+        : "text-sidebar-foreground hover:text-sidebar-primary"
     );
   };
 
@@ -150,7 +152,7 @@ export function AppSidebar() {
   return (
     <Sidebar
       className={cn(
-        "border-r border-sidebar-border bg-card/80 backdrop-blur-md transition-all duration-300",
+        "border-r border-sidebar-border bg-gradient-surface transition-all duration-300",
         collapsed ? "w-16" : "w-64"
       )}
       collapsible="icon"

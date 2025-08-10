@@ -34,74 +34,78 @@ function PublicHomeContent() {
 
   // Show both job application and employee login for non-authenticated users
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      <header className="px-6 py-4 border-b border-border/50 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto flex items-center gap-3">
-          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-12 pt-8">
+          <div className="mx-auto mb-6 w-20 h-20 bg-primary/10 rounded-lg flex items-center justify-center">
             {!companyLoading && companySettings.logo ? (
-              <img src={companySettings.logo} alt={`${companySettings.name} logo`} className="h-10 w-10 object-contain" />
+              <img
+                src={companySettings.logo}
+                alt={companySettings.name}
+                className="h-16 w-16 object-contain"
+              />
             ) : (
-              <Building className="w-6 h-6 text-primary" />
+              <Building className="w-10 h-10 text-primary" />
             )}
           </div>
-          <div>
-            <h1 className="text-2xl font-bold leading-none">
-              {!companyLoading ? companySettings.name : 'Welcome to Our Company'}
-            </h1>
-            <p className="text-sm text-muted-foreground">{!companyLoading && companySettings.tagline}</p>
-          </div>
-        </div>
-      </header>
-
-      <main className="px-6 py-12">
-        <section className="max-w-6xl mx-auto text-center mb-12">
+          <h1 className="text-4xl font-bold mb-2">{!companyLoading ? companySettings.name : 'Welcome to Our Company'}</h1>
+          <p className="text-lg text-muted-foreground mb-2">{!companyLoading && companySettings.tagline}</p>
           <p className="text-lg text-muted-foreground">Choose what you need to do today</p>
-        </section>
-
-        <section className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8">
+        </div>
+        
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Job Application Portal */}
-          <Card className="hover:shadow-glow transition-all duration-300 border-border/60">
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+              <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Briefcase className="w-6 h-6 text-primary" />
               </div>
               <CardTitle className="text-2xl">Apply for a Job</CardTitle>
               <CardDescription>
-                Join our team by submitting your application
+                Join our team! Submit your application and we'll review it promptly
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button onClick={() => navigate('/job-application')} className="w-full" size="lg">
+              <Button 
+                onClick={() => navigate('/job-application')} 
+                className="w-full"
+                size="lg"
+              >
                 Start Application
               </Button>
               <p className="text-sm text-muted-foreground text-center">
-                Complete our multi-step form with your details, experience, and skills
+                Complete our multi-step application form with your details, experience, and skills
               </p>
             </CardContent>
           </Card>
 
           {/* Employee Portal */}
-          <Card className="hover:shadow-glow transition-all duration-300 border-border/60">
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-secondary/10 flex items-center justify-center">
+              <div className="mx-auto mb-4 w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
                 <Badge className="w-6 h-6 text-secondary" />
               </div>
               <CardTitle className="text-2xl">Employee Portal</CardTitle>
               <CardDescription>
-                Current employees: manage your leaves and view your info
+                Current employees: Login to manage your leave requests and view your information
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button onClick={() => navigate('/login')} className="w-full" size="lg">
+              <Button 
+                onClick={() => navigate('/login')} 
+                className="w-full"
+                size="lg"
+              >
                 Login
               </Button>
               <p className="text-sm text-muted-foreground text-center">
-                Access your dashboard to request leaves, view leave history, and manage documents
+                Access your dashboard to request leaves, view leave history, and manage your documents. 
+                The system will automatically detect your account type.
               </p>
             </CardContent>
           </Card>
-        </section>
-      </main>
+        </div>
+      </div>
     </div>
   );
 }

@@ -23,9 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import SpotCheckFormDialog, { SpotCheckFormData } from "@/components/compliance/SpotCheckFormDialog";
-import SupervisionFormDialog, { SupervisionFormData } from "@/components/compliance/SupervisionFormDialog";
 import { generateSpotCheckPdf } from "@/lib/spot-check-pdf";
-import { generateSupervisionPdf } from "@/lib/supervision-pdf";
 
 interface AddComplianceRecordModalProps {
   employeeId?: string;
@@ -52,15 +50,13 @@ export function AddComplianceRecordModal({
   const [isLoading, setIsLoading] = useState(false);
   const [completionDate, setCompletionDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
-const [recordType, setRecordType] = useState<'date' | 'new' | 'spotcheck' | 'supervision'>('date');
-const [newText, setNewText] = useState('');
-const [spotcheckOpen, setSpotcheckOpen] = useState(false);
-const [spotcheckData, setSpotcheckData] = useState<SpotCheckFormData | null>(null);
-const [supervisionOpen, setSupervisionOpen] = useState(false);
-const [supervisionData, setSupervisionData] = useState<SupervisionFormData | null>(null);
-const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeId || '');
-const [selectedEmployeeName, setSelectedEmployeeName] = useState(employeeName || '');
-const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurrentPeriodIdentifier(frequency));
+  const [recordType, setRecordType] = useState<'date' | 'new' | 'spotcheck'>('date');
+  const [newText, setNewText] = useState('');
+  const [spotcheckOpen, setSpotcheckOpen] = useState(false);
+  const [spotcheckData, setSpotcheckData] = useState<SpotCheckFormData | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeId || '');
+  const [selectedEmployeeName, setSelectedEmployeeName] = useState(employeeName || '');
+  const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurrentPeriodIdentifier(frequency));
   const [employees, setEmployees] = useState<Array<{id: string, name: string, branch: string}>>([]);
   const [branches, setBranches] = useState<Array<{id: string, name: string}>>([]);
   const { toast } = useToast();
@@ -254,15 +250,6 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         });
         return;
       }
-    } else if (recordType === 'supervision') {
-      if (!supervisionData) {
-        toast({
-          title: "Supervision incomplete",
-          description: "Please complete the supervision form.",
-          variant: "destructive",
-        });
-        return;
-      }
     }
 
     setIsLoading(true);
@@ -294,18 +281,16 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         employee_id: selectedEmployeeId,
         compliance_type_id: complianceTypeId,
         period_identifier: selectedPeriod,
+        // For "new" records, store the text directly in completion_date; for spotcheck use the form date
         completion_date:
           recordType === 'date'
             ? format(completionDate, 'yyyy-MM-dd')
             : recordType === 'spotcheck'
               ? (spotcheckData?.date || format(new Date(), 'yyyy-MM-dd'))
-              : recordType === 'supervision'
-                ? (supervisionData?.dateOfSupervision || format(new Date(), 'yyyy-MM-dd'))
-                : newText,
-        completion_method:
-          recordType === 'date' ? 'date_entry' : (recordType === 'spotcheck' ? 'spotcheck' : (recordType === 'supervision' ? 'supervision' : 'text_entry')),
-        notes: recordType === 'supervision' ? JSON.stringify(supervisionData) : (notes.trim() || null),
-        status: recordType === 'new' ? 'compliant' : (recordType === 'supervision' ? (supervisionData?.officeComplete ? 'completed' : 'pending') : 'completed'),
+              : newText,
+        completion_method: recordType === 'date' ? 'date_entry' : (recordType === 'spotcheck' ? 'spotcheck' : 'text_entry'),
+        notes: notes.trim() || null,
+        status: recordType === 'new' ? 'compliant' : 'completed',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -408,13 +393,10 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
             <Label>Record Type</Label>
             <Select
               value={recordType}
-              onValueChange={(value: 'date' | 'new' | 'spotcheck' | 'supervision') => {
+              onValueChange={(value: 'date' | 'new' | 'spotcheck') => {
                 setRecordType(value);
                 if (value === 'spotcheck') {
                   setSpotcheckOpen(true);
-                }
-                if (value === 'supervision') {
-                  setSupervisionOpen(true);
                 }
               }}
             >
@@ -426,9 +408,6 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
                 <SelectItem value="new">New (before employee joined)</SelectItem>
                 {complianceTypeName?.toLowerCase().includes('spot') && (
                   <SelectItem value="spotcheck">Complete Spot Check</SelectItem>
-                )}
-                {complianceTypeName?.toLowerCase().includes('supervis') && (
-                  <SelectItem value="supervision">Complete Supervision</SelectItem>
                 )}
               </SelectContent>
             </Select>
@@ -513,23 +492,13 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
                 Download PDF
               </Button>
             )}
-            {recordType === 'supervision' && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => supervisionData ? generateSupervisionPdf(supervisionData, companySettings) : undefined}
-                disabled={!supervisionData}
-              >
-                Download PDF
-              </Button>
-            )}
             <Button type="submit" disabled={isLoading}>
               {isLoading ? "Adding..." : "Add Record"}
             </Button>
           </div>
         </form>
       </DialogContent>
-      <SpotCheckFormDialog
+<SpotCheckFormDialog
         open={spotcheckOpen}
         onOpenChange={setSpotcheckOpen}
         periodIdentifier={selectedPeriod}
@@ -537,16 +506,6 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         onSubmit={(data) => {
           setSpotcheckData(data);
           setSpotcheckOpen(false);
-        }}
-      />
-      <SupervisionFormDialog
-        open={supervisionOpen}
-        onOpenChange={setSupervisionOpen}
-        initialData={supervisionData || undefined}
-        employeeName={selectedEmployeeName}
-        onSubmit={(data) => {
-          setSupervisionData(data);
-          setSupervisionOpen(false);
         }}
       />
     </Dialog>
