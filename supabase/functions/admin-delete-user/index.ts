@@ -74,7 +74,47 @@ Deno.serve(async (req) => {
 
     console.log('Deleting user:', userId)
 
-    // First, delete the user role from the database
+    // Clean up FK references before deleting auth user
+    // 1) Nullify approver/rejector on leave_requests
+    const { error: lrApproveErr } = await supabaseAdmin
+      .from('leave_requests')
+      .update({ approved_by: null })
+      .eq('approved_by', userId)
+
+    if (lrApproveErr) {
+      console.error('Error nullifying leave_requests.approved_by:', lrApproveErr)
+    }
+
+    const { error: lrRejectErr } = await supabaseAdmin
+      .from('leave_requests')
+      .update({ rejected_by: null })
+      .eq('rejected_by', userId)
+
+    if (lrRejectErr) {
+      console.error('Error nullifying leave_requests.rejected_by:', lrRejectErr)
+    }
+
+    // 2) Detach employee link if any
+    const { error: employeeUnlinkErr } = await supabaseAdmin
+      .from('employees')
+      .update({ user_id: null })
+      .eq('user_id', userId)
+
+    if (employeeUnlinkErr) {
+      console.error('Error unlinking employees.user_id:', employeeUnlinkErr)
+    }
+
+    // 3) Remove any user-specific access rows
+    const { error: branchAccessDeleteErr } = await supabaseAdmin
+      .from('user_branch_access')
+      .delete()
+      .eq('user_id', userId)
+
+    if (branchAccessDeleteErr) {
+      console.warn('Error deleting user_branch_access rows:', branchAccessDeleteErr)
+    }
+
+    // Then, delete the user role from the database
     const { error: roleDeleteError } = await supabaseAdmin
       .from('user_roles')
       .delete()

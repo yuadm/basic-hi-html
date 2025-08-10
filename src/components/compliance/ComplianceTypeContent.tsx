@@ -1268,8 +1268,6 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
                                   </AlertDialog>
-                                </>
-                              )}
                             </div>
                           </TableCell>
                         </TableRow>
