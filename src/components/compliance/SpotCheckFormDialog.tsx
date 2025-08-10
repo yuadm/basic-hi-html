@@ -16,7 +16,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export interface SpotCheckObservation {
   id: string;
@@ -43,12 +42,9 @@ interface SpotCheckFormDialogProps {
   initialData?: SpotCheckFormData | null;
   periodIdentifier?: string; // e.g., 2025-Q2
   frequency?: string; // e.g., 'quarterly'
-  complianceTypeId?: string;
-  branchId?: string | null;
 }
 
-
-export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit, initialData, periodIdentifier, frequency, complianceTypeId, branchId }: SpotCheckFormDialogProps) {
+export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit, initialData, periodIdentifier, frequency }: SpotCheckFormDialogProps) {
   const { companySettings } = useCompany();
   const { toast } = useToast();
 
@@ -72,7 +68,6 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit, init
     carriedBy: "",
     observations: [],
   });
-  const [dynamicObservationItems, setDynamicObservationItems] = useState<SpotCheckObservation[] | null>(null);
 
   const observationItems = useMemo<SpotCheckObservation[]>(
     () => [
@@ -97,102 +92,34 @@ export default function SpotCheckFormDialog({ open, onOpenChange, onSubmit, init
 React.useEffect(() => {
   if (!open) return;
 
-  const load = async () => {
-    let items: SpotCheckObservation[] = observationItems;
+  // Build base observations from template
+  const baseObservations = observationItems.map((item) => ({ id: item.id, label: item.label } as SpotCheckObservation));
 
-    try {
-      if (complianceTypeId) {
-        // Try to find an active questionnaire for this compliance type and branch
-        let query = supabase
-          .from('compliance_questionnaires')
-          .select('id')
-          .eq('compliance_type_id', complianceTypeId)
-          .eq('is_active', true);
+  if (initialData) {
+    // Merge initial observations with base list to ensure consistency
+    const mergedObservations = baseObservations.map((base) => {
+      const existing = initialData.observations.find((o) => o.id === base.id);
+      return existing ? { ...base, value: existing.value, comments: existing.comments } : base;
+    });
 
-        if (branchId) {
-          query = query.eq('branch_id', branchId);
-        }
-
-        let { data: q, error: qErr } = await query
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (qErr) {
-          console.error('Error fetching questionnaire for spot check:', qErr);
-        }
-
-        // Fallback: if not found for branch, try any questionnaire for the type
-        if (!q && branchId) {
-          const { data: qAny, error: qAnyErr } = await supabase
-            .from('compliance_questionnaires')
-            .select('id')
-            .eq('compliance_type_id', complianceTypeId)
-            .eq('is_active', true)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (!qAnyErr) q = qAny || null;
-        }
-
-        if (q?.id) {
-          const { data: qq, error: qqErr } = await supabase
-            .from('compliance_questionnaire_questions')
-            .select(`
-              compliance_questions (
-                id,
-                question_text,
-                question_type,
-                is_required,
-                order_index
-              )
-            `)
-            .eq('questionnaire_id', q.id)
-            .order('order_index', { ascending: true });
-
-          if (!qqErr && qq && qq.length > 0) {
-            const qs = qq.map((row: any) => row.compliance_questions).filter(Boolean);
-            items = qs.map((q: any) => ({ id: q.id, label: q.question_text } as SpotCheckObservation));
-            setDynamicObservationItems(items);
-          }
-        }
-      }
-    } catch (e) {
-      console.error('SpotCheck: failed to load questionnaire questions', e);
-    }
-
-    // Build base observations from chosen items
-    const baseObservations = items.map((item) => ({ id: item.id, label: item.label } as SpotCheckObservation));
-
-    if (initialData) {
-      // Merge initial observations with base list to ensure consistency
-      const mergedObservations = baseObservations.map((base) => {
-        const existing = initialData.observations.find((o) => o.id === base.id);
-        return existing ? { ...base, value: existing.value, comments: existing.comments } : base;
-      });
-
-      setForm({
-        serviceUserName: initialData.serviceUserName || "",
-        careWorker1: initialData.careWorker1 || "",
-        careWorker2: initialData.careWorker2 || "",
-        date: initialData.date || "",
-        timeFrom: initialData.timeFrom || "",
-        timeTo: initialData.timeTo || "",
-        carriedBy: initialData.carriedBy || "",
-        observations: mergedObservations,
-      });
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        observations: baseObservations,
-      }));
-    }
-  };
-
-  load();
+    setForm({
+      serviceUserName: initialData.serviceUserName || "",
+      careWorker1: initialData.careWorker1 || "",
+      careWorker2: initialData.careWorker2 || "",
+      date: initialData.date || "",
+      timeFrom: initialData.timeFrom || "",
+      timeTo: initialData.timeTo || "",
+      carriedBy: initialData.carriedBy || "",
+      observations: mergedObservations,
+    });
+  } else {
+    setForm((prev) => ({
+      ...prev,
+      observations: baseObservations,
+    }));
+  }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [open, initialData, observationItems, complianceTypeId, branchId]);
-
+}, [open, initialData, observationItems]);
 
   const updateField = (key: keyof SpotCheckFormData, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -242,8 +169,6 @@ React.useEffect(() => {
     onSubmit(form);
     onOpenChange(false);
   };
-
-  const itemsForUI = dynamicObservationItems || observationItems;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -375,7 +300,7 @@ React.useEffect(() => {
               <div className="col-span-2 font-medium">No</div>
               <div className="col-span-2 font-medium">Observation/comments</div>
 
-              {itemsForUI.map((item) => {
+              {observationItems.map((item) => {
                 const current = form.observations.find((o) => o.id === item.id);
                 const err = errors.observations?.[item.id];
                 return (
@@ -420,7 +345,7 @@ React.useEffect(() => {
 
             {/* Mobile stacked cards */}
             <div className="md:hidden space-y-3">
-              {itemsForUI.map((item) => {
+              {observationItems.map((item) => {
                 const current = form.observations.find((o) => o.id === item.id);
                 const err = errors.observations?.[item.id];
                 return (

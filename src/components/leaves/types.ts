@@ -6,7 +6,6 @@ export interface Employee {
   employee_code: string;
   remaining_leave_days: number;
   leave_taken: number;
-  leave_allowance?: number;
   branch?: string;
   branch_id?: string;
 }

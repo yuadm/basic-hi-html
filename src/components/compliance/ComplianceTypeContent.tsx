@@ -1139,29 +1139,18 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                                   </Dialog>
 
                                   {/* Edit Record */}
-                                  {item.record.completion_method === 'spotcheck' ? (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="hover-scale"
-                                      onClick={() => handleOpenSpotcheckEdit(item.employee.id, item.record!.period_identifier)}
-                                    >
-                                      <Edit className="w-4 h-4" />
-                                    </Button>
-                                  ) : (
-                                    <EditComplianceRecordModal
-                                      record={item.record}
-                                      employeeName={item.employee.name}
-                                      complianceTypeName={complianceType?.name || ''}
-                                      frequency={complianceType?.frequency || ''}
-                                      onRecordUpdated={fetchData}
-                                      trigger={
-                                        <Button variant="ghost" size="sm" className="hover-scale">
-                                          <Edit className="w-4 h-4" />
-                                        </Button>
-                                      }
-                                    />
-                                  )}
+                                  <EditComplianceRecordModal
+                                    record={item.record}
+                                    employeeName={item.employee.name}
+                                    complianceTypeName={complianceType?.name || ''}
+                                    frequency={complianceType?.frequency || ''}
+                                    onRecordUpdated={fetchData}
+                                    trigger={
+                                      <Button variant="ghost" size="sm" className="hover-scale">
+                                        <Edit className="w-4 h-4" />
+                                      </Button>
+                                    }
+                                  />
 
                                   {/* Delete Dialog */}
                                   <AlertDialog>
@@ -1213,18 +1202,6 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
           />
         </TabsContent>
       </Tabs>
-
-      {/* Spot Check Edit Dialog */}
-      <SpotCheckFormDialog
-        open={spotcheckEditOpen}
-        onOpenChange={setSpotcheckEditOpen}
-        initialData={spotcheckInitialData || undefined}
-        periodIdentifier={spotcheckTarget?.period}
-        frequency={complianceType?.frequency}
-        complianceTypeId={complianceType?.id}
-        branchId={employees.find(e => e.id === (spotcheckTarget?.employeeId || ''))?.branch_id || null}
-        onSubmit={handleSaveSpotcheckEdit}
-      />
     </div>
   );
 }
