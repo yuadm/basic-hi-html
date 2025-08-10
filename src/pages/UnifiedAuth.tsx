@@ -234,7 +234,7 @@ function UnifiedAuthContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle relative p-4">
       <Button
         variant="ghost"
         onClick={() => navigate('/')}
@@ -243,83 +243,74 @@ function UnifiedAuthContent() {
         <ArrowLeft className="w-4 h-4" />
         Back to Home
       </Button>
-      <Card className="w-full max-w-md shadow-glow">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-            {companySettings.logo ? (
-              <img
-                src={companySettings.logo}
-                alt={companySettings.name}
-                className="h-12 w-12 object-contain"
-              />
-            ) : (
-              <Shield className="w-8 h-8 text-primary" />
-            )}
-          </div>
+
+      <div className="w-full max-w-5xl grid md:grid-cols-2 gap-6 items-stretch">
+        {/* Brand / Info Panel */}
+        <div className="hidden md:flex flex-col justify-between rounded-2xl border border-border/50 bg-card/60 backdrop-blur-md p-8 shadow-glow">
           <div>
-            <CardTitle className="text-2xl font-bold">{companySettings.name || 'Welcome'}</CardTitle>
-            <CardDescription>
-              {companySettings.tagline && <div>{companySettings.tagline}</div>}
-              <div>Sign in to access your dashboard or employee portal</div>
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className={`grid w-full ${ENABLE_SIGNUP ? 'grid-cols-2' : 'grid-cols-1'}`}>
-              <TabsTrigger value="signin" className="flex items-center gap-2">
-                <Lock className="w-4 h-4" />
-                Sign In
-              </TabsTrigger>
-              {ENABLE_SIGNUP && (
-                <TabsTrigger value="signup" className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Sign Up
-                </TabsTrigger>
+            <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6 overflow-hidden">
+              {companySettings.logo ? (
+                <img src={companySettings.logo} alt={companySettings.name} className="h-12 w-12 object-contain" />
+              ) : (
+                <Shield className="w-8 h-8 text-primary" />
               )}
-            </TabsList>
-            
-            <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="transition-all focus:shadow-glow"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="transition-all focus:shadow-glow"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Lock className="mr-2 h-4 w-4" />
+            </div>
+            <h1 className="text-3xl font-bold mb-2">{companySettings.name || 'Welcome'}</h1>
+            {companySettings.tagline && (
+              <p className="text-muted-foreground mb-6">{companySettings.tagline}</p>
+            )}
+            <ul className="space-y-3 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2"><Lock className="w-4 h-4" /> Secure access for Admins</li>
+              <li className="flex items-center gap-2"><User className="w-4 h-4" /> Simple login for Employees</li>
+              <li className="flex items-center gap-2"><Shield className="w-4 h-4" /> Smart routing based on your role</li>
+            </ul>
+          </div>
+          <div className="text-xs text-muted-foreground">All sign-ins are protected and role‑aware</div>
+        </div>
+
+        {/* Auth Card */}
+        <Card className="w-full shadow-glow">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
+              {companySettings.logo ? (
+                <img
+                  src={companySettings.logo}
+                  alt={companySettings.name}
+                  className="h-12 w-12 object-contain"
+                />
+              ) : (
+                <Shield className="w-8 h-8 text-primary" />
+              )}
+            </div>
+            <div>
+              <CardTitle className="text-2xl font-bold">{companySettings.name || 'Welcome'}</CardTitle>
+              <CardDescription>
+                {companySettings.tagline && <div>{companySettings.tagline}</div>}
+                <div>Sign in to access your dashboard or employee portal</div>
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="signin" className="w-full">
+              <TabsList className={`grid w-full ${ENABLE_SIGNUP ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                <TabsTrigger value="signin" className="flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
                   Sign In
-                </Button>
-              </form>
-            </TabsContent>
-            
-            {ENABLE_SIGNUP && (
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
+                </TabsTrigger>
+                {ENABLE_SIGNUP && (
+                  <TabsTrigger value="signup" className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Sign Up
+                  </TabsTrigger>
+                )}
+              </TabsList>
+              
+              <TabsContent value="signin">
+                <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email Address</Label>
+                    <Label htmlFor="email">Email Address</Label>
                     <Input
-                      id="signup-email"
+                      id="email"
                       type="email"
                       placeholder="Enter your email"
                       value={email}
@@ -329,41 +320,77 @@ function UnifiedAuthContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="password">Password</Label>
                     <Input
-                      id="signup-password"
+                      id="password"
                       type="password"
-                      placeholder="Create a password (min 6 characters)"
+                      placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      minLength={6}
                       className="transition-all focus:shadow-glow"
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    <User className="mr-2 h-4 w-4" />
-                    Create Account
+                    <Lock className="mr-2 h-4 w-4" />
+                    Sign In
                   </Button>
                 </form>
               </TabsContent>
+              
+              {ENABLE_SIGNUP && (
+                <TabsContent value="signup">
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email Address</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="transition-all focus:shadow-glow"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        placeholder="Create a password (min 6 characters)"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="transition-all focus:shadow-glow"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <User className="mr-2 h-4 w-4" />
+                      Create Account
+                    </Button>
+                  </form>
+                </TabsContent>
+              )}
+            </Tabs>
+
+            {error && (
+              <Alert className={`mt-4 ${error.includes('Check your email') ? '' : 'variant-destructive'}`}>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
-          </Tabs>
 
-          {error && (
-            <Alert className={`mt-4 ${error.includes('Check your email') ? '' : 'variant-destructive'}`}>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              The system will automatically detect your account type and redirect you accordingly.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                The system will automatically detect your account type and redirect you accordingly.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
