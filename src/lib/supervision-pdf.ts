@@ -198,8 +198,8 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
   drawParagraph('Training & Development', data.trainingAndDevelopment)
   drawParagraph('Key Areas of Responsibility', data.keyAreasOfResponsibility)
   drawParagraph('Other issues', data.otherIssues)
-  drawTextLine(`Annual Leave - Taken: ${data.annualLeaveTaken || ''}`)
-  drawTextLine(`Annual Leave - Booked: ${data.annualLeaveBooked || ''}`)
+  drawKeyVal('Annual Leave - Taken', data.annualLeaveTaken)
+  drawKeyVal('Annual Leave - Booked', data.annualLeaveBooked)
 
   // Service Users Section
   drawDivider()
