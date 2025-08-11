@@ -75,9 +75,6 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     page.drawText('Supervision Report', { x: cursorX, y: page.getHeight() - 40, size: 11, font: font, color: subtle })
 
     // Date on right
-    const generated = `Generated: ${format(new Date(), 'dd-MM-yyyy HH:mm')}`
-    const dateW = font.widthOfTextAtSize(generated, 10)
-    page.drawText(generated, { x: page.getWidth() - marginX - dateW, y: page.getHeight() - 24, size: 10, font, color: subtle })
 
     // Divider
     page.drawRectangle({ x: marginX, y: page.getHeight() - headerHeight - 1, width: page.getWidth() - marginX * 2, height: 1, color: divider })
@@ -199,19 +196,42 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
 
   // Personal Section
   drawSectionTitle('Personal')
-  drawParagraph('How are you', data.howAreYou)
-  drawAnswerDivider()
-  drawParagraph('Guidelines & Policy discussions', data.proceduralGuidelines)
-  drawAnswerDivider()
-  drawParagraph('Staff Issues', data.staffIssues)
-  drawAnswerDivider()
-  drawParagraph('Training & Development', data.trainingAndDevelopment)
-  drawAnswerDivider()
-  drawParagraph('Key Areas of Responsibility', data.keyAreasOfResponsibility)
-  drawAnswerDivider()
-  drawParagraph('Other issues', data.otherIssues)
-  drawAnswerDivider()
+  // Compute a background area height for the section content
+  const personalItems: Array<{ title: string; content?: string }> = [
+    { title: 'How are you', content: data.howAreYou },
+    { title: 'Guidelines & Policy discussions', content: data.proceduralGuidelines },
+    { title: 'Staff Issues', content: data.staffIssues },
+    { title: 'Training & Development', content: data.trainingAndDevelopment },
+    { title: 'Key Areas of Responsibility', content: data.keyAreasOfResponsibility },
+    { title: 'Other issues', content: data.otherIssues },
+  ]
   const annualText = (data.annualLeaveTaken?.trim() || data.annualLeaveBooked?.trim() || '')
+  const annualLabel = 'Annual Leave (Taken/Booked): '
+  const annualLabelWidth = boldFont.widthOfTextAtSize(annualLabel, 11)
+  let personalHeight = 0
+  for (const item of personalItems) {
+    if (item.content) {
+      const lines = wrapText(item.content, contentWidth())
+      personalHeight += lineHeight // title
+      personalHeight += lines.length * lineHeight
+      personalHeight += 4 // paragraph spacing
+      personalHeight += 6 // divider
+    } else {
+      // still keep divider spacing to visually separate answers
+      personalHeight += 6
+    }
+  }
+  const annualLines = wrapText(annualText, contentWidth() - annualLabelWidth)
+  personalHeight += Math.max(1, annualLines.length) * lineHeight
+  personalHeight += 6 // divider after annual
+  ensureSpace(personalHeight)
+  page.drawRectangle({ x: marginX, y: y - personalHeight, width: contentWidth(), height: personalHeight, color: sectionBg })
+
+  // Now render the actual content on top of the background
+  for (const item of personalItems) {
+    drawParagraph(item.title, item.content as string | undefined)
+    drawAnswerDivider()
+  }
   drawKeyVal('Annual Leave (Taken/Booked)', annualText)
   drawAnswerDivider()
 
@@ -241,8 +261,19 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     const boxPad = 10
     const maxBoxWidth = contentWidth() - boxPad * 2
     const wrappedTitle = wrapText(entries[0], maxBoxWidth, boldFont, 11)
-    const wrappedOthers = entries.slice(1).map(t => wrapText(t, maxBoxWidth, font, 11))
-    const totalLines = wrappedTitle.length + wrappedOthers.reduce((sum, arr) => sum + arr.length, 0)
+
+    // Prepare key-value rows with bold question (label) and wrapped answer
+    const kvs = entries.slice(1).map((t) => {
+      const idx = t.indexOf(':')
+      const label = (idx >= 0 ? t.slice(0, idx) : t) + ': '
+      const value = idx >= 0 ? t.slice(idx + 1).trim() : ''
+      const labelWidth = boldFont.widthOfTextAtSize(label, 11)
+      const valueLines = wrapText(value, maxBoxWidth - labelWidth, font, 11)
+      const linesCount = Math.max(1, valueLines.length)
+      return { label, labelWidth, valueLines, linesCount }
+    })
+
+    const totalLines = wrappedTitle.length + kvs.reduce((sum, kv) => sum + kv.linesCount, 0)
     const boxHeight = totalLines * lineHeight + boxPad * 2
     ensureSpace(boxHeight + 8)
 
@@ -260,9 +291,20 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
 
     // Title (bold)
     for (const l of wrappedTitle) drawInBox(l, true)
-    // Rest (normal)
-    for (const wrapped of wrappedOthers) {
-      for (const l of wrapped) drawInBox(l)
+
+    // Rows with bold label and wrapped answer kept inside the box
+    for (const kv of kvs) {
+      // First line: label + first answer line
+      page.drawText(kv.label, { x: marginX + boxPad, y: innerY - lineHeight, size: 11, font: boldFont, color: textColor })
+      if (kv.valueLines.length) {
+        page.drawText(kv.valueLines[0], { x: marginX + boxPad + kv.labelWidth, y: innerY - lineHeight, size: 11, font, color: textColor })
+      }
+      innerY -= lineHeight
+      // Remaining lines of the answer aligned under the first answer column
+      for (let i = 1; i < kv.valueLines.length; i++) {
+        page.drawText(kv.valueLines[i], { x: marginX + boxPad + kv.labelWidth, y: innerY - lineHeight, size: 11, font, color: textColor })
+        innerY -= lineHeight
+      }
     }
 
     y -= boxHeight + 8
@@ -320,9 +362,6 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     drawTableHeader()
     for (const a of actions) drawRow(a)
   }
-
-  y -= 8
-  drawTextLine('End of Report', { size: 10 })
 
   // Save & download
   const bytes = await doc.save()
