@@ -38,6 +38,7 @@ interface ComplianceRecord {
   created_at: string;
   updated_at: string;
   completed_by: string | null;
+  completion_method?: string;
 }
 
 interface EmployeeComplianceStatus {
@@ -334,8 +335,32 @@ export function CompliancePeriodEmployeeView({
                           })() : '-'}
                         </TableCell>
                         <TableCell className="max-w-xs">
-                          <div className="truncate" title={item.record?.notes || ''}>
-                            {item.record?.notes || '-'}
+                          <div className="truncate" title={(() => {
+                            if (!item.record?.notes) return '';
+                            if (item.record?.completion_method === 'supervision') {
+                              try {
+                                const j = JSON.parse(item.record.notes);
+                                const txt = (j?.freeTextNotes || '').toString().trim();
+                                return txt || '';
+                              } catch {
+                                return '';
+                              }
+                            }
+                            return item.record?.notes || '';
+                          })()}>
+                            {(() => {
+                              if (!item.record?.notes) return '-';
+                              if (item.record?.completion_method === 'supervision') {
+                                try {
+                                  const j = JSON.parse(item.record.notes);
+                                  const txt = (j?.freeTextNotes || '').toString().trim();
+                                  return txt || '-';
+                                } catch {
+                                  return '-';
+                                }
+                              }
+                              return item.record?.notes || '-';
+                            })()}
                           </div>
                         </TableCell>
                       </TableRow>

@@ -304,7 +304,9 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
                 : newText,
         completion_method:
           recordType === 'date' ? 'date_entry' : (recordType === 'spotcheck' ? 'spotcheck' : (recordType === 'supervision' ? 'supervision' : 'text_entry')),
-        notes: recordType === 'supervision' ? JSON.stringify(supervisionData) : (notes.trim() || null),
+        notes: recordType === 'supervision' 
+          ? JSON.stringify({ ...(supervisionData as any), freeTextNotes: notes.trim() || '' }) 
+          : (notes.trim() || null),
         status: recordType === 'new' ? 'compliant' : (recordType === 'supervision' ? (supervisionData?.officeComplete ? 'completed' : 'pending') : 'completed'),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

@@ -1085,8 +1085,32 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                             })() : '-'}
                           </TableCell>
                           <TableCell className="max-w-xs">
-                            <div className="truncate" title={item.record?.notes || ''}>
-                              {item.record?.notes || '-'}
+                            <div className="truncate" title={(() => {
+                              if (!item.record?.notes) return '';
+                              if (item.record?.completion_method === 'supervision') {
+                                try {
+                                  const j = JSON.parse(item.record.notes);
+                                  const txt = (j?.freeTextNotes || '').toString().trim();
+                                  return txt || '';
+                                } catch {
+                                  return '';
+                                }
+                              }
+                              return item.record?.notes || '';
+                            })()}>
+                              {(() => {
+                                if (!item.record?.notes) return '-';
+                                if (item.record?.completion_method === 'supervision') {
+                                  try {
+                                    const j = JSON.parse(item.record.notes);
+                                    const txt = (j?.freeTextNotes || '').toString().trim();
+                                    return txt || '-';
+                                  } catch {
+                                    return '-';
+                                  }
+                                }
+                                return item.record?.notes || '-';
+                              })()}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -1197,7 +1221,21 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                                         {item.record.notes && (
                                           <div>
                                             <h4 className="font-semibold text-sm text-muted-foreground mb-2">Notes</h4>
-                                            <p className="text-sm bg-muted p-3 rounded-md">{item.record.notes}</p>
+                                            <p className="text-sm bg-muted p-3 rounded-md">
+                                              {(() => {
+                                                if (!item.record?.notes) return '';
+                                                if (item.record?.completion_method === 'supervision') {
+                                                  try {
+                                                    const j = JSON.parse(item.record.notes);
+                                                    const txt = (j?.freeTextNotes || '').toString().trim();
+                                                    return txt || '';
+                                                  } catch {
+                                                    return '';
+                                                  }
+                                                }
+                                                return item.record?.notes || '';
+                                              })()}
+                                            </p>
                                           </div>
                                         )}
                                       </div>
