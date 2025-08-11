@@ -12,10 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, startOfQuarter, endOfQuarter, isWithinInterval } from "date-fns";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type YesNo = "yes" | "no";
 
@@ -85,6 +86,7 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
   const { toast } = useToast();
 
   const [step, setStep] = useState<number>(1); // 1: personal, 2: service users list, 3..n: per user, last: office
+  const [showPersonalErrors, setShowPersonalErrors] = useState(false);
 
   const [form, setForm] = useState<SupervisionFormData>({
     dateOfSupervision: "",
@@ -115,6 +117,7 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
   useEffect(() => {
     if (!open) return;
     setStep(1);
+    setShowPersonalErrors(false);
     if (initialData) {
       setForm({ ...initialData, signatureEmployee: initialData.signatureEmployee || employeeName || "" });
     } else {
@@ -194,9 +197,24 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
   };
 
   const validatePersonal = () => {
-    if (!form.dateOfSupervision) return "Date of Supervision is required";
-    return null;
-  };
+    const missing: string[] = []
+    if (!form.howAreYou?.trim()) missing.push("howAreYou")
+    if (!form.proceduralGuidelines?.trim()) missing.push("proceduralGuidelines")
+    if (!form.staffIssues?.trim()) missing.push("staffIssues")
+    if (!form.trainingAndDevelopment?.trim()) missing.push("trainingAndDevelopment")
+    if (!form.keyAreasOfResponsibility?.trim()) missing.push("keyAreasOfResponsibility")
+    if (!form.otherIssues?.trim()) missing.push("otherIssues")
+    if (!form.annualLeaveTaken?.trim()) missing.push("annualLeaveTaken")
+    if (!form.annualLeaveBooked?.trim()) missing.push("annualLeaveBooked")
+
+    const now = new Date()
+    const qs = startOfQuarter(now)
+    const qe = endOfQuarter(now)
+    const dateValid = !!form.dateOfSupervision && isWithinInterval(new Date(form.dateOfSupervision), { start: qs, end: qe })
+    if (!dateValid) missing.push("dateOfSupervision")
+
+    return missing
+  }
 
   const validateServiceUsersList = () => {
     if (form.serviceUsersCount > 0 && form.serviceUserNames.some((n) => !n?.trim())) return "Please enter all service user names";
@@ -216,16 +234,20 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
 
   const handleNext = () => {
     if (step === 1) {
-      const err = validatePersonal();
-      if (err) { toast({ title: err, variant: "destructive" }); return; }
+      const missing = validatePersonal();
+      if (missing.length) {
+        setShowPersonalErrors(true);
+        toast({ title: "Please complete required fields (within current quarter)", variant: "destructive" });
+        return;
+      }
+      setShowPersonalErrors(false);
     }
     if (step === 2) {
       const err = validateServiceUsersList();
       if (err) { toast({ title: err, variant: "destructive" }); return; }
     }
     if (step >= 3 && currentServiceUserIndex >= 0) {
-      // Per user basic validation: ensure Y/N set where applicable when reason present
-      // Keep minimal for now
+      // Per user basic validation: minimal for now
     }
     setStep((s) => Math.min(totalSteps, s + 1));
   };
@@ -267,63 +289,83 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
       <h3 className="text-base font-semibold">Personal Questions</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label>HOW ARE YOU (e.g., feelings, motivation, morale, issues to discuss)</Label>
-          <Textarea value={form.howAreYou} onChange={(e) => updateForm("howAreYou", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
-        </div>
-        <div className="space-y-1">
-          <Label>Company and Statutory Procedural Guidelines and Policy discussions</Label>
-          <Textarea value={form.proceduralGuidelines} onChange={(e) => updateForm("proceduralGuidelines", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
-        </div>
-        <div className="space-y-1">
-          <Label>Staff Issues (Teamwork, Supervision, observation, performance etc)</Label>
-          <Textarea value={form.staffIssues} onChange={(e) => updateForm("staffIssues", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
-        </div>
-        <div className="space-y-1">
-          <Label>Training and development (e.g., Training needs, application of what learnt)</Label>
-          <Textarea value={form.trainingAndDevelopment} onChange={(e) => updateForm("trainingAndDevelopment", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
-        </div>
-        <div className="space-y-1 md:col-span-2">
-          <Label>KEY AREAS OF RESPONSIBILITY (e.g., how is it going, any development needed)</Label>
-          <Textarea value={form.keyAreasOfResponsibility} onChange={(e) => updateForm("keyAreasOfResponsibility", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
-        </div>
-        <div className="space-y-1 md:col-span-2">
-          <Label>Other issues</Label>
-          <Textarea value={form.otherIssues} onChange={(e) => updateForm("otherIssues", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
-        </div>
-        <div className="space-y-1 md:col-span-2">
-          <Label>Annual Leave - Taken / Booked</Label>
-          <Textarea
-            rows={2}
-            placeholder={"Taken\nBooked"}
-            value={`${form.annualLeaveTaken || ""}${form.annualLeaveBooked ? "\n" + form.annualLeaveBooked : ""}`}
-            onChange={(e) => {
-              const [taken, booked = ""] = e.target.value.split(/\r?\n/, 2)
-              updateForm("annualLeaveTaken", taken)
-              updateForm("annualLeaveBooked", booked)
-            }}
-            className="bg-accent/5 border-accent/30 focus-visible:ring-accent"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label>Date of the Supervision</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full justify-start text-left font-normal">
-                {form.dateOfSupervision ? format(new Date(form.dateOfSupervision), "PPP") : "Pick a date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={form.dateOfSupervision ? new Date(form.dateOfSupervision) : undefined}
-                onSelect={(date) => date && updateForm("dateOfSupervision", format(date, "yyyy-MM-dd"))}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+        {(() => {
+          const now = new Date();
+          const qs = startOfQuarter(now);
+          const qe = endOfQuarter(now);
+          const dateInvalid = !form.dateOfSupervision || !isWithinInterval(new Date(form.dateOfSupervision), { start: qs, end: qe });
+          const annualMissing = !form.annualLeaveTaken?.trim() || !form.annualLeaveBooked?.trim();
+          return (
+            <>
+              <div className="space-y-1">
+                <Label>HOW ARE YOU (e.g., feelings, motivation, morale, issues to discuss)</Label>
+                <Textarea value={form.howAreYou} onChange={(e) => updateForm("howAreYou", e.target.value)} rows={3} className={cn("bg-accent/10 border-accent/40 focus-visible:ring-2 focus-visible:ring-accent", showPersonalErrors && !form.howAreYou?.trim() && "border-destructive focus-visible:ring-destructive")} />
+                {showPersonalErrors && !form.howAreYou?.trim() && (<p className="text-destructive text-xs">Required</p>)}
+              </div>
+              <div className="space-y-1">
+                <Label>Company and Statutory Procedural Guidelines and Policy discussions</Label>
+                <Textarea value={form.proceduralGuidelines} onChange={(e) => updateForm("proceduralGuidelines", e.target.value)} rows={3} className={cn("bg-accent/10 border-accent/40 focus-visible:ring-2 focus-visible:ring-accent", showPersonalErrors && !form.proceduralGuidelines?.trim() && "border-destructive focus-visible:ring-destructive")} />
+                {showPersonalErrors && !form.proceduralGuidelines?.trim() && (<p className="text-destructive text-xs">Required</p>)}
+              </div>
+              <div className="space-y-1">
+                <Label>Staff Issues (Teamwork, Supervision, observation, performance etc)</Label>
+                <Textarea value={form.staffIssues} onChange={(e) => updateForm("staffIssues", e.target.value)} rows={3} className={cn("bg-accent/10 border-accent/40 focus-visible:ring-2 focus-visible:ring-accent", showPersonalErrors && !form.staffIssues?.trim() && "border-destructive focus-visible:ring-destructive")} />
+                {showPersonalErrors && !form.staffIssues?.trim() && (<p className="text-destructive text-xs">Required</p>)}
+              </div>
+              <div className="space-y-1">
+                <Label>Training and development (e.g., Training needs, application of what learnt)</Label>
+                <Textarea value={form.trainingAndDevelopment} onChange={(e) => updateForm("trainingAndDevelopment", e.target.value)} rows={3} className={cn("bg-accent/10 border-accent/40 focus-visible:ring-2 focus-visible:ring-accent", showPersonalErrors && !form.trainingAndDevelopment?.trim() && "border-destructive focus-visible:ring-destructive")} />
+                {showPersonalErrors && !form.trainingAndDevelopment?.trim() && (<p className="text-destructive text-xs">Required</p>)}
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <Label>KEY AREAS OF RESPONSIBILITY (e.g., how is it going, any development needed)</Label>
+                <Textarea value={form.keyAreasOfResponsibility} onChange={(e) => updateForm("keyAreasOfResponsibility", e.target.value)} rows={3} className={cn("bg-accent/10 border-accent/40 focus-visible:ring-2 focus-visible:ring-accent", showPersonalErrors && !form.keyAreasOfResponsibility?.trim() && "border-destructive focus-visible:ring-destructive")} />
+                {showPersonalErrors && !form.keyAreasOfResponsibility?.trim() && (<p className="text-destructive text-xs">Required</p>)}
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <Label>Other issues</Label>
+                <Textarea value={form.otherIssues} onChange={(e) => updateForm("otherIssues", e.target.value)} rows={3} className={cn("bg-accent/10 border-accent/40 focus-visible:ring-2 focus-visible:ring-accent", showPersonalErrors && !form.otherIssues?.trim() && "border-destructive focus-visible:ring-destructive")} />
+                {showPersonalErrors && !form.otherIssues?.trim() && (<p className="text-destructive text-xs">Required</p>)}
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <Label>Annual Leave - Taken / Booked</Label>
+                <Textarea
+                  rows={2}
+                  placeholder={"Taken\nBooked"}
+                  value={`${form.annualLeaveTaken || ""}${form.annualLeaveBooked ? "\n" + form.annualLeaveBooked : ""}`}
+                  onChange={(e) => {
+                    const [taken, booked = ""] = e.target.value.split(/\r?\n/, 2)
+                    updateForm("annualLeaveTaken", taken)
+                    updateForm("annualLeaveBooked", booked)
+                  }}
+                  className={cn("bg-accent/10 border-accent/40 focus-visible:ring-2 focus-visible:ring-accent", showPersonalErrors && annualMissing && "border-destructive focus-visible:ring-destructive")}
+                />
+                {showPersonalErrors && annualMissing && (<p className="text-destructive text-xs">Both lines required: Taken and Booked</p>)}
+              </div>
+              <div className="space-y-1">
+                <Label>Date of the Supervision</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", showPersonalErrors && dateInvalid && "border-destructive focus-visible:ring-destructive")}> 
+                      {form.dateOfSupervision ? format(new Date(form.dateOfSupervision), "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={form.dateOfSupervision ? new Date(form.dateOfSupervision) : undefined}
+                      onSelect={(date) => date && updateForm("dateOfSupervision", format(date, "yyyy-MM-dd"))}
+                      disabled={(date) => date < qs || date > qe}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                {showPersonalErrors && dateInvalid && (<p className="text-destructive text-xs">Select a date within the current quarter</p>)}
+              </div>
+            </>
+          )
+        })()}
       </div>
 
       <div className="pt-2 flex justify-between">
@@ -428,10 +470,10 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
         <div className="space-y-3">
           {form.office.actions.map((action, idx) => (
             <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 border rounded-md p-3">
-              <Input placeholder="Issue" value={action.issue || ""} onChange={(e) => updateOffice(idx, { issue: e.target.value })} />
-              <Input placeholder="Action to be taken" value={action.action || ""} onChange={(e) => updateOffice(idx, { action: e.target.value })} />
-              <Input placeholder="By whom" value={action.byWhom || ""} onChange={(e) => updateOffice(idx, { byWhom: e.target.value })} />
-              <Input type="date" placeholder="Date Completed" value={action.dateCompleted || ""} onChange={(e) => updateOffice(idx, { dateCompleted: e.target.value })} />
+              <Input placeholder="Issue" value={action.issue || ""} onChange={(e) => updateOffice(idx, { issue: e.target.value })} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
+              <Input placeholder="Action to be taken" value={action.action || ""} onChange={(e) => updateOffice(idx, { action: e.target.value })} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
+              <Input placeholder="By whom" value={action.byWhom || ""} onChange={(e) => updateOffice(idx, { byWhom: e.target.value })} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
+              <Input type="date" placeholder="Date Completed" value={action.dateCompleted || ""} onChange={(e) => updateOffice(idx, { dateCompleted: e.target.value })} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
               <div className="md:col-span-4 flex justify-end">
                 <Button type="button" variant="outline" size="sm" onClick={() => removeOfficeAction(idx)}>Remove</Button>
               </div>
