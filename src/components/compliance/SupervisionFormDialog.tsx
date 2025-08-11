@@ -269,35 +269,41 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label>HOW ARE YOU (e.g., feelings, motivation, morale, issues to discuss)</Label>
-          <Textarea value={form.howAreYou} onChange={(e) => updateForm("howAreYou", e.target.value)} rows={3} />
+          <Textarea value={form.howAreYou} onChange={(e) => updateForm("howAreYou", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
         </div>
         <div className="space-y-1">
           <Label>Company and Statutory Procedural Guidelines and Policy discussions</Label>
-          <Textarea value={form.proceduralGuidelines} onChange={(e) => updateForm("proceduralGuidelines", e.target.value)} rows={3} />
+          <Textarea value={form.proceduralGuidelines} onChange={(e) => updateForm("proceduralGuidelines", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
         </div>
         <div className="space-y-1">
           <Label>Staff Issues (Teamwork, Supervision, observation, performance etc)</Label>
-          <Textarea value={form.staffIssues} onChange={(e) => updateForm("staffIssues", e.target.value)} rows={3} />
+          <Textarea value={form.staffIssues} onChange={(e) => updateForm("staffIssues", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
         </div>
         <div className="space-y-1">
           <Label>Training and development (e.g., Training needs, application of what learnt)</Label>
-          <Textarea value={form.trainingAndDevelopment} onChange={(e) => updateForm("trainingAndDevelopment", e.target.value)} rows={3} />
+          <Textarea value={form.trainingAndDevelopment} onChange={(e) => updateForm("trainingAndDevelopment", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
         </div>
         <div className="space-y-1 md:col-span-2">
           <Label>KEY AREAS OF RESPONSIBILITY (e.g., how is it going, any development needed)</Label>
-          <Textarea value={form.keyAreasOfResponsibility} onChange={(e) => updateForm("keyAreasOfResponsibility", e.target.value)} rows={3} />
+          <Textarea value={form.keyAreasOfResponsibility} onChange={(e) => updateForm("keyAreasOfResponsibility", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
         </div>
         <div className="space-y-1 md:col-span-2">
           <Label>Other issues</Label>
-          <Textarea value={form.otherIssues} onChange={(e) => updateForm("otherIssues", e.target.value)} rows={3} />
+          <Textarea value={form.otherIssues} onChange={(e) => updateForm("otherIssues", e.target.value)} rows={3} className="bg-accent/5 border-accent/30 focus-visible:ring-accent" />
         </div>
-        <div className="space-y-1">
-          <Label>Annual Leave - Taken</Label>
-          <Input value={form.annualLeaveTaken} onChange={(e) => updateForm("annualLeaveTaken", e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <Label>Annual Leave - Booked</Label>
-          <Input value={form.annualLeaveBooked} onChange={(e) => updateForm("annualLeaveBooked", e.target.value)} />
+        <div className="space-y-1 md:col-span-2">
+          <Label>Annual Leave - Taken / Booked</Label>
+          <Textarea
+            rows={2}
+            placeholder={"Taken\nBooked"}
+            value={`${form.annualLeaveTaken || ""}${form.annualLeaveBooked ? "\n" + form.annualLeaveBooked : ""}`}
+            onChange={(e) => {
+              const [taken, booked = ""] = e.target.value.split(/\r?\n/, 2)
+              updateForm("annualLeaveTaken", taken)
+              updateForm("annualLeaveBooked", booked)
+            }}
+            className="bg-accent/5 border-accent/30 focus-visible:ring-accent"
+          />
         </div>
         <div className="space-y-1">
           <Label>Date of the Supervision</Label>
