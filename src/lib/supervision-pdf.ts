@@ -133,6 +133,13 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     y -= 10
   }
 
+  // Thin divider for separating answers within a section
+  const drawAnswerDivider = () => {
+    ensureSpace(6)
+    page.drawRectangle({ x: marginX, y: y - 1, width: contentWidth(), height: 0.5, color: divider })
+    y -= 6
+  }
+
   const wrapText = (text: string, width: number, f = font, size = 11) => {
     const words = (text || '').split(/\s+/).filter(Boolean)
     const lines: string[] = []
@@ -193,13 +200,20 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
   // Personal Section
   drawSectionTitle('Personal')
   drawParagraph('How are you', data.howAreYou)
+  drawAnswerDivider()
   drawParagraph('Guidelines & Policy discussions', data.proceduralGuidelines)
+  drawAnswerDivider()
   drawParagraph('Staff Issues', data.staffIssues)
+  drawAnswerDivider()
   drawParagraph('Training & Development', data.trainingAndDevelopment)
+  drawAnswerDivider()
   drawParagraph('Key Areas of Responsibility', data.keyAreasOfResponsibility)
+  drawAnswerDivider()
   drawParagraph('Other issues', data.otherIssues)
-  drawKeyVal('Annual Leave - Taken', data.annualLeaveTaken)
-  drawKeyVal('Annual Leave - Booked', data.annualLeaveBooked)
+  drawAnswerDivider()
+  const annualText = (data.annualLeaveTaken?.trim() || data.annualLeaveBooked?.trim() || '')
+  drawKeyVal('Annual Leave (Taken/Booked)', annualText)
+  drawAnswerDivider()
 
   // Service Users Section
   drawDivider()
@@ -211,21 +225,25 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
   const yesNo = (o?: { value?: 'yes'|'no'; reason?: string }) => `${o?.value || ''}${o?.reason ? ` - ${o.reason}` : ''}`
 
   for (const [idx, su] of (data.perServiceUser || []).entries()) {
-    // Build content lines to estimate box height
-    const lines: string[] = []
-    lines.push(`Service User #${idx + 1}: ${su.serviceUserName || ''}`)
-    lines.push(`Concerns: ${yesNo(su.concerns)}`)
-    lines.push(`Comfortable working: ${yesNo(su.comfortable)}`)
-    lines.push(`Comments about service: ${yesNo(su.commentsAboutService)}`)
-    lines.push(`Complaints made: ${yesNo(su.complaintsByServiceUser)}`)
-    lines.push(`Safeguarding issues: ${yesNo(su.safeguardingIssues)}`)
-    lines.push(`Other discussion: ${yesNo(su.otherDiscussion)}`)
-    lines.push(`Bruises: ${yesNo(su.bruises)}`)
-    if (su.bruises?.value === 'yes' && su.bruisesCauses) lines.push(`Bruises causes: ${su.bruisesCauses}`)
-    lines.push(`Pressure sores: ${yesNo(su.pressureSores)}`)
+    // Build content lines then wrap to keep text within the box width
+    const entries: string[] = []
+    entries.push(`Service User #${idx + 1}: ${su.serviceUserName || ''}`)
+    entries.push(`Concerns: ${yesNo(su.concerns)}`)
+    entries.push(`Comfortable working: ${yesNo(su.comfortable)}`)
+    entries.push(`Comments about service: ${yesNo(su.commentsAboutService)}`)
+    entries.push(`Complaints made: ${yesNo(su.complaintsByServiceUser)}`)
+    entries.push(`Safeguarding issues: ${yesNo(su.safeguardingIssues)}`)
+    entries.push(`Other discussion: ${yesNo(su.otherDiscussion)}`)
+    entries.push(`Bruises: ${yesNo(su.bruises)}`)
+    if (su.bruises?.value === 'yes' && su.bruisesCauses) entries.push(`Bruises causes: ${su.bruisesCauses}`)
+    entries.push(`Pressure sores: ${yesNo(su.pressureSores)}`)
 
     const boxPad = 10
-    const boxHeight = lines.length * lineHeight + boxPad * 2
+    const maxBoxWidth = contentWidth() - boxPad * 2
+    const wrappedTitle = wrapText(entries[0], maxBoxWidth, boldFont, 11)
+    const wrappedOthers = entries.slice(1).map(t => wrapText(t, maxBoxWidth, font, 11))
+    const totalLines = wrappedTitle.length + wrappedOthers.reduce((sum, arr) => sum + arr.length, 0)
+    const boxHeight = totalLines * lineHeight + boxPad * 2
     ensureSpace(boxHeight + 8)
 
     // Box background
@@ -240,8 +258,12 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
       innerY -= lineHeight
     }
 
-    drawInBox(lines[0], true)
-    for (let i = 1; i < lines.length; i++) drawInBox(lines[i])
+    // Title (bold)
+    for (const l of wrappedTitle) drawInBox(l, true)
+    // Rest (normal)
+    for (const wrapped of wrappedOthers) {
+      for (const l of wrapped) drawInBox(l)
+    }
 
     y -= boxHeight + 8
   }
