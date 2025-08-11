@@ -1134,7 +1134,6 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
       <Badge className="bg-warning/10 text-warning border-warning/20">Not completed</Badge>
     )}
     {/* View Dialog */}
-  </>
 )}
                                   <Dialog>
                                     <DialogTrigger asChild>
@@ -1268,7 +1267,8 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
                                   </AlertDialog>
-                                </>
+                                
+                                  </>
                               )}
                             </div>
                           </TableCell>
