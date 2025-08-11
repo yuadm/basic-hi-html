@@ -204,8 +204,6 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
     if (!form.trainingAndDevelopment?.trim()) missing.push("trainingAndDevelopment")
     if (!form.keyAreasOfResponsibility?.trim()) missing.push("keyAreasOfResponsibility")
     if (!form.otherIssues?.trim()) missing.push("otherIssues")
-    if (!form.annualLeaveTaken?.trim()) missing.push("annualLeaveTaken")
-    if (!form.annualLeaveBooked?.trim()) missing.push("annualLeaveBooked")
 
     const now = new Date()
     const qs = startOfQuarter(now)
@@ -294,7 +292,7 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
           const qs = startOfQuarter(now);
           const qe = endOfQuarter(now);
           const dateInvalid = !form.dateOfSupervision || !isWithinInterval(new Date(form.dateOfSupervision), { start: qs, end: qe });
-          const annualMissing = !form.annualLeaveTaken?.trim() || !form.annualLeaveBooked?.trim();
+          
           return (
             <>
               <div className="space-y-1">
@@ -338,9 +336,8 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
                     updateForm("annualLeaveTaken", taken)
                     updateForm("annualLeaveBooked", booked)
                   }}
-                  className={cn("bg-accent/10 border-accent/40 focus-visible:ring-2 focus-visible:ring-accent", showPersonalErrors && annualMissing && "border-destructive focus-visible:ring-destructive")}
+                  className={cn("bg-accent/10 border-accent/40 focus-visible:ring-2 focus-visible:ring-accent")}
                 />
-                {showPersonalErrors && annualMissing && (<p className="text-destructive text-xs">Both lines required: Taken and Booked</p>)}
               </div>
               <div className="space-y-1">
                 <Label>Date of the Supervision</Label>
