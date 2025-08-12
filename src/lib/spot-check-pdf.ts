@@ -20,6 +20,21 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
   const font = await doc.embedFont(new Uint8Array(regularBytes), { subset: true })
   const boldFont = await doc.embedFont(new Uint8Array(boldBytes), { subset: true })
 
+  // Try to embed company logo (optional)
+  let embeddedLogo: any | undefined
+  if (company?.logo) {
+    try {
+      const logoBytes = await fetch(company.logo).then(r => r.arrayBuffer())
+      try {
+        embeddedLogo = await doc.embedPng(logoBytes)
+      } catch {
+        embeddedLogo = await doc.embedJpg(logoBytes)
+      }
+    } catch {
+      embeddedLogo = undefined
+    }
+  }
+
   const margin = 40
   const lineHeight = 16
   let y = page.getHeight() - margin
@@ -47,13 +62,51 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
     y -= lineHeight
   }
 
-  // Header
-  drawText(company?.name || 'Company', { bold: true, size: 16 })
-  drawText('Spot Check Report', { bold: true, size: 14 })
-  drawText(`Generated: ${format(new Date(), 'dd-MM-yyyy HH:mm')}`, { size: 10 })
-  addSpacer(6)
-  page.drawRectangle({ x: margin, y: y - 2, width: page.getWidth() - margin * 2, height: 1, color: rgb(0.85,0.85,0.85) })
-  y -= 8
+  // Header (logo + centered titles + quarter/year)
+  const drawReportHeader = () => {
+    const headerHeight = embeddedLogo ? 120 : 100
+    // background
+    page.drawRectangle({ x: 0, y: page.getHeight() - headerHeight, width: page.getWidth(), height: headerHeight, color: rgb(0.98, 0.98, 0.985) })
+    const centerX = page.getWidth() / 2
+    let cursorY = page.getHeight() - 16
+
+    if (embeddedLogo) {
+      const logoW = 56
+      const logoH = (embeddedLogo.height / embeddedLogo.width) * logoW
+      const logoX = centerX - logoW / 2
+      const logoY = page.getHeight() - headerHeight + headerHeight - logoH - 8
+      page.drawImage(embeddedLogo, { x: logoX, y: logoY, width: logoW, height: logoH })
+      cursorY = logoY - 6
+    }
+
+    const companyName = company?.name || 'Company'
+    const companySize = 13
+    const companyWidth = boldFont.widthOfTextAtSize(companyName, companySize)
+    page.drawText(companyName, { x: centerX - companyWidth / 2, y: cursorY - companySize, size: companySize, font: boldFont, color: rgb(0,0,0) })
+    cursorY -= companySize + 2
+
+    const title = 'Spot Check Report'
+    const titleSize = 12
+    const titleWidth = boldFont.widthOfTextAtSize(title, titleSize)
+    page.drawText(title, { x: centerX - titleWidth / 2, y: cursorY - titleSize - 2, size: titleSize, font: boldFont, color: rgb(0,0,0) })
+    cursorY -= titleSize + 8
+
+    // Quarter and Year centered
+    const d = data?.date ? new Date(data.date) : new Date()
+    const q = Math.floor((d.getMonth()) / 3) + 1
+    const qText = `Q${q} ${d.getFullYear()}`
+    const qSize = 11
+    const qWidth = font.widthOfTextAtSize(qText, qSize)
+    page.drawText(qText, { x: centerX - qWidth / 2, y: cursorY - qSize, size: qSize, font, color: rgb(0.6,0.6,0.6) })
+
+    // Divider
+    page.drawRectangle({ x: margin, y: page.getHeight() - headerHeight - 1, width: page.getWidth() - margin * 2, height: 1, color: rgb(0.85,0.85,0.85) })
+
+    // Reset Y to below header
+    y = page.getHeight() - headerHeight - 16
+  }
+  // draw it
+  drawReportHeader()
 
   // Details
   drawText('A. Details', { bold: true, size: 13 })
@@ -136,7 +189,7 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
     return Math.max(baseRowHeight, lines.length * lineHeight + cellPadY * 2)
   }
 
-  const drawHeader = () => {
+  const drawTableHeader = () => {
     const headerHeight = 30
     page.drawRectangle({
       x: tableX,
@@ -198,12 +251,12 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
     if (y - needed < margin) {
       page = doc.addPage()
       y = page.getHeight() - margin
-      drawHeader()
+      drawTableHeader()
     }
   }
 
-  // initial header
-  drawHeader()
+  // initial table header
+  drawTableHeader()
 
   data.observations.forEach((obs, i) => {
     const itemHeight = measureCellHeight(obs.label || '', colItem)
@@ -239,9 +292,6 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
     y -= currentRowHeight
     page.drawRectangle({ x: tableX, y: y - 1 + 5, width: page.getWidth() - margin * 2, height: 1, color: rgb(0.92,0.92,0.92) })
   })
-
-  addSpacer(12)
-  drawText('End of Report', { size: 10 })
 
   const bytes = await doc.save()
   const blob = new Blob([bytes], { type: 'application/pdf' })
