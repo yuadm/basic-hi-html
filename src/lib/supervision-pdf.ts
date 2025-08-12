@@ -57,48 +57,39 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
   let pageIndex = 1
 
   const drawHeader = () => {
-    // Stacked, centered header: Logo -> Company -> Report -> Quarter/Year
-    const headerHeight = embeddedLogo ? 120 : 100
-    // Background
+    const headerHeight = 50
+    // Top rule
     page.drawRectangle({ x: 0, y: page.getHeight() - headerHeight, width: page.getWidth(), height: headerHeight, color: rgb(0.98, 0.98, 0.985) })
 
-    const centerX = page.getWidth() / 2
-    let cursorY = page.getHeight() - 16
+    const leftX = marginX
+    let cursorX = leftX
 
-    // Logo (larger) centered
-    if (embeddedLogo) {
-      const logoW = 72
-      const logoH = (embeddedLogo.height / embeddedLogo.width) * logoW
-      const logoX = centerX - logoW / 2
-      const logoY = cursorY - logoH
-      page.drawImage(embeddedLogo, { x: logoX, y: logoY, width: logoW, height: logoH })
-      cursorY = logoY - 6
-    }
-
-    // Company name centered
+    // Company name on the left
     const companyName = company?.name || 'Company'
-    const companySize = 13
-    const companyTextWidth = boldFont.widthOfTextAtSize(companyName, companySize)
-    page.drawText(companyName, { x: centerX - companyTextWidth / 2, y: cursorY - companySize, size: companySize, font: boldFont, color: textColor })
-    cursorY = cursorY - companySize - 6
+    page.drawText(companyName, { x: leftX, y: page.getHeight() - 24, size: 13, font: boldFont, color: textColor })
 
-    // Report title centered
+    // Centered logo + report title as a group
     const title = 'Supervision Report'
     const titleSize = 12
     const titleWidth = boldFont.widthOfTextAtSize(title, titleSize)
-    page.drawText(title, { x: centerX - titleWidth / 2, y: cursorY - titleSize, size: titleSize, font: boldFont, color: textColor })
-    cursorY = cursorY - titleSize - 4
+    if (embeddedLogo) {
+      const logoW = 48
+      const logoH = (embeddedLogo.height / embeddedLogo.width) * logoW
+      const spacing = 12
+      const groupWidth = logoW + spacing + titleWidth
+      const groupX = (page.getWidth() - groupWidth) / 2
+      const logoY = page.getHeight() - headerHeight + (headerHeight - logoH) / 2
+      page.drawImage(embeddedLogo, { x: groupX, y: logoY, width: logoW, height: logoH })
+      page.drawText(title, { x: groupX + logoW + spacing, y: page.getHeight() - 36, size: titleSize, font: boldFont, color: textColor })
+    } else {
+      const titleX = (page.getWidth() - titleWidth) / 2
+      page.drawText(title, { x: titleX, y: page.getHeight() - 36, size: titleSize, font: boldFont, color: textColor })
+    }
 
-    // Quarter and Year centered (based on supervision date if provided)
-    const d = data?.dateOfSupervision ? new Date(data.dateOfSupervision) : new Date()
-    const q = Math.floor(d.getMonth() / 3) + 1
-    const qText = `Q${q} ${d.getFullYear()}`
-    const qSize = 11
-    const qWidth = font.widthOfTextAtSize(qText, qSize)
-    page.drawText(qText, { x: centerX - qWidth / 2, y: cursorY - qSize, size: qSize, font, color: subtle })
+    // Date on right
 
     // Divider
-    page.drawRectangle({ x: marginX, y: page.getHeight() - headerHeight - 1, width: page.getWidth() - marginX * 2, height: 2, color: accent })
+    page.drawRectangle({ x: marginX, y: page.getHeight() - headerHeight - 1, width: page.getWidth() - marginX * 2, height: 1, color: divider })
 
     // Reset content Y just below header
     y = page.getHeight() - headerHeight - 14
@@ -270,7 +261,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     const boxPad = 12
     const innerW = contentWidth() - boxPad * 2
 
-    const drawQBox = (label: string, content?: string, contentBold: boolean = false) => {
+    const drawQBox = (label: string, content?: string) => {
       const lines = wrapText(String(content ?? ''), innerW)
       const h = lineHeight + Math.max(1, lines.length) * lineHeight + boxPad * 2
       ensureSpace(h + 8)
@@ -281,7 +272,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
       iy -= lineHeight
       if (!lines.length) lines.push('')
       for (const l of lines) {
-        page.drawText(l, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font: contentBold ? boldFont : font, color: textColor })
+        page.drawText(l, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font, color: textColor })
         iy -= lineHeight
       }
       y -= h + 12
@@ -290,13 +281,13 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     const drawYesNoQuestionBox = (label: string, o?: { value?: 'yes'|'no'; reason?: string }, extraReason?: { label: string; value?: string }) => {
       const btnW = 64
       const btnH = 18
-      const gap = 16
+      const gap = 10
       const hasReason = !!(o?.reason)
       const reasonText = hasReason ? `Reason: ${o?.reason ?? ''}` : ''
       const reasonLines = reasonText ? wrapText(reasonText, innerW) : []
       const extraText = extraReason && extraReason.value ? `${extraReason.label}: ${extraReason.value}` : ''
       const extraLines = extraText ? wrapText(extraText, innerW) : []
-      const h = lineHeight /*label*/ + (btnH + 10) + reasonLines.length * lineHeight + extraLines.length * lineHeight + boxPad * 2
+      const h = lineHeight /*label*/ + (btnH + 8) + reasonLines.length * lineHeight + extraLines.length * lineHeight + boxPad * 2
       ensureSpace(h + 8)
       // Box
       page.drawRectangle({ x: marginX, y: y - h, width: contentWidth(), height: h, color: rgb(0.985, 0.985, 0.99) })
@@ -304,7 +295,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
       let iy = y - boxPad
       // Label
       page.drawText(label, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font: boldFont, color: textColor })
-      iy -= lineHeight + 10
+      iy -= lineHeight + 6
       // Buttons row
       const yesSelected = o?.value === 'yes'
       const noSelected = o?.value === 'no'
@@ -314,26 +305,10 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
       // Yes button
       page.drawRectangle({ x: yesX, y: btnY, width: btnW, height: btnH, color: yesSelected ? rgb(0.9, 0.98, 0.92) : rgb(1,1,1), borderColor: yesSelected ? rgb(0.2, 0.6, 0.3) : divider, borderWidth: 1 })
       page.drawText(`✓ Yes`, { x: yesX + 8, y: btnY + 4, size: 10, font: boldFont, color: yesSelected ? rgb(0.2, 0.6, 0.3) : subtle })
-      // If selected in B&W: add vertical stripes and double border
-      if (yesSelected) {
-        for (let sx = yesX + 2; sx < yesX + btnW - 2; sx += 4) {
-          page.drawRectangle({ x: sx, y: btnY + 2, width: 1, height: btnH - 4, color: rgb(0.5, 0.5, 0.5) })
-        }
-        page.drawRectangle({ x: yesX + 1, y: btnY + 1, width: btnW - 2, height: btnH - 2, borderColor: rgb(0.2, 0.6, 0.3), borderWidth: 1, color: undefined as any })
-      }
-
       // No button
       page.drawRectangle({ x: noX, y: btnY, width: btnW, height: btnH, color: noSelected ? rgb(0.99, 0.92, 0.92) : rgb(1,1,1), borderColor: noSelected ? rgb(0.75, 0.2, 0.2) : divider, borderWidth: 1 })
       page.drawText(`✗ No`, { x: noX + 8, y: btnY + 4, size: 10, font: boldFont, color: noSelected ? rgb(0.75, 0.2, 0.2) : subtle })
-      // If selected in B&W: add horizontal stripes and double border
-      if (noSelected) {
-        for (let sy = btnY + 2; sy < btnY + btnH - 2; sy += 4) {
-          page.drawRectangle({ x: noX + 2, y: sy, width: btnW - 4, height: 1, color: rgb(0.5, 0.5, 0.5) })
-        }
-        page.drawRectangle({ x: noX + 1, y: btnY + 1, width: btnW - 2, height: btnH - 2, borderColor: rgb(0.75, 0.2, 0.2), borderWidth: 1, color: undefined as any })
-      }
-
-      iy = btnY - 16
+      iy = btnY - 12
       // Reason lines
       for (const l of reasonLines) {
         page.drawText(l, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font, color: textColor })
@@ -347,7 +322,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     }
 
     // Title box and questions
-    drawQBox(`Service User #${idx + 1}:`, su.serviceUserName || '', true)
+    drawQBox(`Service User #${idx + 1}:`, su.serviceUserName || '')
     drawYesNoQuestionBox('Concerns', su.concerns)
     drawYesNoQuestionBox('Comfortable working', su.comfortable)
     drawYesNoQuestionBox('Comments about service', su.commentsAboutService)
