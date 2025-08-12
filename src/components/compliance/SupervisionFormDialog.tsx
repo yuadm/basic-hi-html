@@ -17,7 +17,6 @@ import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSupervisionQuestions } from "@/lib/supervision-questions";
 
 export type YesNo = "yes" | "no";
 
@@ -32,8 +31,6 @@ export interface SupervisionServiceUserQA {
   bruises?: { value?: YesNo; reason?: string };
   bruisesCauses?: string;
   pressureSores?: { value?: YesNo; reason?: string };
-  // Custom per-service-user questions (dynamic)
-  custom?: Record<string, { value?: YesNo; reason?: string }>;
 }
 
 export interface OfficeActionItem {
@@ -87,7 +84,7 @@ interface SupervisionFormDialogProps {
 export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, initialData, employeeName }: SupervisionFormDialogProps) {
   const { companySettings } = useCompany();
   const { toast } = useToast();
-  const { config } = useSupervisionQuestions();
+
   const [step, setStep] = useState<number>(1); // 1: personal, 2: service users list, 3..n: per user, last: office
   const [showPersonalErrors, setShowPersonalErrors] = useState(false);
 
@@ -192,16 +189,6 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
     setForm((prev) => ({ ...prev, perServiceUser: per }));
   };
 
-  const updateCustomForUser = (index: number, id: string, next: { value?: YesNo; reason?: string }) => {
-    const per = [...form.perServiceUser];
-    const current = (per[index] || { serviceUserName: form.serviceUserNames[index] || "" }) as SupervisionServiceUserQA;
-    per[index] = {
-      ...current,
-      custom: { ...(current.custom || {}), [id]: next },
-    } as SupervisionServiceUserQA;
-    setForm((prev) => ({ ...prev, perServiceUser: per }));
-  };
-
   const setYN = (obj: { value?: YesNo; reason?: string } | undefined, value: YesNo) => {
     const next: { value?: YesNo; reason?: string } = { ...(obj || {}) };
     next.value = value;
@@ -258,22 +245,7 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
       if (err) { toast({ title: err, variant: "destructive" }); return; }
     }
     if (step >= 3 && currentServiceUserIndex >= 0) {
-      const su = form.perServiceUser[currentServiceUserIndex] as any;
-      const missing: string[] = [];
-      // Validate required default questions
-      for (const q of config.defaults.filter((q) => q.enabled && q.required)) {
-        const v = su?.[q.id]?.value as YesNo | undefined;
-        if (!v) missing.push(q.label);
-      }
-      // Validate required custom questions
-      for (const q of config.custom.filter((q) => q.enabled && q.required)) {
-        const v = (su?.custom?.[q.id]?.value as YesNo | undefined) || undefined;
-        if (!v) missing.push(q.label);
-      }
-      if (missing.length) {
-        toast({ title: "Please complete required questions", description: missing[0], variant: "destructive" });
-        return;
-      }
+      // Per user basic validation: minimal for now
     }
     setStep((s) => Math.min(totalSteps, s + 1));
   };
@@ -432,31 +404,18 @@ export default function SupervisionFormDialog({ open, onOpenChange, onSubmit, in
       <div className="space-y-4">
         <h3 className="text-base font-semibold">Service User: - {su.serviceUserName || `#${index + 1}`}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Default questions (enabled) */}
-          {config.defaults.filter((q) => q.enabled).map((q) => {
-            const val = (su as any)[q.id] as { value?: YesNo; reason?: string } | undefined;
-            return (
-              <div key={q.id} className="space-y-2">
-                {renderYN(q.label, val, (v) => updatePerUser(index, { [q.id]: v } as any))}
-                {q.id === "bruises" && (
-                  <div className="space-y-1">
-                    <Label>What are the causes for these bruises</Label>
-                    <Input value={su.bruisesCauses || ""} onChange={(e) => updatePerUser(index, { bruisesCauses: e.target.value })} disabled={val?.value !== "yes"} placeholder={val?.value === "yes" ? "Describe causes" : "N/A"} />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Custom questions (enabled) */}
-          {config.custom.filter((q) => q.enabled).map((q) => {
-            const val = su.custom?.[q.id];
-            return (
-              <div key={q.id} className="space-y-2">
-                {renderYN(q.label, val, (v) => updateCustomForUser(index, q.id, v))}
-              </div>
-            );
-          })}
+          {renderYN("Are there any concerns you have regarding this service user?", su.concerns, (v) => updatePerUser(index, { concerns: v }))}
+          {renderYN("Are you comfortable working with this service user?", su.comfortable, (v) => updatePerUser(index, { comfortable: v }))}
+          {renderYN("Any comments the service user made regarding the service by you, other carers or the agency?", su.commentsAboutService, (v) => updatePerUser(index, { commentsAboutService: v }))}
+          {renderYN("Any complaint the service user made regarding the service by you, other carers or the agency?", su.complaintsByServiceUser, (v) => updatePerUser(index, { complaintsByServiceUser: v }))}
+          {renderYN("Have you noticed any safeguarding issues with this client?", su.safeguardingIssues, (v) => updatePerUser(index, { safeguardingIssues: v }))}
+          {renderYN("Is there anything else you want to discuss?", su.otherDiscussion, (v) => updatePerUser(index, { otherDiscussion: v }))}
+          {renderYN("Are there any bruises with service user?", su.bruises, (v) => updatePerUser(index, { bruises: v }))}
+          <div className="space-y-1 md:col-span-2">
+            <Label>What are the causes for these bruises</Label>
+            <Input value={su.bruisesCauses || ""} onChange={(e) => updatePerUser(index, { bruisesCauses: e.target.value })} disabled={su.bruises?.value !== "yes"} placeholder={su.bruises?.value === "yes" ? "Describe causes" : "N/A"} />
+          </div>
+          {renderYN("Are there any pressure sores with service user?", su.pressureSores, (v) => updatePerUser(index, { pressureSores: v }))}
         </div>
         <div className="pt-2 flex justify-between">
           <Button variant="outline" onClick={handleBack}>Back</Button>
