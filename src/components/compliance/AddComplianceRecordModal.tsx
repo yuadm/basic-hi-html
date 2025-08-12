@@ -24,6 +24,7 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import SpotCheckFormDialog, { SpotCheckFormData } from "@/components/compliance/SpotCheckFormDialog";
 import SupervisionFormDialog, { SupervisionFormData } from "@/components/compliance/SupervisionFormDialog";
+import AnnualAppraisalFormDialog, { AnnualAppraisalFormData } from "@/components/compliance/AnnualAppraisalFormDialog";
 import { generateSpotCheckPdf } from "@/lib/spot-check-pdf";
 import { generateSupervisionPdf } from "@/lib/supervision-pdf";
 
@@ -52,12 +53,14 @@ export function AddComplianceRecordModal({
   const [isLoading, setIsLoading] = useState(false);
   const [completionDate, setCompletionDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
-const [recordType, setRecordType] = useState<'date' | 'new' | 'spotcheck' | 'supervision'>('date');
+const [recordType, setRecordType] = useState<'date' | 'new' | 'spotcheck' | 'supervision' | 'annualappraisal'>('date');
 const [newText, setNewText] = useState('');
 const [spotcheckOpen, setSpotcheckOpen] = useState(false);
 const [spotcheckData, setSpotcheckData] = useState<SpotCheckFormData | null>(null);
 const [supervisionOpen, setSupervisionOpen] = useState(false);
 const [supervisionData, setSupervisionData] = useState<SupervisionFormData | null>(null);
+const [annualOpen, setAnnualOpen] = useState(false);
+const [annualData, setAnnualData] = useState<AnnualAppraisalFormData | null>(null);
 const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeId || '');
 const [selectedEmployeeName, setSelectedEmployeeName] = useState(employeeName || '');
 const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurrentPeriodIdentifier(frequency));
