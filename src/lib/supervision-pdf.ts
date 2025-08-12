@@ -47,8 +47,9 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
   // Colors
   const textColor = rgb(0, 0, 0)
   const subtle = rgb(0.6, 0.6, 0.6)
-  const divider = rgb(0.85, 0.85, 0.85)
-  const sectionBg = rgb(0.96, 0.96, 0.98)
+  const divider = rgb(0.85, 0.85, 0.85) // neutral borders
+  const accent = rgb(0.2, 0.55, 0.95) // blue accent for section dividers
+  const sectionBg = rgb(0.96, 0.97, 0.99) // light blue-tinted section background
 
   // Page state
   let page = doc.addPage()
@@ -63,22 +64,27 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     const leftX = marginX
     let cursorX = leftX
 
-    if (embeddedLogo) {
-      const logoW = 36
-      const logoH = (embeddedLogo.height / embeddedLogo.width) * logoW
-      page.drawImage(embeddedLogo, { x: cursorX, y: page.getHeight() - headerHeight + (headerHeight - logoH) / 2, width: logoW, height: logoH })
-      cursorX += logoW + 12
-    }
-
+    // Company name on the left
     const companyName = company?.name || 'Company'
-    page.drawText(companyName, { x: cursorX, y: page.getHeight() - 24, size: 13, font: boldFont, color: textColor })
+    page.drawText(companyName, { x: leftX, y: page.getHeight() - 24, size: 13, font: boldFont, color: textColor })
 
-    // Centered report title
+    // Centered logo + report title as a group
     const title = 'Supervision Report'
     const titleSize = 12
     const titleWidth = boldFont.widthOfTextAtSize(title, titleSize)
-    const titleX = (page.getWidth() - titleWidth) / 2
-    page.drawText(title, { x: titleX, y: page.getHeight() - 36, size: titleSize, font: boldFont, color: textColor })
+    if (embeddedLogo) {
+      const logoW = 48
+      const logoH = (embeddedLogo.height / embeddedLogo.width) * logoW
+      const spacing = 12
+      const groupWidth = logoW + spacing + titleWidth
+      const groupX = (page.getWidth() - groupWidth) / 2
+      const logoY = page.getHeight() - headerHeight + (headerHeight - logoH) / 2
+      page.drawImage(embeddedLogo, { x: groupX, y: logoY, width: logoW, height: logoH })
+      page.drawText(title, { x: groupX + logoW + spacing, y: page.getHeight() - 36, size: titleSize, font: boldFont, color: textColor })
+    } else {
+      const titleX = (page.getWidth() - titleWidth) / 2
+      page.drawText(title, { x: titleX, y: page.getHeight() - 36, size: titleSize, font: boldFont, color: textColor })
+    }
 
     // Date on right
 
@@ -132,14 +138,14 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
 
   const drawDivider = () => {
     ensureSpace(10)
-    page.drawRectangle({ x: marginX, y: y - 2, width: contentWidth(), height: 1, color: divider })
+    page.drawRectangle({ x: marginX, y: y - 2, width: contentWidth(), height: 1, color: accent })
     y -= 10
   }
 
   // Thin divider for separating answers within a section
   const drawAnswerDivider = () => {
     ensureSpace(6)
-    page.drawRectangle({ x: marginX, y: y - 1, width: contentWidth(), height: 0.5, color: divider })
+    page.drawRectangle({ x: marginX, y: y - 1, width: contentWidth(), height: 0.5, color: accent })
     y -= 6
   }
 
@@ -193,10 +199,16 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     for (const l of lines) drawTextLine(l)
     y -= 4
   }
+  // Date formatter (dd/MM/yyyy)
+  const formatDateDmy = (s?: string) => {
+    if (!s) return ''
+    const d = new Date(s)
+    return isNaN(d.getTime()) ? s : format(d, 'dd/MM/yyyy')
+  }
 
   // Report Details
   drawSectionTitle('Report Details')
-  drawKeyVal('Date of Supervision', data.dateOfSupervision)
+  drawKeyVal('Date of Supervision', formatDateDmy(data.dateOfSupervision))
   drawKeyVal('Employee (Signature)', data.signatureEmployee)
   drawDivider()
 
@@ -211,7 +223,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     { title: 'Other issues', content: data.otherIssues },
   ]
   const annualText = (data.annualLeaveTaken?.trim() || data.annualLeaveBooked?.trim() || '')
-  const boxPad = 10
+  const boxPad = 12
   const drawQBox = (label: string, content?: string) => {
     const innerW = contentWidth() - boxPad * 2
     const lines = wrapText(String(content ?? ''), innerW)
@@ -229,7 +241,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
       page.drawText(l, { x: marginX + boxPad, y: innerY - lineHeight, size: 11, font, color: textColor })
       innerY -= lineHeight
     }
-    y -= boxH + 8
+    y -= boxH + 12
   }
   for (const item of personalItems) {
     drawQBox(item.title, item.content)
@@ -246,7 +258,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
   
 
   for (const [idx, su] of (data.perServiceUser || []).entries()) {
-    const boxPad = 10
+    const boxPad = 12
     const innerW = contentWidth() - boxPad * 2
 
     const drawQBox = (label: string, content?: string) => {
@@ -263,7 +275,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
         page.drawText(l, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font, color: textColor })
         iy -= lineHeight
       }
-      y -= h + 8
+      y -= h + 12
     }
 
     const drawYesNoQuestionBox = (label: string, o?: { value?: 'yes'|'no'; reason?: string }, extraReason?: { label: string; value?: string }) => {
@@ -283,7 +295,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
       let iy = y - boxPad
       // Label
       page.drawText(label, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font: boldFont, color: textColor })
-      iy -= lineHeight
+      iy -= lineHeight + 6
       // Buttons row
       const yesSelected = o?.value === 'yes'
       const noSelected = o?.value === 'no'
@@ -296,7 +308,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
       // No button
       page.drawRectangle({ x: noX, y: btnY, width: btnW, height: btnH, color: noSelected ? rgb(0.99, 0.92, 0.92) : rgb(1,1,1), borderColor: noSelected ? rgb(0.75, 0.2, 0.2) : divider, borderWidth: 1 })
       page.drawText(`✗ No`, { x: noX + 8, y: btnY + 4, size: 10, font: boldFont, color: noSelected ? rgb(0.75, 0.2, 0.2) : subtle })
-      iy = btnY - 8
+      iy = btnY - 12
       // Reason lines
       for (const l of reasonLines) {
         page.drawText(l, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font, color: textColor })
@@ -323,11 +335,16 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
 
   // Office Use
   drawDivider()
+  // Force this entire section onto a fresh page
+  drawFooter()
+  page = doc.addPage()
+  pageIndex += 1
+  drawHeader()
   drawSectionTitle('For Office Use Only')
   drawKeyVal('Name of employee', data.office?.employeeName)
   drawKeyVal('Project', data.office?.project)
   drawKeyVal('Supervisor', data.office?.supervisor)
-  drawKeyVal('Date', data.office?.date)
+  drawKeyVal('Date', formatDateDmy(data.office?.date))
 
   const actions = (data.office?.actions || []).filter(a => a.issue || a.action || a.byWhom || a.dateCompleted)
   if (actions.length) {
@@ -350,7 +367,7 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     }
 
     const drawRow = (row: { issue?: string; action?: string; byWhom?: string; dateCompleted?: string }) => {
-      const cells = [row.issue || '', row.action || '', row.byWhom || '', row.dateCompleted || '']
+      const cells = [row.issue || '', row.action || '', row.byWhom || '', formatDateDmy(row.dateCompleted)]
       const wrapped = cells.map((c, i) => wrapText(c, colWidths[i] - 12))
       const maxLines = Math.max(...wrapped.map(w => w.length))
       const rowH = Math.max(lineHeight * maxLines + 8, 22)
