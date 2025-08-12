@@ -72,7 +72,13 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
 
     const companyName = company?.name || 'Company'
     page.drawText(companyName, { x: cursorX, y: page.getHeight() - 24, size: 13, font: boldFont, color: textColor })
-    page.drawText('Supervision Report', { x: cursorX, y: page.getHeight() - 40, size: 11, font: font, color: subtle })
+
+    // Centered report title
+    const title = 'Supervision Report'
+    const titleSize = 12
+    const titleWidth = boldFont.widthOfTextAtSize(title, titleSize)
+    const titleX = (page.getWidth() - titleWidth) / 2
+    page.drawText(title, { x: titleX, y: page.getHeight() - 36, size: titleSize, font: boldFont, color: textColor })
 
     // Date on right
 
@@ -196,7 +202,6 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
 
   // Personal Section
   drawSectionTitle('Personal')
-  // Compute a background area height for the section content
   const personalItems: Array<{ title: string; content?: string }> = [
     { title: 'How are you', content: data.howAreYou },
     { title: 'Guidelines & Policy discussions', content: data.proceduralGuidelines },
@@ -206,34 +211,30 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
     { title: 'Other issues', content: data.otherIssues },
   ]
   const annualText = (data.annualLeaveTaken?.trim() || data.annualLeaveBooked?.trim() || '')
-  const annualLabel = 'Annual Leave (Taken/Booked): '
-  const annualLabelWidth = boldFont.widthOfTextAtSize(annualLabel, 11)
-  let personalHeight = 0
-  for (const item of personalItems) {
-    if (item.content) {
-      const lines = wrapText(item.content, contentWidth())
-      personalHeight += lineHeight // title
-      personalHeight += lines.length * lineHeight
-      personalHeight += 4 // paragraph spacing
-      personalHeight += 6 // divider
-    } else {
-      // still keep divider spacing to visually separate answers
-      personalHeight += 6
+  const boxPad = 10
+  const drawQBox = (label: string, content?: string) => {
+    const innerW = contentWidth() - boxPad * 2
+    const lines = wrapText(String(content ?? ''), innerW)
+    const boxH = lineHeight /*label*/ + Math.max(1, lines.length) * lineHeight + boxPad * 2
+    ensureSpace(boxH + 8)
+    // Box background and border
+    page.drawRectangle({ x: marginX, y: y - boxH, width: contentWidth(), height: boxH, color: rgb(0.985, 0.985, 0.99) })
+    page.drawRectangle({ x: marginX, y: y - boxH, width: contentWidth(), height: boxH, borderColor: divider, borderWidth: 1, color: undefined as any })
+    // Content
+    let innerY = y - boxPad
+    page.drawText(label, { x: marginX + boxPad, y: innerY - lineHeight, size: 11, font: boldFont, color: textColor })
+    innerY -= lineHeight
+    if (!lines.length) lines.push('')
+    for (const l of lines) {
+      page.drawText(l, { x: marginX + boxPad, y: innerY - lineHeight, size: 11, font, color: textColor })
+      innerY -= lineHeight
     }
+    y -= boxH + 8
   }
-  const annualLines = wrapText(annualText, contentWidth() - annualLabelWidth)
-  personalHeight += Math.max(1, annualLines.length) * lineHeight
-  personalHeight += 6 // divider after annual
-  ensureSpace(personalHeight)
-  page.drawRectangle({ x: marginX, y: y - personalHeight, width: contentWidth(), height: personalHeight, color: sectionBg })
-
-  // Now render the actual content on top of the background
   for (const item of personalItems) {
-    drawParagraph(item.title, item.content as string | undefined)
-    drawAnswerDivider()
+    drawQBox(item.title, item.content)
   }
-  drawKeyVal('Annual Leave (Taken/Booked)', annualText)
-  drawAnswerDivider()
+  drawQBox('Annual Leave (Taken/Booked)', annualText)
 
   // Service Users Section
   drawDivider()
@@ -242,72 +243,82 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
   const names = (data.serviceUserNames || []).filter(Boolean)
   if (names.length) drawParagraph('Names', names.join(', '))
 
-  const yesNo = (o?: { value?: 'yes'|'no'; reason?: string }) => `${o?.value || ''}${o?.reason ? ` - ${o.reason}` : ''}`
+  
 
   for (const [idx, su] of (data.perServiceUser || []).entries()) {
-    // Build content lines then wrap to keep text within the box width
-    const entries: string[] = []
-    entries.push(`Service User #${idx + 1}: ${su.serviceUserName || ''}`)
-    entries.push(`Concerns: ${yesNo(su.concerns)}`)
-    entries.push(`Comfortable working: ${yesNo(su.comfortable)}`)
-    entries.push(`Comments about service: ${yesNo(su.commentsAboutService)}`)
-    entries.push(`Complaints made: ${yesNo(su.complaintsByServiceUser)}`)
-    entries.push(`Safeguarding issues: ${yesNo(su.safeguardingIssues)}`)
-    entries.push(`Other discussion: ${yesNo(su.otherDiscussion)}`)
-    entries.push(`Bruises: ${yesNo(su.bruises)}`)
-    if (su.bruises?.value === 'yes' && su.bruisesCauses) entries.push(`Bruises causes: ${su.bruisesCauses}`)
-    entries.push(`Pressure sores: ${yesNo(su.pressureSores)}`)
-
     const boxPad = 10
-    const maxBoxWidth = contentWidth() - boxPad * 2
-    const wrappedTitle = wrapText(entries[0], maxBoxWidth, boldFont, 11)
+    const innerW = contentWidth() - boxPad * 2
 
-    // Prepare key-value rows with bold question (label) and wrapped answer
-    const kvs = entries.slice(1).map((t) => {
-      const idx = t.indexOf(':')
-      const label = (idx >= 0 ? t.slice(0, idx) : t) + ': '
-      const value = idx >= 0 ? t.slice(idx + 1).trim() : ''
-      const labelWidth = boldFont.widthOfTextAtSize(label, 11)
-      const valueLines = wrapText(value, maxBoxWidth - labelWidth, font, 11)
-      const linesCount = Math.max(1, valueLines.length)
-      return { label, labelWidth, valueLines, linesCount }
-    })
-
-    const totalLines = wrappedTitle.length + kvs.reduce((sum, kv) => sum + kv.linesCount, 0)
-    const boxHeight = totalLines * lineHeight + boxPad * 2
-    ensureSpace(boxHeight + 8)
-
-    // Box background
-    page.drawRectangle({ x: marginX, y: y - boxHeight, width: contentWidth(), height: boxHeight, color: rgb(0.985, 0.985, 0.99) })
-    // Box border
-    page.drawRectangle({ x: marginX, y: y - boxHeight, width: contentWidth(), height: boxHeight, borderColor: divider, borderWidth: 1, color: undefined as any })
-
-    let innerY = y - boxPad
-    const drawInBox = (t: string, bold = false) => {
-      const f = bold ? boldFont : font
-      page.drawText(t, { x: marginX + boxPad, y: innerY - lineHeight, size: 11, font: f, color: textColor })
-      innerY -= lineHeight
+    const drawQBox = (label: string, content?: string) => {
+      const lines = wrapText(String(content ?? ''), innerW)
+      const h = lineHeight + Math.max(1, lines.length) * lineHeight + boxPad * 2
+      ensureSpace(h + 8)
+      page.drawRectangle({ x: marginX, y: y - h, width: contentWidth(), height: h, color: rgb(0.985, 0.985, 0.99) })
+      page.drawRectangle({ x: marginX, y: y - h, width: contentWidth(), height: h, borderColor: divider, borderWidth: 1, color: undefined as any })
+      let iy = y - boxPad
+      page.drawText(label, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font: boldFont, color: textColor })
+      iy -= lineHeight
+      if (!lines.length) lines.push('')
+      for (const l of lines) {
+        page.drawText(l, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font, color: textColor })
+        iy -= lineHeight
+      }
+      y -= h + 8
     }
 
-    // Title (bold)
-    for (const l of wrappedTitle) drawInBox(l, true)
-
-    // Rows with bold label and wrapped answer kept inside the box
-    for (const kv of kvs) {
-      // First line: label + first answer line
-      page.drawText(kv.label, { x: marginX + boxPad, y: innerY - lineHeight, size: 11, font: boldFont, color: textColor })
-      if (kv.valueLines.length) {
-        page.drawText(kv.valueLines[0], { x: marginX + boxPad + kv.labelWidth, y: innerY - lineHeight, size: 11, font, color: textColor })
+    const drawYesNoQuestionBox = (label: string, o?: { value?: 'yes'|'no'; reason?: string }, extraReason?: { label: string; value?: string }) => {
+      const btnW = 64
+      const btnH = 18
+      const gap = 10
+      const hasReason = !!(o?.reason)
+      const reasonText = hasReason ? `Reason: ${o?.reason ?? ''}` : ''
+      const reasonLines = reasonText ? wrapText(reasonText, innerW) : []
+      const extraText = extraReason && extraReason.value ? `${extraReason.label}: ${extraReason.value}` : ''
+      const extraLines = extraText ? wrapText(extraText, innerW) : []
+      const h = lineHeight /*label*/ + (btnH + 8) + reasonLines.length * lineHeight + extraLines.length * lineHeight + boxPad * 2
+      ensureSpace(h + 8)
+      // Box
+      page.drawRectangle({ x: marginX, y: y - h, width: contentWidth(), height: h, color: rgb(0.985, 0.985, 0.99) })
+      page.drawRectangle({ x: marginX, y: y - h, width: contentWidth(), height: h, borderColor: divider, borderWidth: 1, color: undefined as any })
+      let iy = y - boxPad
+      // Label
+      page.drawText(label, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font: boldFont, color: textColor })
+      iy -= lineHeight
+      // Buttons row
+      const yesSelected = o?.value === 'yes'
+      const noSelected = o?.value === 'no'
+      const yesX = marginX + boxPad
+      const noX = yesX + btnW + gap
+      const btnY = iy - btnH
+      // Yes button
+      page.drawRectangle({ x: yesX, y: btnY, width: btnW, height: btnH, color: yesSelected ? rgb(0.9, 0.98, 0.92) : rgb(1,1,1), borderColor: yesSelected ? rgb(0.2, 0.6, 0.3) : divider, borderWidth: 1 })
+      page.drawText(`✓ Yes`, { x: yesX + 8, y: btnY + 4, size: 10, font: boldFont, color: yesSelected ? rgb(0.2, 0.6, 0.3) : subtle })
+      // No button
+      page.drawRectangle({ x: noX, y: btnY, width: btnW, height: btnH, color: noSelected ? rgb(0.99, 0.92, 0.92) : rgb(1,1,1), borderColor: noSelected ? rgb(0.75, 0.2, 0.2) : divider, borderWidth: 1 })
+      page.drawText(`✗ No`, { x: noX + 8, y: btnY + 4, size: 10, font: boldFont, color: noSelected ? rgb(0.75, 0.2, 0.2) : subtle })
+      iy = btnY - 8
+      // Reason lines
+      for (const l of reasonLines) {
+        page.drawText(l, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font, color: textColor })
+        iy -= lineHeight
       }
-      innerY -= lineHeight
-      // Remaining lines of the answer aligned under the first answer column
-      for (let i = 1; i < kv.valueLines.length; i++) {
-        page.drawText(kv.valueLines[i], { x: marginX + boxPad + kv.labelWidth, y: innerY - lineHeight, size: 11, font, color: textColor })
-        innerY -= lineHeight
+      for (const l of extraLines) {
+        page.drawText(l, { x: marginX + boxPad, y: iy - lineHeight, size: 11, font, color: textColor })
+        iy -= lineHeight
       }
+      y -= h + 8
     }
 
-    y -= boxHeight + 8
+    // Title box and questions
+    drawQBox(`Service User #${idx + 1}:`, su.serviceUserName || '')
+    drawYesNoQuestionBox('Concerns', su.concerns)
+    drawYesNoQuestionBox('Comfortable working', su.comfortable)
+    drawYesNoQuestionBox('Comments about service', su.commentsAboutService)
+    drawYesNoQuestionBox('Complaints made', su.complaintsByServiceUser)
+    drawYesNoQuestionBox('Safeguarding issues', su.safeguardingIssues)
+    drawYesNoQuestionBox('Other discussion', su.otherDiscussion)
+    drawYesNoQuestionBox('Bruises', su.bruises, su.bruises?.value === 'yes' && su.bruisesCauses ? { label: 'Bruises causes', value: su.bruisesCauses } : undefined)
+    drawYesNoQuestionBox('Pressure sores', su.pressureSores)
   }
 
   // Office Use
