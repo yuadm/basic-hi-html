@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ComplianceTypeManagement } from "./ComplianceTypeManagement";
-
+import { SupervisionQuestionSettings } from "./SupervisionQuestionSettings";
 
 import { DataRetentionManagement } from "./DataRetentionManagement";
 
@@ -285,6 +285,7 @@ export function ComplianceSettings() {
         </div>
 
         <ComplianceTypeManagement />
+        <SupervisionQuestionSettings />
         <DataRetentionManagement />
 
         <div className="flex justify-end">

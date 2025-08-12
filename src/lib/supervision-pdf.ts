@@ -4,6 +4,7 @@ import DejaVuSansRegularUrl from '@/assets/fonts/dejavu/DejaVuSans.ttf'
 import DejaVuSansBoldUrl from '@/assets/fonts/dejavu/DejaVuSans-Bold.ttf'
 import { format } from 'date-fns'
 import type { SupervisionFormData } from '@/components/compliance/SupervisionFormDialog'
+import { loadSupervisionQuestions } from '@/lib/supervision-questions'
 
 interface CompanyInfo {
   name?: string
@@ -125,6 +126,9 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
 
   // Initialize first page header
   drawHeader()
+
+  // Load supervision question config
+  const cfg = await loadSupervisionQuestions()
 
   const ensureSpace = (needed: number) => {
     if (y - needed < marginBottom) {
@@ -344,14 +348,22 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
 
     // Title box and questions
     drawQBoxBold(`Service User #${idx + 1}:`, su.serviceUserName || '')
-    drawYesNoQuestionBox('Concerns', su.concerns)
-    drawYesNoQuestionBox('Comfortable working', su.comfortable)
-    drawYesNoQuestionBox('Comments about service', su.commentsAboutService)
-    drawYesNoQuestionBox('Complaints made', su.complaintsByServiceUser)
-    drawYesNoQuestionBox('Safeguarding issues', su.safeguardingIssues)
-    drawYesNoQuestionBox('Other discussion', su.otherDiscussion)
-    drawYesNoQuestionBox('Bruises', su.bruises, su.bruises?.value === 'yes' && su.bruisesCauses ? { label: 'Bruises causes', value: su.bruisesCauses } : undefined)
-    drawYesNoQuestionBox('Pressure sores', su.pressureSores)
+
+    // Default questions (enabled only)
+    for (const q of cfg.defaults.filter((q: any) => q.enabled)) {
+      const ans = (su as any)[q.id] as { value?: 'yes'|'no'; reason?: string } | undefined
+      if (q.id === 'bruises') {
+        drawYesNoQuestionBox(q.label, ans, ans?.value === 'yes' && su.bruisesCauses ? { label: 'Bruises causes', value: su.bruisesCauses } : undefined)
+      } else {
+        drawYesNoQuestionBox(q.label, ans)
+      }
+    }
+
+    // Custom questions (enabled only)
+    for (const q of cfg.custom.filter((q: any) => q.enabled)) {
+      const ans = su.custom?.[q.id] as { value?: 'yes'|'no'; reason?: string } | undefined
+      drawYesNoQuestionBox(q.label, ans)
+    }
   }
 
   // Office Use
