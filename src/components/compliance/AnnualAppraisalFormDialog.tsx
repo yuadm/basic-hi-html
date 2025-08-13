@@ -269,11 +269,11 @@ export default function AnnualAppraisalFormDialog({ open, onOpenChange, onSubmit
           {/* Action Plan */}
           <section className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="action_training">Training or counselling requirements</Label>
+              <Label htmlFor="action_training">Actions plans agreed to develop employee and/or the job include any Training or counselling requirements</Label>
               <Textarea id="action_training" rows={4} value={form.action_training || ""} onChange={(e) => update("action_training", e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="action_career">Career development steps</Label>
+              <Label htmlFor="action_career">Career development - possible steps in career development</Label>
               <Textarea id="action_career" rows={4} value={form.action_career || ""} onChange={(e) => update("action_career", e.target.value)} />
             </div>
             <div className="space-y-2">

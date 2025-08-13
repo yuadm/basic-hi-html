@@ -1,6 +1,6 @@
 
 import { useState, ReactNode } from "react";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import AnnualAppraisalFormDialog, { type AnnualAppraisalFormData } from "./AnnualAppraisalFormDialog";
+import { downloadAnnualAppraisalPDF } from "@/lib/annual-appraisal-pdf";
 
 interface ComplianceRecord {
   id: string;
@@ -31,6 +33,7 @@ interface ComplianceRecord {
   created_at: string;
   updated_at: string;
   completed_by: string | null;
+  completion_method?: string;
 }
 
 interface EditComplianceRecordModalProps {
@@ -61,8 +64,25 @@ export function EditComplianceRecordModal({
   
   const [completionDate, setCompletionDate] = useState<Date>(parseCompletionDate(record.completion_date));
   const [notes, setNotes] = useState(record.notes || '');
-  const [recordType, setRecordType] = useState<'date' | 'new'>('date');
+  const [recordType, setRecordType] = useState<'date' | 'new' | 'annualappraisal'>(() => {
+    return record.completion_method === 'annual_appraisal' ? 'annualappraisal' : 'date';
+  });
   const [newText, setNewText] = useState('');
+  const [annualData, setAnnualData] = useState<AnnualAppraisalFormData | null>(() => {
+    // Parse existing annual appraisal data from notes if available
+    try {
+      if (record.completion_method === 'annual_appraisal' && record.notes) {
+        const parsed = JSON.parse(record.notes);
+        if (parsed.job_title && parsed.ratings) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing annual appraisal data:', e);
+    }
+    return null;
+  });
+  const [annualOpen, setAnnualOpen] = useState(false);
   const { toast } = useToast();
 
   // Calculate valid date range based on period and frequency
@@ -135,12 +155,22 @@ export function EditComplianceRecordModal({
         });
         return;
       }
-    } else {
+    } else if (recordType === 'new') {
       // For "new" type, validate that text is entered
       if (!newText.trim()) {
         toast({
           title: "Text required",
           description: "Please enter text for the new record type.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else if (recordType === 'annualappraisal') {
+      // For annual appraisal, validate that the form data exists
+      if (!annualData) {
+        toast({
+          title: "Annual appraisal incomplete",
+          description: "Please complete the annual appraisal form.",
           variant: "destructive",
         });
         return;
@@ -154,10 +184,18 @@ export function EditComplianceRecordModal({
       // const { data: { user } } = await supabase.auth.getUser();
       
       const updateData = {
-        completion_date: recordType === 'date' ? format(completionDate, 'yyyy-MM-dd') : newText,
-        notes: notes.trim() || null,
+        completion_date: recordType === 'date' 
+          ? format(completionDate, 'yyyy-MM-dd') 
+          : recordType === 'annualappraisal'
+            ? (annualData?.appraisal_date || format(new Date(), 'yyyy-MM-dd'))
+            : newText,
+        notes: recordType === 'annualappraisal'
+          ? JSON.stringify({ ...(annualData as any), freeTextNotes: notes.trim() || '' })
+          : (notes.trim() || null),
         updated_at: new Date().toISOString(),
         status: recordType === 'new' ? 'new' : 'completed',
+        completion_method: recordType === 'date' ? 'date_entry' : 
+                          recordType === 'annualappraisal' ? 'annual_appraisal' : 'text_entry',
         // TODO: When authentication is implemented, uncomment this line:
         // completed_by: user?.id || null,
       };
@@ -229,13 +267,16 @@ export function EditComplianceRecordModal({
 
           <div className="space-y-2">
             <Label>Record Type</Label>
-            <Select value={recordType} onValueChange={(value: 'date' | 'new') => setRecordType(value)}>
+            <Select value={recordType} onValueChange={(value: 'date' | 'new' | 'annualappraisal') => setRecordType(value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="date">Date</SelectItem>
                 <SelectItem value="new">New (before employee joined)</SelectItem>
+                {complianceTypeName?.toLowerCase().includes('appraisal') && (
+                  <SelectItem value="annualappraisal">Annual Appraisal</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -270,6 +311,46 @@ export function EditComplianceRecordModal({
                   />
                 </PopoverContent>
               </Popover>
+            </div>
+          ) : recordType === 'annualappraisal' ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Annual Appraisal Form</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAnnualOpen(true)}
+                  >
+                    {annualData ? 'Edit Form' : 'Complete Form'}
+                  </Button>
+                  {annualData && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadAnnualAppraisalPDF(annualData, employeeName, 'Company')}
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      PDF
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {annualData ? (
+                <div className="p-3 bg-muted rounded-md">
+                  <p className="text-sm text-muted-foreground">
+                    ✓ Annual appraisal completed for {annualData.job_title} on {annualData.appraisal_date}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-destructive/10 rounded-md">
+                  <p className="text-sm text-destructive">
+                    Annual appraisal form needs to be completed
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -308,6 +389,16 @@ export function EditComplianceRecordModal({
             </Button>
           </div>
         </form>
+        
+        <AnnualAppraisalFormDialog
+          open={annualOpen}
+          onOpenChange={setAnnualOpen}
+          initialData={annualData || undefined}
+          onSubmit={(data) => {
+            setAnnualData(data);
+            setAnnualOpen(false);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

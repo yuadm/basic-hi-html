@@ -27,6 +27,7 @@ import SupervisionFormDialog, { SupervisionFormData } from "@/components/complia
 import AnnualAppraisalFormDialog, { AnnualAppraisalFormData } from "@/components/compliance/AnnualAppraisalFormDialog";
 import { generateSpotCheckPdf } from "@/lib/spot-check-pdf";
 import { generateSupervisionPdf } from "@/lib/supervision-pdf";
+import { downloadAnnualAppraisalPDF } from "@/lib/annual-appraisal-pdf";
 
 interface AddComplianceRecordModalProps {
   employeeId?: string;
@@ -302,8 +303,8 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         });
       }
 
-      // Save annual appraisal form when provided (note: saving to notes field for now)
-      // TODO: Fix annual_appraisals table types to enable direct insert
+      // Save annual appraisal data (stored in notes field for now until types are updated)
+      // TODO: Update Supabase types to include annual_appraisals table
 
       const recordData = {
         employee_id: selectedEmployeeId,
@@ -549,6 +550,16 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
                 variant="outline"
                 onClick={() => supervisionData ? generateSupervisionPdf(supervisionData, companySettings) : undefined}
                 disabled={!supervisionData}
+              >
+                Download PDF
+              </Button>
+            )}
+            {recordType === 'annualappraisal' && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => annualData ? downloadAnnualAppraisalPDF(annualData, selectedEmployeeName, companySettings?.name || 'Company') : undefined}
+                disabled={!annualData}
               >
                 Download PDF
               </Button>
