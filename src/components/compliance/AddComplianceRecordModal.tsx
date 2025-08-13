@@ -266,6 +266,15 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         });
         return;
       }
+    } else if (recordType === 'annualappraisal') {
+      if (!annualData) {
+        toast({
+          title: "Annual appraisal incomplete",
+          description: "Please complete the annual appraisal form.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -293,6 +302,9 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         });
       }
 
+      // Save annual appraisal form when provided (note: saving to notes field for now)
+      // TODO: Fix annual_appraisals table types to enable direct insert
+
       const recordData = {
         employee_id: selectedEmployeeId,
         compliance_type_id: complianceTypeId,
@@ -304,12 +316,19 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
               ? (spotcheckData?.date || format(new Date(), 'yyyy-MM-dd'))
               : recordType === 'supervision'
                 ? (supervisionData?.dateOfSupervision || format(new Date(), 'yyyy-MM-dd'))
-                : newText,
+                : recordType === 'annualappraisal'
+                  ? (annualData?.appraisal_date || format(new Date(), 'yyyy-MM-dd'))
+                  : newText,
         completion_method:
-          recordType === 'date' ? 'date_entry' : (recordType === 'spotcheck' ? 'spotcheck' : (recordType === 'supervision' ? 'supervision' : 'text_entry')),
+          recordType === 'date' ? 'date_entry' : 
+          recordType === 'spotcheck' ? 'spotcheck' : 
+          recordType === 'supervision' ? 'supervision' : 
+          recordType === 'annualappraisal' ? 'annual_appraisal' : 'text_entry',
         notes: recordType === 'supervision' 
           ? JSON.stringify({ ...(supervisionData as any), freeTextNotes: notes.trim() || '' }) 
-          : (notes.trim() || null),
+          : recordType === 'annualappraisal'
+            ? JSON.stringify({ ...(annualData as any), freeTextNotes: notes.trim() || '' })
+            : (notes.trim() || null),
         status: recordType === 'new' ? 'compliant' : (recordType === 'supervision' ? (supervisionData?.officeComplete ? 'completed' : 'pending') : 'completed'),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -413,15 +432,18 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
             <Label>Record Type</Label>
             <Select
               value={recordType}
-              onValueChange={(value: 'date' | 'new' | 'spotcheck' | 'supervision') => {
-                setRecordType(value);
-                if (value === 'spotcheck') {
-                  setSpotcheckOpen(true);
-                }
-                if (value === 'supervision') {
-                  setSupervisionOpen(true);
-                }
-              }}
+            onValueChange={(value: 'date' | 'new' | 'spotcheck' | 'supervision' | 'annualappraisal') => {
+              setRecordType(value);
+              if (value === 'spotcheck') {
+                setSpotcheckOpen(true);
+              }
+              if (value === 'supervision') {
+                setSupervisionOpen(true);
+              }
+              if (value === 'annualappraisal') {
+                setAnnualOpen(true);
+              }
+            }}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -434,6 +456,9 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
                 )}
                 {complianceTypeName?.toLowerCase().includes('supervis') && (
                   <SelectItem value="supervision">Complete Supervision</SelectItem>
+                )}
+                {complianceTypeName?.toLowerCase().includes('appraisal') && (
+                  <SelectItem value="annualappraisal">Complete Annual Appraisal</SelectItem>
                 )}
               </SelectContent>
             </Select>
@@ -552,6 +577,15 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         onSubmit={(data) => {
           setSupervisionData(data);
           setSupervisionOpen(false);
+        }}
+      />
+      <AnnualAppraisalFormDialog
+        open={annualOpen}
+        onOpenChange={setAnnualOpen}
+        initialData={annualData || undefined}
+        onSubmit={(data) => {
+          setAnnualData(data);
+          setAnnualOpen(false);
         }}
       />
     </Dialog>
