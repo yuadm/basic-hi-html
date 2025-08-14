@@ -383,7 +383,7 @@ export function CompliancePeriodEmployeeView({
                                 return item.record?.notes || '-';
                               })()}
                             </div>
-                            {item.record?.completion_method === 'annual_appraisal' && item.status === 'compliant' && (
+                            {item.record?.completion_method === 'annual_appraisal' && (
                               <>
                                 <Button
                                   variant="ghost"
