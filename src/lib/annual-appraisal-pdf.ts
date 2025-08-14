@@ -65,7 +65,7 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
   }
 
   const drawHeader = () => {
-    const headerHeight = embeddedLogo ? 140 : 120
+    const headerHeight = embeddedLogo ? 120 : 100
     // Header background
     page.drawRectangle({ x: 0, y: page.getHeight() - headerHeight, width: page.getWidth(), height: headerHeight, color: rgb(0.98, 0.98, 0.985) })
 
@@ -74,10 +74,10 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
 
     // Logo (centered)
     if (embeddedLogo) {
-      const logoW = 72
+      const logoW = 56
       const logoH = (embeddedLogo.height / embeddedLogo.width) * logoW
       const logoX = centerX - logoW / 2
-      const logoY = page.getHeight() - headerHeight + headerHeight - logoH - 8
+      const logoY = page.getHeight() - headerHeight + logoH + 8
       page.drawImage(embeddedLogo, { x: logoX, y: logoY, width: logoW, height: logoH })
       cursorY = logoY - 6
     }
@@ -104,7 +104,7 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
     page.drawText(yearText, { x: centerX - yearWidth / 2, y: cursorY - yearSize, size: yearSize, font, color: subtle })
 
     // Divider
-    page.drawRectangle({ x: marginX, y: page.getHeight() - headerHeight - 1, width: page.getWidth() - marginX * 2, height: 1, color: accent })
+    page.drawRectangle({ x: marginX, y: page.getHeight() - headerHeight - 1, width: page.getWidth() - marginX * 2, height: 1, color: divider })
 
     // Reset content Y just below header
     y = page.getHeight() - headerHeight - 16
