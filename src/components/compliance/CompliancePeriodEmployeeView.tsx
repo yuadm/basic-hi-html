@@ -335,32 +335,76 @@ export function CompliancePeriodEmployeeView({
                           })() : '-'}
                         </TableCell>
                         <TableCell className="max-w-xs">
-                          <div className="truncate" title={(() => {
-                            if (!item.record?.notes) return '';
-                            if (item.record?.completion_method === 'supervision') {
-                              try {
-                                const j = JSON.parse(item.record.notes);
-                                const txt = (j?.freeTextNotes || '').toString().trim();
-                                return txt || '';
-                              } catch {
-                                return '';
-                              }
-                            }
-                            return item.record?.notes || '';
-                          })()}>
-                            {(() => {
-                              if (!item.record?.notes) return '-';
+                          <div className="flex items-center gap-2">
+                            <div className="truncate" title={(() => {
+                              if (!item.record?.notes) return '';
                               if (item.record?.completion_method === 'supervision') {
                                 try {
                                   const j = JSON.parse(item.record.notes);
                                   const txt = (j?.freeTextNotes || '').toString().trim();
-                                  return txt || '-';
+                                  return txt || '';
                                 } catch {
-                                  return '-';
+                                  return '';
                                 }
                               }
-                              return item.record?.notes || '-';
-                            })()}
+                              if (item.record?.completion_method === 'annual_appraisal') {
+                                try {
+                                  const j = JSON.parse(item.record.notes);
+                                  const txt = (j?.freeTextNotes || '').toString().trim();
+                                  return txt || '';
+                                } catch {
+                                  return '';
+                                }
+                              }
+                              return item.record?.notes || '';
+                            })()}>
+                              {(() => {
+                                if (!item.record?.notes) return '-';
+                                if (item.record?.completion_method === 'supervision') {
+                                  try {
+                                    const j = JSON.parse(item.record.notes);
+                                    const txt = (j?.freeTextNotes || '').toString().trim();
+                                    return txt || '-';
+                                  } catch {
+                                    return '-';
+                                  }
+                                }
+                                if (item.record?.completion_method === 'annual_appraisal') {
+                                  try {
+                                    const j = JSON.parse(item.record.notes);
+                                    const txt = (j?.freeTextNotes || '').toString().trim();
+                                    return txt || '-';
+                                  } catch {
+                                    return '-';
+                                  }
+                                }
+                                return item.record?.notes || '-';
+                              })()}
+                            </div>
+                            {item.record?.completion_method === 'annual_appraisal' && item.status === 'compliant' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (item.record?.notes) {
+                                    try {
+                                      const parsedData = JSON.parse(item.record.notes);
+                                      // Import the PDF generator
+                                      import('@/lib/annual-appraisal-pdf').then(({ generateAnnualAppraisalPDF }) => {
+                                        generateAnnualAppraisalPDF(parsedData, item.employee.name);
+                                      });
+                                    } catch (error) {
+                                      console.error('Error generating PDF:', error);
+                                    }
+                                  }
+                                }}
+                                className="h-6 w-6 p-0"
+                                title="Download PDF"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

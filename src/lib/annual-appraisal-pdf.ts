@@ -203,7 +203,7 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
 
   performanceQuestions.forEach((question) => {
     const selectedRating = (data.ratings as any)[question.key];
-    ensureSpace(30);
+    ensureSpace(50);
     
     // Question label
     page.drawText(question.label, { x: marginX, y: y - lineHeight, size: 11, font: boldFont, color: textColor })
