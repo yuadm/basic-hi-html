@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Users, CheckCircle, AlertTriangle, Clock, Eye, Download } from "lucide-react";
+import { Calendar, Users, CheckCircle, AlertTriangle, Clock, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useCompany } from "@/contexts/CompanyContext";
 
 interface Employee {
   id: string;
@@ -69,7 +68,6 @@ export function CompliancePeriodEmployeeView({
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  const { companySettings } = useCompany();
 
   const fetchData = async () => {
     if (!open) return;
@@ -383,59 +381,29 @@ export function CompliancePeriodEmployeeView({
                                 return item.record?.notes || '-';
                               })()}
                             </div>
-                            {item.record?.completion_method === 'annual_appraisal' && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (item.record?.notes) {
-                                      try {
-                                        const parsedData = JSON.parse(item.record.notes);
-                                        // Import the PDF generator
-                                        import('@/lib/annual-appraisal-pdf').then(({ generateAnnualAppraisalPDF }) => {
-                                          generateAnnualAppraisalPDF(parsedData, item.employee.name, {
-                                            name: companySettings?.name || 'Company',
-                                            logo: companySettings?.logo
-                                          });
-                                        });
-                                      } catch (error) {
-                                        console.error('Error generating PDF:', error);
-                                      }
+                            {item.record?.completion_method === 'annual_appraisal' && item.status === 'compliant' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (item.record?.notes) {
+                                    try {
+                                      const parsedData = JSON.parse(item.record.notes);
+                                      // Import the PDF generator
+                                      import('@/lib/annual-appraisal-pdf').then(({ generateAnnualAppraisalPDF }) => {
+                                        generateAnnualAppraisalPDF(parsedData, item.employee.name);
+                                      });
+                                    } catch (error) {
+                                      console.error('Error generating PDF:', error);
                                     }
-                                  }}
-                                  className="h-6 w-6 p-0"
-                                  title="View Record"
-                                >
-                                  <Eye className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (item.record?.notes) {
-                                      try {
-                                        const parsedData = JSON.parse(item.record.notes);
-                                        // Import the PDF generator
-                                        import('@/lib/annual-appraisal-pdf').then(({ generateAnnualAppraisalPDF }) => {
-                                          generateAnnualAppraisalPDF(parsedData, item.employee.name, {
-                                            name: companySettings?.name || 'Company',
-                                            logo: companySettings?.logo
-                                          });
-                                        });
-                                      } catch (error) {
-                                        console.error('Error generating PDF:', error);
-                                      }
-                                    }
-                                  }}
-                                  className="h-6 w-6 p-0"
-                                  title="Download PDF"
-                                >
-                                  <Download className="h-5 w-5" />
-                                </Button>
-                              </>
+                                  }
+                                }}
+                                className="h-6 w-6 p-0"
+                                title="Download PDF"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
                             )}
                           </div>
                         </TableCell>
