@@ -1,44 +1,192 @@
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { PDFDocument, rgb } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
+import DejaVuSansRegularUrl from '@/assets/fonts/dejavu/DejaVuSans.ttf'
+import DejaVuSansBoldUrl from '@/assets/fonts/dejavu/DejaVuSans-Bold.ttf'
+import { format } from 'date-fns'
 import type { AnnualAppraisalFormData } from '@/components/compliance/AnnualAppraisalFormDialog';
 
-export const generateAnnualAppraisalPDF = async (data: AnnualAppraisalFormData, employeeName: string = '', companyName: string = 'Company Name') => {
-  const pdf = new jsPDF();
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 20;
-  const contentWidth = pageWidth - (margin * 2);
-  
-  // Add company logo placeholder
-  pdf.setFontSize(18);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text(companyName, margin, 25);
-  
-  // Header
-  pdf.setFontSize(16);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('ANNUAL APPRAISAL FORM', pageWidth / 2, 40, { align: 'center' });
-  
-  let currentY = 60;
-  
+interface CompanyInfo {
+  name?: string
+  logo?: string
+}
+
+export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, employeeName: string = '', company?: CompanyInfo) {
+  const doc = await PDFDocument.create()
+  doc.registerFontkit(fontkit)
+
+  // Fonts
+  const regularBytes = await fetch(DejaVuSansRegularUrl).then(r => r.arrayBuffer())
+  const boldBytes = await fetch(DejaVuSansBoldUrl).then(r => r.arrayBuffer())
+  const font = await doc.embedFont(new Uint8Array(regularBytes), { subset: true })
+  const boldFont = await doc.embedFont(new Uint8Array(boldBytes), { subset: true })
+
+  // Try to embed company logo once (optional)
+  let embeddedLogo: any | undefined
+  if (company?.logo) {
+    try {
+      const logoBytes = await fetch(company.logo).then(r => r.arrayBuffer())
+      try {
+        embeddedLogo = await doc.embedPng(logoBytes)
+      } catch {
+        embeddedLogo = await doc.embedJpg(logoBytes)
+      }
+    } catch {
+      embeddedLogo = undefined
+    }
+  }
+
+  // Layout constants
+  const marginX = 48
+  const marginTop = 64
+  const marginBottom = 56
+  const lineHeight = 16
+  const sectionGap = 10
+  const pageWidth = () => page.getWidth()
+  const contentWidth = () => pageWidth() - marginX * 2
+
+  // Colors
+  const textColor = rgb(0, 0, 0)
+  const subtle = rgb(0.6, 0.6, 0.6)
+  const divider = rgb(0.85, 0.85, 0.85)
+  const accent = rgb(0.2, 0.55, 0.95)
+  const sectionBg = rgb(0.96, 0.97, 0.99)
+
+  // Page state
+  let page = doc.addPage()
+  let y = page.getHeight() - marginTop
+  let pageIndex = 1
+
+  // Date formatter (dd/MM/yyyy)
+  const formatDateDmy = (s?: string) => {
+    if (!s) return ''
+    const d = new Date(s)
+    return isNaN(d.getTime()) ? s : format(d, 'dd/MM/yyyy')
+  }
+
+  const drawHeader = () => {
+    const headerHeight = embeddedLogo ? 120 : 100
+    // Header background
+    page.drawRectangle({ x: 0, y: page.getHeight() - headerHeight, width: page.getWidth(), height: headerHeight, color: rgb(0.98, 0.98, 0.985) })
+
+    const centerX = page.getWidth() / 2
+    let cursorY = page.getHeight() - 16
+
+    // Logo (centered)
+    if (embeddedLogo) {
+      const logoW = 56
+      const logoH = (embeddedLogo.height / embeddedLogo.width) * logoW
+      const logoX = centerX - logoW / 2
+      const logoY = page.getHeight() - headerHeight + headerHeight - logoH - 8
+      page.drawImage(embeddedLogo, { x: logoX, y: logoY, width: logoW, height: logoH })
+      cursorY = logoY - 6
+    }
+
+    // Company name (centered)
+    const companyName = company?.name || 'Company'
+    const companySize = 13
+    const companyWidth = boldFont.widthOfTextAtSize(companyName, companySize)
+    page.drawText(companyName, { x: centerX - companyWidth / 2, y: cursorY - companySize, size: companySize, font: boldFont, color: textColor })
+    cursorY -= companySize + 2
+
+    // Report title (centered)
+    const title = 'Annual Appraisal Form'
+    const titleSize = 12
+    const titleWidth = boldFont.widthOfTextAtSize(title, titleSize)
+    page.drawText(title, { x: centerX - titleWidth / 2, y: cursorY - titleSize - 2, size: titleSize, font: boldFont, color: textColor })
+    cursorY -= titleSize + 8
+
+    // Date (centered)
+    const dateText = formatDateDmy(data.appraisal_date)
+    const dateSize = 11
+    const dateWidth = font.widthOfTextAtSize(dateText, dateSize)
+    page.drawText(dateText, { x: centerX - dateWidth / 2, y: cursorY - dateSize, size: dateSize, font, color: subtle })
+
+    // Divider
+    page.drawRectangle({ x: marginX, y: page.getHeight() - headerHeight - 1, width: page.getWidth() - marginX * 2, height: 1, color: divider })
+
+    // Reset content Y just below header
+    y = page.getHeight() - headerHeight - 16
+  }
+
+  const drawFooter = () => {
+    const footerY = marginBottom - 24
+    page.drawRectangle({ x: marginX, y: footerY + 12, width: page.getWidth() - marginX * 2, height: 1, color: divider })
+    const footerText = `Page ${pageIndex}`
+    page.drawText(footerText, { x: marginX, y: footerY, size: 10, font, color: subtle })
+  }
+
+  const ensureSpace = (needed: number) => {
+    if (y - needed < marginBottom) {
+      drawFooter()
+      page = doc.addPage()
+      pageIndex += 1
+      drawHeader()
+    }
+  }
+
+  const drawSectionTitle = (title: string) => {
+    const pad = 6
+    const h = 24
+    ensureSpace(h + 6)
+    page.drawRectangle({ x: marginX, y: y - h + pad, width: contentWidth(), height: h, color: sectionBg })
+    page.drawText(title, { x: marginX + 10, y: y - h + pad + 6, size: 12, font: boldFont, color: textColor })
+    y -= h + 6
+  }
+
+  const drawDivider = () => {
+    ensureSpace(10)
+    page.drawRectangle({ x: marginX, y: y - 2, width: contentWidth(), height: 1, color: accent })
+    y -= 10
+  }
+
+  const wrapText = (text: string, width: number, f = font, size = 11) => {
+    const words = (text || '').split(/\s+/).filter(Boolean)
+    const lines: string[] = []
+    let line = ''
+    for (const w of words) {
+      const test = line ? line + ' ' + w : w
+      if (f.widthOfTextAtSize(test, size) <= width) line = test
+      else { if (line) lines.push(line); line = w }
+    }
+    if (line) lines.push(line)
+    return lines.length ? lines : ['']
+  }
+
+  const drawKeyVal = (label: string, value?: string) => {
+    const labelText = `${label}: `
+    const labelSize = 11
+    const labelWidth = boldFont.widthOfTextAtSize(labelText, labelSize)
+    const maxValWidth = contentWidth() - labelWidth
+    const lines = wrapText(String(value ?? ''), maxValWidth, font, labelSize)
+
+    ensureSpace(lineHeight * Math.max(1, lines.length))
+    // Label
+    page.drawText(labelText, { x: marginX, y: y - lineHeight, size: labelSize, font: boldFont, color: textColor })
+    // First value line on same line as label
+    if (lines.length) {
+      page.drawText(lines[0], { x: marginX + labelWidth, y: y - lineHeight, size: labelSize, font, color: textColor })
+    }
+    y -= lineHeight
+    // Remaining lines
+    for (let i = 1; i < lines.length; i++) {
+      ensureSpace(lineHeight)
+      page.drawText(lines[i], { x: marginX + labelWidth, y: y - lineHeight, size: labelSize, font, color: textColor })
+      y -= lineHeight
+    }
+  }
+
+  // Initialize first page header
+  drawHeader()
+
   // Employee Information Section
-  pdf.setFontSize(12);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('EMPLOYEE INFORMATION', margin, currentY);
-  currentY += 10;
-  
-  pdf.setFont('helvetica', 'normal');
-  pdf.text(`Employee Name: ${employeeName}`, margin, currentY);
-  currentY += 8;
-  pdf.text(`Job Title: ${data.job_title}`, margin, currentY);
-  currentY += 8;
-  pdf.text(`Date of Appraisal: ${data.appraisal_date}`, margin, currentY);
-  currentY += 20;
-  
+  drawSectionTitle('Employee Information')
+  drawKeyVal('Employee Name', employeeName)
+  drawKeyVal('Job Title', data.job_title)
+  drawKeyVal('Date of Appraisal', formatDateDmy(data.appraisal_date))
+  drawDivider()
+
   // Performance Assessment Section
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('PERFORMANCE ASSESSMENT', margin, currentY);
-  currentY += 15;
+  drawSectionTitle('Performance Assessment')
   
   const performanceQuestions = [
     { key: 'clientCare', label: 'Client Care' },
@@ -50,110 +198,83 @@ export const generateAnnualAppraisalPDF = async (data: AnnualAppraisalFormData, 
     { key: 'professionalDevelopment', label: 'Professional Development' },
     { key: 'attendance', label: 'Attendance & Punctuality' }
   ];
-  
-  pdf.setFont('helvetica', 'normal');
+
+  const ratingOptions = ['A', 'B', 'C', 'D', 'E'];
+
   performanceQuestions.forEach((question) => {
-    const rating = (data.ratings as any)[question.key];
-    pdf.text(`${question.label}: ${rating}`, margin, currentY);
-    currentY += 8;
+    const selectedRating = (data.ratings as any)[question.key];
+    ensureSpace(30);
+    
+    // Question label
+    page.drawText(question.label, { x: marginX, y: y - lineHeight, size: 11, font: boldFont, color: textColor })
+    y -= lineHeight + 4;
+    
+    // Rating options with checkmarks
+    let optionX = marginX + 20;
+    ratingOptions.forEach((option) => {
+      const isSelected = option === selectedRating;
+      const optionText = isSelected ? `☑ ${option}` : `☐ ${option}`;
+      const optionColor = isSelected ? rgb(0.2, 0.6, 0.3) : rgb(0.6, 0.6, 0.6);
+      
+      page.drawText(optionText, { x: optionX, y: y - lineHeight, size: 10, font, color: optionColor });
+      optionX += 60;
+    });
+    y -= lineHeight + 8;
   });
-  
-  currentY += 10;
-  
+
   // Comments Section
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('COMMENTS', margin, currentY);
-  currentY += 10;
+  drawSectionTitle('Comments')
   
-  pdf.setFont('helvetica', 'normal');
-  if (data.comments_manager) {
-    pdf.text('Manager Comments:', margin, currentY);
-    currentY += 8;
-    const managerLines = pdf.splitTextToSize(data.comments_manager, contentWidth);
-    managerLines.forEach((line: string) => {
-      pdf.text(line, margin, currentY);
-      currentY += 6;
-    });
-    currentY += 5;
+  const drawParagraph = (title: string, content?: string) => {
+    if (!content) return
+    ensureSpace(lineHeight + 10)
+    page.drawText(title, { x: marginX, y: y - lineHeight, size: 11, font: boldFont, color: textColor })
+    y -= lineHeight + 4
+    const lines = wrapText(content, contentWidth())
+    for (const l of lines) {
+      ensureSpace(lineHeight)
+      page.drawText(l, { x: marginX, y: y - lineHeight, size: 11, font, color: textColor })
+      y -= lineHeight
+    }
+    y -= 8
   }
+
+  drawParagraph('Manager Comments:', data.comments_manager)
+  drawParagraph('Employee Comments:', data.comments_employee)
   
-  if (data.comments_employee) {
-    pdf.text('Employee Comments:', margin, currentY);
-    currentY += 8;
-    const employeeLines = pdf.splitTextToSize(data.comments_employee, contentWidth);
-    employeeLines.forEach((line: string) => {
-      pdf.text(line, margin, currentY);
-      currentY += 6;
-    });
-    currentY += 10;
-  }
-  
-  // Check if we need a new page
-  if (currentY > pageHeight - 80) {
-    pdf.addPage();
-    currentY = 20;
-  }
+  drawDivider()
   
   // Action Plans Section
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('ACTION PLANS', margin, currentY);
-  currentY += 15;
+  drawSectionTitle('Action Plans')
+  drawParagraph('Actions plans agreed to develop employee and/or the job include any Training or counselling requirements:', data.action_training)
+  drawParagraph('Career development - possible steps in career development:', data.action_career)
+  drawParagraph('Agreed action plan, job & development objectives, and time scale:', data.action_plan)
   
-  pdf.setFont('helvetica', 'normal');
-  if (data.action_training) {
-    pdf.text('Actions plans agreed to develop employee and/or the job include any Training or counselling requirements:', margin, currentY);
-    currentY += 8;
-    const trainingLines = pdf.splitTextToSize(data.action_training, contentWidth);
-    trainingLines.forEach((line: string) => {
-      pdf.text(line, margin, currentY);
-      currentY += 6;
-    });
-    currentY += 10;
-  }
-  
-  if (data.action_career) {
-    pdf.text('Career development - possible steps in career development:', margin, currentY);
-    currentY += 8;
-    const careerLines = pdf.splitTextToSize(data.action_career, contentWidth);
-    careerLines.forEach((line: string) => {
-      pdf.text(line, margin, currentY);
-      currentY += 6;
-    });
-    currentY += 10;
-  }
-  
-  if (data.action_plan) {
-    pdf.text('Agreed action plan, job & development objectives, and time scale:', margin, currentY);
-    currentY += 8;
-    const planLines = pdf.splitTextToSize(data.action_plan, contentWidth);
-    planLines.forEach((line: string) => {
-      pdf.text(line, margin, currentY);
-      currentY += 6;
-    });
-    currentY += 15;
-  }
+  drawDivider()
   
   // Signatures Section
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('SIGNATURES', margin, currentY);
-  currentY += 15;
-  
-  pdf.setFont('helvetica', 'normal');
-  pdf.text(`Supervisor/Manager: ${data.signature_manager}`, margin, currentY);
-  currentY += 10;
-  pdf.text(`Employee: ${data.signature_employee}`, margin, currentY);
-  currentY += 10;
-  pdf.text(`Date: ${new Date().toLocaleDateString()}`, margin, currentY);
-  
-  // Footer
-  pdf.setFontSize(8);
-  pdf.text('This document is confidential and should be stored securely.', pageWidth / 2, pageHeight - 10, { align: 'center' });
-  
-  return pdf;
-};
+  drawSectionTitle('Signatures')
+  drawKeyVal('Supervisor/Manager', data.signature_manager)
+  drawKeyVal('Employee', data.signature_employee)
+  drawKeyVal('Date', formatDateDmy(new Date().toISOString()))
 
-export const downloadAnnualAppraisalPDF = async (data: AnnualAppraisalFormData, employeeName: string = '', companyName: string = 'Company Name') => {
-  const pdf = await generateAnnualAppraisalPDF(data, employeeName, companyName);
-  const fileName = `Annual_Appraisal_${employeeName.replace(/\s+/g, '_')}_${data.appraisal_date}.pdf`;
-  pdf.save(fileName);
+  // Final footer
+  drawFooter()
+
+  // Save & download
+  const bytes = await doc.save()
+  const blob = new Blob([bytes], { type: 'application/pdf' })
+  const url = URL.createObjectURL(blob)
+  const filename = `Annual_Appraisal_${(employeeName || 'Employee').replace(/\s+/g, '_')}_${format(new Date(), 'dd-MM-yyyy')}.pdf`
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+export const downloadAnnualAppraisalPDF = async (data: AnnualAppraisalFormData, employeeName: string = '', company?: CompanyInfo) => {
+  await generateAnnualAppraisalPDF(data, employeeName, company);
 };

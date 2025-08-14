@@ -558,7 +558,7 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => annualData ? downloadAnnualAppraisalPDF(annualData, selectedEmployeeName, companySettings?.name || 'Company') : undefined}
+                onClick={() => annualData ? downloadAnnualAppraisalPDF(annualData, selectedEmployeeName, { name: companySettings?.name || 'Company' }) : undefined}
                 disabled={!annualData}
               >
                 Download PDF

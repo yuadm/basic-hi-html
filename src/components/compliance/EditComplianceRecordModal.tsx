@@ -330,7 +330,7 @@ export function EditComplianceRecordModal({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => downloadAnnualAppraisalPDF(annualData, employeeName, 'Company')}
+                      onClick={() => downloadAnnualAppraisalPDF(annualData, employeeName, { name: 'Company' })}
                     >
                       <Download className="w-4 h-4 mr-1" />
                       PDF
