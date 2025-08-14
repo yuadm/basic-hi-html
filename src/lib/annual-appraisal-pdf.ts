@@ -203,23 +203,27 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
 
   performanceQuestions.forEach((question) => {
     const selectedRating = (data.ratings as any)[question.key];
-    ensureSpace(50);
+    ensureSpace(60);
     
     // Question label
     page.drawText(question.label, { x: marginX, y: y - lineHeight, size: 11, font: boldFont, color: textColor })
-    y -= lineHeight + 4;
+    y -= lineHeight + 6;
     
-    // Rating options with checkmarks
+    // Rating options with checkmarks in a single line
     let optionX = marginX + 20;
     ratingOptions.forEach((option) => {
       const isSelected = option === selectedRating;
-      const optionText = isSelected ? `☑ ${option}` : `☐ ${option}`;
+      const checkmark = isSelected ? '☑' : '☐';
       const optionColor = isSelected ? rgb(0.2, 0.6, 0.3) : rgb(0.6, 0.6, 0.6);
       
-      page.drawText(optionText, { x: optionX, y: y - lineHeight, size: 10, font, color: optionColor });
-      optionX += 60;
+      // Draw checkmark
+      page.drawText(checkmark, { x: optionX, y: y - lineHeight, size: 12, font, color: optionColor });
+      // Draw option letter
+      page.drawText(option, { x: optionX + 15, y: y - lineHeight, size: 11, font, color: textColor });
+      
+      optionX += 50;
     });
-    y -= lineHeight + 8;
+    y -= lineHeight + 12;
   });
 
   // Comments Section
