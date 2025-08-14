@@ -11,7 +11,6 @@ interface CompanyInfo {
 }
 
 export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, employeeName: string = '', company?: CompanyInfo) {
-  console.log('Generating Annual Appraisal PDF with data:', data);
   const doc = await PDFDocument.create()
   doc.registerFontkit(fontkit)
 
