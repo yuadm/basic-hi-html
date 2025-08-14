@@ -433,7 +433,7 @@ export function CompliancePeriodEmployeeView({
                                   className="h-6 w-6 p-0"
                                   title="Download PDF"
                                 >
-                                  <Download className="h-3 w-3" />
+                                  <Download className="h-4 w-4" />
                                 </Button>
                               </>
                             )}

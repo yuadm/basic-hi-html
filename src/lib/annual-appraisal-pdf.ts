@@ -64,7 +64,7 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
   }
 
   const drawHeader = () => {
-    const headerHeight = embeddedLogo ? 120 : 100
+    const headerHeight = embeddedLogo ? 140 : 120
     // Header background
     page.drawRectangle({ x: 0, y: page.getHeight() - headerHeight, width: page.getWidth(), height: headerHeight, color: rgb(0.98, 0.98, 0.985) })
 
@@ -73,7 +73,7 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
 
     // Logo (centered)
     if (embeddedLogo) {
-      const logoW = 56
+      const logoW = 72
       const logoH = (embeddedLogo.height / embeddedLogo.width) * logoW
       const logoX = centerX - logoW / 2
       const logoY = page.getHeight() - headerHeight + headerHeight - logoH - 8
@@ -89,20 +89,21 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
     cursorY -= companySize + 2
 
     // Report title (centered)
-    const title = 'Annual Appraisal Form'
+    const title = 'Annual Appraisal Report'
     const titleSize = 12
     const titleWidth = boldFont.widthOfTextAtSize(title, titleSize)
     page.drawText(title, { x: centerX - titleWidth / 2, y: cursorY - titleSize - 2, size: titleSize, font: boldFont, color: textColor })
     cursorY -= titleSize + 8
 
-    // Date (centered)
-    const dateText = formatDateDmy(data.appraisal_date)
-    const dateSize = 11
-    const dateWidth = font.widthOfTextAtSize(dateText, dateSize)
-    page.drawText(dateText, { x: centerX - dateWidth / 2, y: cursorY - dateSize, size: dateSize, font, color: subtle })
+    // Year (centered)
+    const d = data?.appraisal_date ? new Date(data.appraisal_date) : new Date()
+    const yearText = d.getFullYear().toString()
+    const yearSize = 11
+    const yearWidth = font.widthOfTextAtSize(yearText, yearSize)
+    page.drawText(yearText, { x: centerX - yearWidth / 2, y: cursorY - yearSize, size: yearSize, font, color: subtle })
 
     // Divider
-    page.drawRectangle({ x: marginX, y: page.getHeight() - headerHeight - 1, width: page.getWidth() - marginX * 2, height: 1, color: divider })
+    page.drawRectangle({ x: marginX, y: page.getHeight() - headerHeight - 1, width: page.getWidth() - marginX * 2, height: 1, color: accent })
 
     // Reset content Y just below header
     y = page.getHeight() - headerHeight - 16
@@ -189,41 +190,121 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
   drawSectionTitle('Performance Assessment')
   
   const performanceQuestions = [
-    { key: 'clientCare', label: 'Client Care' },
-    { key: 'careStandards', label: 'Knowledge of Care Standards' },
-    { key: 'safetyHealth', label: 'Safety and Health Compliance' },
-    { key: 'medicationManagement', label: 'Medication Management' },
-    { key: 'communication', label: 'Communication with Clients & Team' },
-    { key: 'responsiveness', label: 'Responsiveness and Adaptability' },
-    { key: 'professionalDevelopment', label: 'Professional Development' },
-    { key: 'attendance', label: 'Attendance & Punctuality' }
+    { 
+      key: 'clientCare', 
+      title: 'Client Care – How effective is the employee in providing care to clients?',
+      options: [
+        { value: "A", label: "A: Provides exceptional care, exceeding client expectations" },
+        { value: "B", label: "B: Provides good quality care, meeting most client needs" },
+        { value: "C", label: "C: Provides satisfactory care, meeting basic client needs" },
+        { value: "D", label: "D: Inconsistent in providing adequate care" },
+        { value: "E", label: "E: Unsatisfactory care, immediate action required" },
+      ]
+    },
+    { 
+      key: 'careStandards', 
+      title: 'Knowledge of Care Standards – How well does the employee adhere to policies?',
+      options: [
+        { value: "A", label: "A: Demonstrates excellent understanding and adherence" },
+        { value: "B", label: "B: Generally follows care standards with minor lapses" },
+        { value: "C", label: "C: Adequate understanding of care standards, some areas unclear" },
+        { value: "D", label: "D: Limited understanding, further training required" },
+        { value: "E", label: "E: Poor adherence to care standards, immediate improvement needed" },
+      ]
+    },
+    { 
+      key: 'safetyHealth', 
+      title: 'Safety and Health Compliance – How consistently does the employee follow safety and health guidelines?',
+      options: [
+        { value: "A", label: "A: Always follows guidelines, ensuring client and personal safety" },
+        { value: "B", label: "B: Generally safe practices with minor lapses" },
+        { value: "C", label: "C: Adequate safety practices, occasional reminders needed" },
+        { value: "D", label: "D: Frequently neglects safety and health guidelines" },
+        { value: "E", label: "E: Disregards safety and health guidelines, immediate action required" },
+      ]
+    },
+    { 
+      key: 'medicationManagement', 
+      title: 'Medication Management – How effectively does the employee manage and administer medication?',
+      options: [
+        { value: "A", label: "A: Flawless in medication management and administration" },
+        { value: "B", label: "B: Good medication management with minor errors" },
+        { value: "C", label: "C: Adequate medication management, some errors" },
+        { value: "D", label: "D: Frequent errors in medication management, further training required" },
+        { value: "E", label: "E: Consistent errors in medication management, immediate action required" },
+      ]
+    },
+    { 
+      key: 'communication', 
+      title: 'Communication with Clients & Team – How effective is the employee in communicating with clients and team?',
+      options: [
+        { value: "A", label: "A: Consistently clear and respectful communication" },
+        { value: "B", label: "B: Generally good communication with minor misunderstandings" },
+        { value: "C", label: "C: Adequate communication skills" },
+        { value: "D", label: "D: Poor communication skills, leading to misunderstandings and issues" },
+        { value: "E", label: "E: Ineffective communication, immediate improvement needed" },
+      ]
+    },
+    { 
+      key: 'responsiveness', 
+      title: 'Responsiveness and Adaptability – How well does the employee adapt to changing client needs and situations?',
+      options: [
+        { value: "A", label: "A: Quickly and effectively adapts" },
+        { value: "B", label: "B: Adequately responsive with minor delays" },
+        { value: "C", label: "C: Satisfactory responsiveness but slow to adapt" },
+        { value: "D", label: "D: Struggles with responsiveness and adaptability" },
+        { value: "E", label: "E: Unable to adapt to changing situations, immediate action required" },
+      ]
+    },
+    { 
+      key: 'professionalDevelopment', 
+      title: 'Professional Development – How actively does the employee engage in professional development?',
+      options: [
+        { value: "A", label: "A: Actively seeks and engages in opportunities" },
+        { value: "B", label: "B: Participates in professional development" },
+        { value: "C", label: "C: Occasionally engages in professional development" },
+        { value: "D", label: "D: Rarely engages in professional development opportunities" },
+        { value: "E", label: "E: Does not engage in professional development" },
+      ]
+    },
+    { 
+      key: 'attendance', 
+      title: 'Attendance & Punctuality - What is the employee\'s pattern of absence and punctuality?',
+      options: [
+        { value: "A", label: "A: Always punctual, rarely absent" },
+        { value: "B", label: "B: Generally punctual with acceptable attendance" },
+        { value: "C", label: "C: Occasional lateness or absence" },
+        { value: "D", label: "D: Frequent lateness or absences, attention required" },
+        { value: "E", label: "E: Consistently late and/or absent, immediate action required" },
+      ]
+    }
   ];
-
-  const ratingOptions = ['A', 'B', 'C', 'D', 'E'];
 
   performanceQuestions.forEach((question) => {
     const selectedRating = (data.ratings as any)[question.key];
-    ensureSpace(60);
+    const selectedOption = question.options.find(opt => opt.value === selectedRating);
     
-    // Question label
-    page.drawText(question.label, { x: marginX, y: y - lineHeight, size: 11, font: boldFont, color: textColor })
-    y -= lineHeight + 6;
+    ensureSpace(80);
     
-    // Rating options with checkmarks in a single line
-    let optionX = marginX + 20;
-    ratingOptions.forEach((option) => {
-      const isSelected = option === selectedRating;
-      const checkmark = isSelected ? '☑' : '☐';
-      const optionColor = isSelected ? rgb(0.2, 0.6, 0.3) : rgb(0.6, 0.6, 0.6);
-      
-      // Draw checkmark
-      page.drawText(checkmark, { x: optionX, y: y - lineHeight, size: 12, font, color: optionColor });
-      // Draw option letter
-      page.drawText(option, { x: optionX + 15, y: y - lineHeight, size: 11, font, color: textColor });
-      
-      optionX += 50;
-    });
-    y -= lineHeight + 12;
+    // Question title
+    const titleLines = wrapText(question.title, contentWidth(), boldFont, 11);
+    for (const titleLine of titleLines) {
+      ensureSpace(lineHeight);
+      page.drawText(titleLine, { x: marginX, y: y - lineHeight, size: 11, font: boldFont, color: textColor });
+      y -= lineHeight;
+    }
+    y -= 4;
+    
+    // Selected answer
+    if (selectedOption) {
+      const answerLines = wrapText(selectedOption.label, contentWidth() - 20, font, 11);
+      for (const answerLine of answerLines) {
+        ensureSpace(lineHeight);
+        page.drawText(answerLine, { x: marginX + 20, y: y - lineHeight, size: 11, font, color: rgb(0.2, 0.6, 0.3) });
+        y -= lineHeight;
+      }
+    }
+    y -= 12;
   });
 
   // Comments Section
