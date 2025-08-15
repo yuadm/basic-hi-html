@@ -198,125 +198,223 @@ export function QuestionnaireManagement() {
     return <Badge variant="default">Active</Badge>;
   };
 
+  const openBuilderForType = (complianceTypeId: string, complianceTypeName: string) => {
+    const existingQuestionnaire = questionnaires.find(q => q.compliance_type_id === complianceTypeId);
+    
+    if (existingQuestionnaire) {
+      setSelectedQuestionnaire(existingQuestionnaire);
+    } else {
+      // Create new questionnaire for this compliance type
+      setSelectedQuestionnaire({
+        id: '',
+        name: `${complianceTypeName} Questionnaire`,
+        description: `Default questionnaire for ${complianceTypeName}`,
+        is_active: true,
+        compliance_type_id: complianceTypeId,
+        branch_id: '',
+        created_at: new Date().toISOString()
+      });
+    }
+    setShowBuilder(true);
+  };
+
+  const createFromTemplate = (complianceTypeId: string, templateType: string) => {
+    const complianceType = complianceTypes.find(ct => ct.id === complianceTypeId);
+    if (!complianceType) return;
+
+    setSelectedQuestionnaire({
+      id: '',
+      name: `${complianceType.name} Template`,
+      description: `Template questionnaire for ${complianceType.name}`,
+      is_active: true,
+      compliance_type_id: complianceTypeId,
+      branch_id: '',
+      created_at: new Date().toISOString()
+    });
+    setShowBuilder(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Questionnaire Management</h2>
-          <p className="text-muted-foreground">Manage compliance questionnaires with versioning and lifecycle control</p>
-        </div>
-        <Button 
-          onClick={() => {
-            setSelectedQuestionnaire(null);
-            setShowBuilder(true);
-          }}
-          className="bg-gradient-primary hover:opacity-90"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create New Questionnaire
-        </Button>
+      <div>
+        <h2 className="text-2xl font-bold">Questionnaire Management</h2>
+        <p className="text-muted-foreground">Manage compliance questionnaires by type</p>
       </div>
 
-      {/* Existing Questionnaires */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Existing Questionnaires
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {questionnaires.length > 0 ? (
-            <div className="space-y-4">
-              {questionnaires.map((questionnaire) => (
-                <Card key={questionnaire.id} className="border border-border/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <h4 className="font-medium">{questionnaire.name}</h4>
-                          <Badge variant="outline">v{questionnaire.version || 1}</Badge>
-                          {getStatusBadge(questionnaire)}
-                        </div>
-                        {questionnaire.description && (
-                          <p className="text-sm text-muted-foreground">
-                            {questionnaire.description}
-                          </p>
-                        )}
-                        <div className="flex gap-2 flex-wrap">
-                          {questionnaire.compliance_types && (
-                            <Badge variant="outline">
-                              {questionnaire.compliance_types.name}
-                            </Badge>
-                          )}
-                          {questionnaire.branches && (
-                            <Badge variant="outline">
-                              {questionnaire.branches.name}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedQuestionnaire(questionnaire);
-                            setShowPreview(true);
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedQuestionnaire(questionnaire);
-                            setShowVersions(true);
-                          }}
-                        >
-                          <History className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedQuestionnaire(questionnaire);
-                            setShowBuilder(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => createNewVersion(questionnaire)}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          New Version
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteQuestionnaire(questionnaire)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+      {/* Compliance Type Documents */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {complianceTypes.map((type) => {
+          const typeQuestionnaires = questionnaires.filter(q => q.compliance_type_id === type.id);
+          const hasQuestionnaire = typeQuestionnaires.length > 0;
+          const activeQuestionnaire = typeQuestionnaires.find(q => q.is_active);
+          
+          return (
+            <Card key={type.id} className="cursor-pointer hover:shadow-lg transition-all duration-200 group">
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  {/* Document Icon */}
+                  <div className={`w-16 h-20 rounded-lg flex items-center justify-center ${
+                    hasQuestionnaire 
+                      ? 'bg-primary/10 text-primary' 
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    <FileText className="w-8 h-8" />
+                  </div>
+                  
+                  {/* Type Info */}
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">{type.name}</h3>
+                    {type.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {type.description}
+                      </p>
+                    )}
+                    
+                    {/* Status */}
+                    <div className="flex justify-center">
+                      {hasQuestionnaire ? (
+                        <Badge variant="default" className="text-xs">
+                          {typeQuestionnaires.length} questionnaire{typeQuestionnaires.length !== 1 ? 's' : ''}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">
+                          No questionnaires
+                        </Badge>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    {hasQuestionnaire ? (
+                      <div className="space-y-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openBuilderForType(type.id, type.name);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Questionnaire
+                        </Button>
+                        {activeQuestionnaire && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedQuestionnaire(activeQuestionnaire);
+                              setShowPreview(true);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Preview
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openBuilderForType(type.id, type.name);
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create Questionnaire
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            createFromTemplate(type.id, type.name.toLowerCase().replace(/\s+/g, '_'));
+                          }}
+                        >
+                          Use Template
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* All Questionnaires List (Collapsible) */}
+      {questionnaires.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5" />
+              All Questionnaires ({questionnaires.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {questionnaires.map((questionnaire) => (
+                <div key={questionnaire.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <h4 className="font-medium text-sm">{questionnaire.name}</h4>
+                      <Badge variant="outline" className="text-xs">v{questionnaire.version || 1}</Badge>
+                      {getStatusBadge(questionnaire)}
+                    </div>
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      {questionnaire.compliance_types && (
+                        <span>{questionnaire.compliance_types.name}</span>
+                      )}
+                      {questionnaire.branches && (
+                        <span>• {questionnaire.branches.name}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedQuestionnaire(questionnaire);
+                        setShowPreview(true);
+                      }}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedQuestionnaire(questionnaire);
+                        setShowBuilder(true);
+                      }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteQuestionnaire(questionnaire)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-6">
-              No questionnaires created yet. Create your first questionnaire to get started.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Questionnaire Builder Dialog */}
       <Dialog open={showBuilder} onOpenChange={setShowBuilder}>
