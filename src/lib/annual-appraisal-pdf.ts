@@ -287,7 +287,8 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
   const bytes = await doc.save()
   const blob = new Blob([bytes], { type: 'application/pdf' })
   const url = URL.createObjectURL(blob)
-  const filename = `Annual_Appraisal_${(employeeName || 'Employee').replace(/\s+/g, '_')}_${format(new Date(), 'dd-MM-yyyy')}.pdf`
+  const appraisalDate = data.appraisal_date ? new Date(data.appraisal_date) : new Date()
+  const filename = `${employeeName || 'Employee'} ${appraisalDate.getFullYear()} annual appraisal.pdf`
   const a = document.createElement('a')
   a.href = url
   a.download = filename
