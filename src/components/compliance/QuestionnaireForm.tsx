@@ -125,7 +125,7 @@ export function QuestionnaireForm({
       const formattedQuestions = data?.map((item) => ({
         id: item.compliance_questions.id,
         question_text: item.compliance_questions.question_text,
-        question_type: item.compliance_questions.question_type,
+        question_type: item.compliance_questions.question_type as 'yes_no' | 'text' | 'multiple_choice' | 'number',
         is_required: item.compliance_questions.is_required,
         options: item.compliance_questions.options as string[] || undefined,
         section: 'General', // Default section since column doesn't exist yet

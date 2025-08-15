@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ComplianceTypeManagement } from "./ComplianceTypeManagement";
 
 
+import { QuestionnaireManagement } from "./QuestionnaireManagement";
 import { DataRetentionManagement } from "./DataRetentionManagement";
 
 interface ComplianceSettingsData {
@@ -285,6 +286,7 @@ export function ComplianceSettings() {
         </div>
 
         <ComplianceTypeManagement />
+        <QuestionnaireManagement />
         <DataRetentionManagement />
 
         <div className="flex justify-end">
