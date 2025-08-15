@@ -93,7 +93,7 @@ export function QuestionnaireBuilder({
         name: questionnaire.name,
         description: questionnaire.description || '',
         compliance_type_id: questionnaire.compliance_type_id || '',
-        branch_id: questionnaire.branch_id || '',
+        branch_id: questionnaire.branch_id || 'global',
       });
       
       if (questionnaire.id) {
@@ -315,7 +315,7 @@ export function QuestionnaireBuilder({
             name: formData.name,
             description: formData.description || null,
             compliance_type_id: formData.compliance_type_id,
-            branch_id: formData.branch_id || null,
+            branch_id: formData.branch_id === 'global' ? null : formData.branch_id,
             is_active: true
           })
           .select()
@@ -415,13 +415,13 @@ export function QuestionnaireBuilder({
           <Label>Branch (Optional)</Label>
           <Select 
             value={formData.branch_id} 
-            onValueChange={(value) => setFormData(prev => ({ ...prev, branch_id: value }))}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, branch_id: value === 'global' ? '' : value }))}
           >
             <SelectTrigger>
               <SelectValue placeholder="Global (all branches)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Global (all branches)</SelectItem>
+              <SelectItem value="global">Global (all branches)</SelectItem>
               {branches.map((branch) => (
                 <SelectItem key={branch.id} value={branch.id}>
                   {branch.name}
