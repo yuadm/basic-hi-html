@@ -296,7 +296,14 @@ export async function generateSpotCheckPdf(data: SpotCheckFormData, company?: Co
   const bytes = await doc.save()
   const blob = new Blob([bytes], { type: 'application/pdf' })
   const url = URL.createObjectURL(blob)
-  const filename = `Spot_Check_${data.serviceUserName?.replace(/\s+/g, '_') || 'Report'}_${format(new Date(), 'dd-MM-yyyy')}.pdf`
+  
+  // Format: "Employee Name Quarter Year ComplianceType"
+  const d = data?.date ? new Date(data.date) : new Date()
+  const quarter = `Q${Math.floor((d.getMonth()) / 3) + 1}`
+  const year = d.getFullYear()
+  const cleanServiceUserName = (data.serviceUserName || 'Employee').replace(/\s+/g, ' ').trim()
+  const filename = `${cleanServiceUserName} ${quarter} ${year} Spot Check.pdf`
+  
   const a = document.createElement('a')
   a.href = url
   a.download = filename

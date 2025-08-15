@@ -416,7 +416,14 @@ export async function generateSupervisionPdf(data: SupervisionFormData, company?
   const bytes = await doc.save()
   const blob = new Blob([bytes], { type: 'application/pdf' })
   const url = URL.createObjectURL(blob)
-  const filename = `Supervision_${(data.signatureEmployee || 'Report').replace(/\s+/g, '_')}_${format(new Date(), 'dd-MM-yyyy')}.pdf`
+  
+  // Format: "Employee Name Quarter Year ComplianceType"
+  const d = data?.dateOfSupervision ? new Date(data.dateOfSupervision) : new Date()
+  const quarter = `Q${Math.floor(d.getMonth() / 3) + 1}`
+  const year = d.getFullYear()
+  const cleanEmployeeName = (data.signatureEmployee || 'Employee').replace(/\s+/g, ' ').trim()
+  const filename = `${cleanEmployeeName} ${quarter} ${year} Supervision.pdf`
+  
   const a = document.createElement('a')
   a.href = url
   a.download = filename
