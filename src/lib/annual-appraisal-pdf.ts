@@ -4,6 +4,7 @@ import DejaVuSansRegularUrl from '@/assets/fonts/dejavu/DejaVuSans.ttf'
 import DejaVuSansBoldUrl from '@/assets/fonts/dejavu/DejaVuSans-Bold.ttf'
 import { format } from 'date-fns'
 import type { AnnualAppraisalFormData } from '@/components/compliance/AnnualAppraisalFormDialog';
+import { questions } from '@/components/compliance/annual-appraisal-constants';
 
 interface CompanyInfo {
   name?: string
@@ -188,44 +189,59 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
   // Performance Assessment Section
   drawSectionTitle('Performance Assessment')
   
-  const performanceQuestions = [
-    { key: 'clientCare', label: 'Client Care' },
-    { key: 'careStandards', label: 'Knowledge of Care Standards' },
-    { key: 'safetyHealth', label: 'Safety and Health Compliance' },
-    { key: 'medicationManagement', label: 'Medication Management' },
-    { key: 'communication', label: 'Communication with Clients & Team' },
-    { key: 'responsiveness', label: 'Responsiveness and Adaptability' },
-    { key: 'professionalDevelopment', label: 'Professional Development' },
-    { key: 'attendance', label: 'Attendance & Punctuality' }
-  ];
-
-  const ratingDescriptions = {
-    'A': 'Outstanding performance',
-    'B': 'Exceeds expectations',
-    'C': 'Meets expectations',
-    'D': 'Below expectations',
-    'E': 'Unsatisfactory'
+  const drawQuestionWithOptions = (question: any) => {
+    const selectedRating = (data.ratings as any)[question.id];
+    const requiredSpace = 20 + (question.options.length * 16) + 10; // Question title + options + spacing
+    ensureSpace(requiredSpace);
+    
+    // Question title
+    const lines = wrapText(question.title, contentWidth(), boldFont, 11);
+    for (const line of lines) {
+      ensureSpace(lineHeight);
+      page.drawText(line, { x: marginX, y: y - lineHeight, size: 11, font: boldFont, color: textColor });
+      y -= lineHeight;
+    }
+    y -= 6;
+    
+    // Draw all options with selection indicators
+    question.options.forEach((option: any) => {
+      const isSelected = selectedRating === option.value;
+      const optionText = option.label;
+      const indent = 20;
+      
+      ensureSpace(lineHeight + 2);
+      
+      // Selection indicator
+      if (isSelected) {
+        page.drawText('●', { x: marginX + indent, y: y - lineHeight, size: 11, font: boldFont, color: rgb(0.2, 0.6, 0.3) });
+      } else {
+        page.drawText('○', { x: marginX + indent, y: y - lineHeight, size: 11, font, color: rgb(0.7, 0.7, 0.7) });
+      }
+      
+      // Option text
+      const textColor = isSelected ? rgb(0.2, 0.6, 0.3) : rgb(0.5, 0.5, 0.5);
+      const textFont = isSelected ? boldFont : font;
+      const maxTextWidth = contentWidth() - indent - 20;
+      
+      const textLines = wrapText(optionText, maxTextWidth, textFont, 10);
+      
+      for (let i = 0; i < textLines.length; i++) {
+        if (i > 0) {
+          ensureSpace(lineHeight);
+          y -= lineHeight;
+        }
+        const xOffset = i === 0 ? indent + 15 : indent + 15;
+        page.drawText(textLines[i], { x: marginX + xOffset, y: y - lineHeight + 2, size: 10, font: textFont, color: textColor });
+      }
+      
+      y -= lineHeight + 2;
+    });
+    
+    y -= 8; // Extra spacing after question
   };
 
-  performanceQuestions.forEach((question) => {
-    const selectedRating = (data.ratings as any)[question.key];
-    ensureSpace(80);
-    
-    // Question label
-    page.drawText(question.label, { x: marginX, y: y - lineHeight, size: 11, font: boldFont, color: textColor })
-    y -= lineHeight + 6;
-    
-    // Selected rating with description
-    if (selectedRating && ratingDescriptions[selectedRating as keyof typeof ratingDescriptions]) {
-      const selectedText = `Selected: ${selectedRating} — ${ratingDescriptions[selectedRating as keyof typeof ratingDescriptions]}`;
-      const selectedColor = rgb(0.2, 0.6, 0.3);
-      page.drawText(selectedText, { x: marginX + 20, y: y - lineHeight, size: 11, font: boldFont, color: selectedColor });
-      y -= lineHeight + 8;
-    } else {
-      // No selection made
-      page.drawText('No rating selected', { x: marginX + 20, y: y - lineHeight, size: 11, font, color: rgb(0.6, 0.6, 0.6) });
-      y -= lineHeight + 8;
-    }
+  questions.forEach((question) => {
+    drawQuestionWithOptions(question);
   });
 
   // Comments Section
