@@ -22,7 +22,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCompany } from "@/contexts/CompanyContext";
-import { LoadingButton } from "@/components/ui/loading-button";
 
 interface Employee {
   id: string;
@@ -68,7 +67,6 @@ export function CompliancePeriodEmployeeView({
   const [records, setRecords] = useState<ComplianceRecord[]>([]);
   const [employeeStatusList, setEmployeeStatusList] = useState<EmployeeComplianceStatus[]>([]);
   const [loading, setLoading] = useState(false);
-  const [downloadingRecords, setDownloadingRecords] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const { companySettings } = useCompany();
@@ -345,30 +343,19 @@ export function CompliancePeriodEmployeeView({
                               if (item.record?.completion_method === 'supervision') {
                                 try {
                                   const j = JSON.parse(item.record.notes);
-                                  // Get supervisor notes or fallback
-                                  const txt = (j?.office?.supervisor || '').toString().trim();
-                                  return txt || 'Supervision form completed';
+                                  const txt = (j?.freeTextNotes || '').toString().trim();
+                                  return txt || '';
                                 } catch {
-                                  return item.record?.notes || '';
+                                  return '';
                                 }
                               }
                               if (item.record?.completion_method === 'annual_appraisal') {
                                 try {
                                   const j = JSON.parse(item.record.notes);
-                                  // Get manager comments from annual appraisal
-                                  const txt = (j?.comments_manager || j?.comments_employee || '').toString().trim();
-                                  return txt || 'Annual appraisal completed';
+                                  const txt = (j?.freeTextNotes || '').toString().trim();
+                                  return txt || '';
                                 } catch {
-                                  return item.record?.notes || '';
-                                }
-                              }
-                              if (item.record?.completion_method === 'spot_check') {
-                                try {
-                                  const j = JSON.parse(item.record.notes);
-                                  const txt = (j?.carriedBy || '').toString().trim();
-                                  return txt ? `Spot check by ${txt}` : 'Spot check completed';
-                                } catch {
-                                  return item.record?.notes || '';
+                                  return '';
                                 }
                               }
                               return item.record?.notes || '';
@@ -378,28 +365,19 @@ export function CompliancePeriodEmployeeView({
                                 if (item.record?.completion_method === 'supervision') {
                                   try {
                                     const j = JSON.parse(item.record.notes);
-                                    const txt = (j?.office?.supervisor || '').toString().trim();
-                                    return txt || 'Supervision form completed';
+                                    const txt = (j?.freeTextNotes || '').toString().trim();
+                                    return txt || '-';
                                   } catch {
-                                    return item.record?.notes || '-';
+                                    return '-';
                                   }
                                 }
                                 if (item.record?.completion_method === 'annual_appraisal') {
                                   try {
                                     const j = JSON.parse(item.record.notes);
-                                    const txt = (j?.comments_manager || j?.comments_employee || '').toString().trim();
-                                    return txt || 'Annual appraisal completed';
+                                    const txt = (j?.freeTextNotes || '').toString().trim();
+                                    return txt || '-';
                                   } catch {
-                                    return item.record?.notes || '-';
-                                  }
-                                }
-                                if (item.record?.completion_method === 'spot_check') {
-                                  try {
-                                    const j = JSON.parse(item.record.notes);
-                                    const txt = (j?.carriedBy || '').toString().trim();
-                                    return txt ? `Spot check by ${txt}` : 'Spot check completed';
-                                  } catch {
-                                    return item.record?.notes || '-';
+                                    return '-';
                                   }
                                 }
                                 return item.record?.notes || '-';
@@ -432,35 +410,23 @@ export function CompliancePeriodEmployeeView({
                                 >
                                   <Eye className="h-3 w-3" />
                                 </Button>
-                                <LoadingButton
+                                <Button
                                   variant="ghost"
                                   size="sm"
-                                  loading={downloadingRecords.has(item.record.id)}
-                                  onClick={async (e) => {
+                                  onClick={(e) => {
                                     e.stopPropagation();
                                     if (item.record?.notes) {
                                       try {
-                                        setDownloadingRecords(prev => new Set([...prev, item.record!.id]));
                                         const parsedData = JSON.parse(item.record.notes);
                                         // Import the PDF generator
-                                        const { generateAnnualAppraisalPDF } = await import('@/lib/annual-appraisal-pdf');
-                                        await generateAnnualAppraisalPDF(parsedData, item.employee.name, {
-                                          name: companySettings?.name || 'Company',
-                                          logo: companySettings?.logo
+                                        import('@/lib/annual-appraisal-pdf').then(({ generateAnnualAppraisalPDF }) => {
+                                          generateAnnualAppraisalPDF(parsedData, item.employee.name, {
+                                            name: companySettings?.name || 'Company',
+                                            logo: companySettings?.logo
+                                          });
                                         });
                                       } catch (error) {
                                         console.error('Error generating PDF:', error);
-                                        toast({
-                                          title: "Error generating PDF",
-                                          description: "Could not generate the PDF file.",
-                                          variant: "destructive",
-                                        });
-                                      } finally {
-                                        setDownloadingRecords(prev => {
-                                          const newSet = new Set(prev);
-                                          newSet.delete(item.record!.id);
-                                          return newSet;
-                                        });
                                       }
                                     }
                                   }}
@@ -468,86 +434,8 @@ export function CompliancePeriodEmployeeView({
                                   title="Download PDF"
                                 >
                                   <Download className="h-3 w-3" />
-                                </LoadingButton>
+                                </Button>
                               </>
-                            )}
-                            
-                            {item.record?.completion_method === 'spot_check' && item.record?.status === 'completed' && (
-                              <LoadingButton
-                                variant="ghost"
-                                size="sm"
-                                loading={downloadingRecords.has(item.record.id)}
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (item.record?.notes) {
-                                    try {
-                                      setDownloadingRecords(prev => new Set([...prev, item.record!.id]));
-                                      const parsedData = JSON.parse(item.record.notes);
-                                      const { generateSpotCheckPdf } = await import('@/lib/spot-check-pdf');
-                                      await generateSpotCheckPdf(parsedData, {
-                                        name: companySettings?.name || 'Company',
-                                        logo: companySettings?.logo
-                                      });
-                                    } catch (error) {
-                                      console.error('Error generating PDF:', error);
-                                      toast({
-                                        title: "Error generating PDF",
-                                        description: "Could not generate the PDF file.",
-                                        variant: "destructive",
-                                      });
-                                    } finally {
-                                      setDownloadingRecords(prev => {
-                                        const newSet = new Set(prev);
-                                        newSet.delete(item.record!.id);
-                                        return newSet;
-                                      });
-                                    }
-                                  }
-                                }}
-                                className="h-6 w-6 p-0"
-                                title="Download PDF"
-                              >
-                                <Download className="h-3 w-3" />
-                              </LoadingButton>
-                            )}
-                            
-                            {item.record?.completion_method === 'supervision' && item.record?.status === 'completed' && (
-                              <LoadingButton
-                                variant="ghost"
-                                size="sm"
-                                loading={downloadingRecords.has(item.record.id)}
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (item.record?.notes) {
-                                    try {
-                                      setDownloadingRecords(prev => new Set([...prev, item.record!.id]));
-                                      const parsedData = JSON.parse(item.record.notes);
-                                      const { generateSupervisionPdf } = await import('@/lib/supervision-pdf');
-                                      await generateSupervisionPdf(parsedData, {
-                                        name: companySettings?.name || 'Company',
-                                        logo: companySettings?.logo
-                                      });
-                                    } catch (error) {
-                                      console.error('Error generating PDF:', error);
-                                      toast({
-                                        title: "Error generating PDF",
-                                        description: "Could not generate the PDF file.",
-                                        variant: "destructive",
-                                      });
-                                    } finally {
-                                      setDownloadingRecords(prev => {
-                                        const newSet = new Set(prev);
-                                        newSet.delete(item.record!.id);
-                                        return newSet;
-                                      });
-                                    }
-                                  }
-                                }}
-                                className="h-6 w-6 p-0"
-                                title="Download PDF"
-                              >
-                                <Download className="h-3 w-3" />
-                              </LoadingButton>
                             )}
                           </div>
                         </TableCell>
