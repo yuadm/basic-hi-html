@@ -19,7 +19,7 @@ interface ComplianceType {
   id: string;
   name: string;
   description?: string;
-  has_questionnaire: boolean;
+  has_questionnaire?: boolean;
 }
 
 interface Branch {
@@ -63,8 +63,7 @@ export function QuestionnaireManagement() {
     try {
       const { data, error } = await supabase
         .from('compliance_types')
-        .select('id, name, description, has_questionnaire')
-        .eq('has_questionnaire', true)
+        .select('id, name, description')
         .order('name');
 
       if (error) throw error;
