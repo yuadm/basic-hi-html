@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit, Eye } from "lucide-react";
+import { Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -14,7 +14,7 @@ interface Questionnaire {
   is_active: boolean;
   compliance_type_id?: string;
   branch_id?: string;
-  version: number;
+  version?: number;
   effective_from?: string;
   effective_to?: string;
   created_at: string;
@@ -42,11 +42,17 @@ export function QuestionnaireVersions({ questionnaire, onClose, onEditVersion }:
         .select('*')
         .eq('compliance_type_id', questionnaire.compliance_type_id)
         .eq('branch_id', questionnaire.branch_id || null)
-        .is('deleted_at', null)
-        .order('version', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setVersions(data || []);
+      
+      // Map the data to include version with defaults
+      const mappedData = data?.map((item, index) => ({
+        ...item,
+        version: index + 1 // Simple versioning based on creation order
+      })) || [];
+      
+      setVersions(mappedData);
     } catch (error) {
       console.error('Error fetching versions:', error);
       toast({
@@ -62,18 +68,6 @@ export function QuestionnaireVersions({ questionnaire, onClose, onEditVersion }:
   const getStatusBadge = (version: Questionnaire) => {
     if (!version.is_active) {
       return <Badge variant="secondary">Inactive</Badge>;
-    }
-    
-    const today = new Date().toISOString().split('T')[0];
-    const effectiveFrom = version.effective_from;
-    const effectiveTo = version.effective_to;
-    
-    if (effectiveFrom && effectiveFrom > today) {
-      return <Badge variant="outline">Scheduled</Badge>;
-    }
-    
-    if (effectiveTo && effectiveTo <= today) {
-      return <Badge variant="secondary">Expired</Badge>;
     }
     
     return <Badge variant="default">Active</Badge>;
@@ -92,17 +86,11 @@ export function QuestionnaireVersions({ questionnaire, onClose, onEditVersion }:
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <h4 className="font-medium">Version {version.version}</h4>
+                    <h4 className="font-medium">Version {version.version || 1}</h4>
                     {getStatusBadge(version)}
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
                     <p>Created: {new Date(version.created_at).toLocaleDateString()}</p>
-                    {version.effective_from && (
-                      <p>Effective from: {version.effective_from}</p>
-                    )}
-                    {version.effective_to && (
-                      <p>Effective to: {version.effective_to}</p>
-                    )}
                   </div>
                   {version.description && (
                     <p className="text-sm text-muted-foreground">

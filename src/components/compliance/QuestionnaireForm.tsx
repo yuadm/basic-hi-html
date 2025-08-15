@@ -27,7 +27,7 @@ interface Questionnaire {
   id: string;
   name: string;
   description?: string;
-  version: number;
+  version?: number;
 }
 
 interface QuestionnaireFormProps {
@@ -65,24 +65,20 @@ export function QuestionnaireForm({
       // First try to find branch-specific questionnaire, then fall back to global
       let { data: questionnaire, error } = await supabase
         .from('compliance_questionnaires')
-        .select('id, name, description, version')
+        .select('id, name, description')
         .eq('compliance_type_id', complianceTypeId)
         .eq('branch_id', branchId || null)
         .eq('is_active', true)
-        .is('deleted_at', null)
-        .is('effective_to', null)
         .single();
 
       // If no branch-specific questionnaire found and we have a branch, try global
       if (error && branchId) {
         const { data: globalQuestionnaire, error: globalError } = await supabase
           .from('compliance_questionnaires')
-          .select('id, name, description, version')
+          .select('id, name, description')
           .eq('compliance_type_id', complianceTypeId)
           .is('branch_id', null)
           .eq('is_active', true)
-          .is('deleted_at', null)
-          .is('effective_to', null)
           .single();
 
         if (globalError) throw globalError;
@@ -91,8 +87,10 @@ export function QuestionnaireForm({
         throw error;
       }
 
-      setQuestionnaire(questionnaire);
-      await fetchQuestions(questionnaire.id);
+      if (questionnaire) {
+        setQuestionnaire(questionnaire);
+        await fetchQuestions(questionnaire.id);
+      }
     } catch (error) {
       console.error('Error fetching questionnaire:', error);
       toast({
@@ -116,9 +114,7 @@ export function QuestionnaireForm({
             question_text,
             question_type,
             is_required,
-            options,
-            section,
-            help_text
+            options
           )
         `)
         .eq('questionnaire_id', questionnaireId)
@@ -131,9 +127,9 @@ export function QuestionnaireForm({
         question_text: item.compliance_questions.question_text,
         question_type: item.compliance_questions.question_type,
         is_required: item.compliance_questions.is_required,
-        options: item.compliance_questions.options || undefined,
-        section: item.compliance_questions.section || '',
-        help_text: item.compliance_questions.help_text || '',
+        options: item.compliance_questions.options as string[] || undefined,
+        section: 'General', // Default section since column doesn't exist yet
+        help_text: '', // Default help text since column doesn't exist yet
         order_index: item.order_index
       })) || [];
 
@@ -180,7 +176,7 @@ export function QuestionnaireForm({
     try {
       const formData = {
         questionnaire_id: questionnaire?.id,
-        questionnaire_version: questionnaire?.version,
+        questionnaire_version: questionnaire?.version || 1,
         responses,
         completed_at: new Date().toISOString()
       };
@@ -292,7 +288,7 @@ export function QuestionnaireForm({
       <div className="space-y-2">
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold">{questionnaire.name}</h3>
-          <Badge variant="outline">v{questionnaire.version}</Badge>
+          <Badge variant="outline">v{questionnaire.version || 1}</Badge>
         </div>
         {questionnaire.description && (
           <p className="text-muted-foreground">{questionnaire.description}</p>

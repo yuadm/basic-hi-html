@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Save, GripVertical } from "lucide-react";
+import { Plus, Trash2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -40,7 +40,7 @@ interface Questionnaire {
   is_active: boolean;
   compliance_type_id?: string;
   branch_id?: string;
-  version: number;
+  version?: number;
   effective_from?: string;
   effective_to?: string;
   compliance_types?: { name: string };
@@ -113,9 +113,7 @@ export function QuestionnaireBuilder({
             question_text,
             question_type,
             is_required,
-            options,
-            section,
-            help_text
+            options
           )
         `)
         .eq('questionnaire_id', questionnaireId)
@@ -128,9 +126,9 @@ export function QuestionnaireBuilder({
         question_text: item.compliance_questions.question_text,
         question_type: item.compliance_questions.question_type,
         is_required: item.compliance_questions.is_required,
-        options: item.compliance_questions.options || undefined,
-        section: item.compliance_questions.section || '',
-        help_text: item.compliance_questions.help_text || '',
+        options: item.compliance_questions.options as string[] || undefined,
+        section: 'General', // Default section since column doesn't exist yet
+        help_text: '', // Default help text since column doesn't exist yet
         order_index: item.order_index
       })) || [];
 
@@ -180,54 +178,6 @@ export function QuestionnaireBuilder({
             question_type: "yes_no",
             is_required: true,
             section: "Care Delivery"
-          },
-          {
-            question_text: "Equipment (hoists etc) used properly",
-            question_type: "yes_no",
-            is_required: true,
-            section: "Health & Safety"
-          },
-          {
-            question_text: "Care Worker practices proper food safety and hygiene principles",
-            question_type: "yes_no",
-            is_required: true,
-            section: "Care Delivery"
-          },
-          {
-            question_text: "Care Worker is vigilant for hazards in the Service Users home",
-            question_type: "yes_no",
-            is_required: true,
-            section: "Health & Safety"
-          },
-          {
-            question_text: "Care Worker communicates with the Service User (tasks to be done maintaining confidentiality)",
-            question_type: "yes_no",
-            is_required: true,
-            section: "Communication"
-          },
-          {
-            question_text: "Care Worker asks Service User if he/she is satisfied with the service",
-            question_type: "yes_no",
-            is_required: true,
-            section: "Communication"
-          },
-          {
-            question_text: "Care Worker completes Daily Report forms satisfactorily",
-            question_type: "yes_no",
-            is_required: true,
-            section: "Documentation"
-          },
-          {
-            question_text: "Snacks left for the Service User are covered and stored properly",
-            question_type: "yes_no",
-            is_required: true,
-            section: "Care Delivery"
-          },
-          {
-            question_text: "Care Worker leaves premises, locking doors behind him/ her",
-            question_type: "yes_no",
-            is_required: true,
-            section: "Departure"
           }
         ];
         break;
@@ -247,24 +197,6 @@ export function QuestionnaireBuilder({
             is_required: true,
             options: ["Excellent", "Good", "Satisfactory", "Needs Improvement"],
             section: "Performance Review"
-          },
-          {
-            question_text: "What support does the employee need to improve performance?",
-            question_type: "text",
-            is_required: false,
-            section: "Development Planning"
-          },
-          {
-            question_text: "Employee follows health and safety procedures",
-            question_type: "yes_no",
-            is_required: true,
-            section: "Compliance"
-          },
-          {
-            question_text: "Additional comments and observations",
-            question_type: "text",
-            is_required: false,
-            section: "General Comments"
           }
         ];
         break;
@@ -283,30 +215,6 @@ export function QuestionnaireBuilder({
             question_type: "text",
             is_required: false,
             section: "Performance Summary"
-          },
-          {
-            question_text: "Areas for development and improvement",
-            question_type: "text",
-            is_required: false,
-            section: "Development Planning"
-          },
-          {
-            question_text: "Training and development goals for next year",
-            question_type: "text",
-            is_required: false,
-            section: "Development Planning"
-          },
-          {
-            question_text: "Employee's self-assessment comments",
-            question_type: "text",
-            is_required: false,
-            section: "Self Assessment"
-          },
-          {
-            question_text: "Manager's overall comments",
-            question_type: "text",
-            is_required: false,
-            section: "Management Review"
           }
         ];
         break;
@@ -342,7 +250,7 @@ export function QuestionnaireBuilder({
       question_type: newQuestion.question_type,
       is_required: newQuestion.is_required,
       options: newQuestion.question_type === 'multiple_choice' ? newQuestion.options.filter(opt => opt.trim()) : undefined,
-      section: newQuestion.section || undefined,
+      section: newQuestion.section || 'General',
       help_text: newQuestion.help_text || undefined,
       order_index: questions.length
     };
@@ -408,9 +316,7 @@ export function QuestionnaireBuilder({
             description: formData.description || null,
             compliance_type_id: formData.compliance_type_id,
             branch_id: formData.branch_id || null,
-            is_active: true,
-            version: 1,
-            effective_from: new Date().toISOString().split('T')[0]
+            is_active: true
           })
           .select()
           .single();
@@ -445,8 +351,6 @@ export function QuestionnaireBuilder({
             question_type: q.question_type,
             is_required: q.is_required,
             options: q.options || null,
-            section: q.section || null,
-            help_text: q.help_text || null,
             order_index: index
           }))
         )
@@ -713,7 +617,7 @@ export function QuestionnaireBuilder({
                   size="sm"
                   onClick={() => removeQuestion(question.id)}
                 >
-                  Remove
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}

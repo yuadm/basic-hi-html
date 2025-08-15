@@ -28,7 +28,7 @@ interface Questionnaire {
   is_active: boolean;
   compliance_type_id?: string;
   branch_id?: string;
-  version: number;
+  version?: number;
   effective_from?: string;
   effective_to?: string;
 }
@@ -58,9 +58,7 @@ export function QuestionnairePreview({ questionnaire, onClose }: QuestionnairePr
             question_text,
             question_type,
             is_required,
-            options,
-            section,
-            help_text
+            options
           )
         `)
         .eq('questionnaire_id', questionnaire.id)
@@ -73,9 +71,9 @@ export function QuestionnairePreview({ questionnaire, onClose }: QuestionnairePr
         question_text: item.compliance_questions.question_text,
         question_type: item.compliance_questions.question_type,
         is_required: item.compliance_questions.is_required,
-        options: item.compliance_questions.options || undefined,
-        section: item.compliance_questions.section || '',
-        help_text: item.compliance_questions.help_text || '',
+        options: item.compliance_questions.options as string[] || undefined,
+        section: 'General', // Default section since column doesn't exist yet
+        help_text: '', // Default help text since column doesn't exist yet
         order_index: item.order_index
       })) || [];
 
@@ -164,7 +162,7 @@ export function QuestionnairePreview({ questionnaire, onClose }: QuestionnairePr
       <div className="space-y-2">
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold">{questionnaire.name}</h3>
-          <Badge variant="outline">v{questionnaire.version}</Badge>
+          <Badge variant="outline">v{questionnaire.version || 1}</Badge>
         </div>
         {questionnaire.description && (
           <p className="text-muted-foreground">{questionnaire.description}</p>

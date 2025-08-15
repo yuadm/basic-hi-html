@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Settings, FileText, Edit, Trash2, History, Eye } from "lucide-react";
+import { Plus, FileText, Edit, Trash2, History, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -14,22 +10,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { QuestionnaireBuilder } from "./questionnaire/QuestionnaireBuilder";
 import { QuestionnaireVersions } from "./questionnaire/QuestionnaireVersions";
 import { QuestionnairePreview } from "./questionnaire/QuestionnairePreview";
-
-interface Question {
-  id: string;
-  question_text: string;
-  question_type: 'yes_no' | 'text' | 'multiple_choice' | 'number';
-  is_required: boolean;
-  options?: string[];
-  section?: string;
-  help_text?: string;
-  order_index: number;
-}
 
 interface ComplianceType {
   id: string;
@@ -50,7 +34,7 @@ interface Questionnaire {
   is_active: boolean;
   compliance_type_id?: string;
   branch_id?: string;
-  version: number;
+  version?: number;
   effective_from?: string;
   effective_to?: string;
   compliance_types?: { name: string };
@@ -123,11 +107,19 @@ export function QuestionnaireManagement() {
           compliance_types(name),
           branches(name)
         `)
-        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setQuestionnaires(data || []);
+      
+      // Map the data to include version and other properties with defaults
+      const mappedData = data?.map(item => ({
+        ...item,
+        version: 1, // Default version since column doesn't exist yet
+        effective_from: undefined,
+        effective_to: undefined
+      })) || [];
+      
+      setQuestionnaires(mappedData);
     } catch (error) {
       console.error('Error fetching questionnaires:', error);
       toast({
@@ -140,31 +132,7 @@ export function QuestionnaireManagement() {
 
   const createNewVersion = async (baseQuestionnaire: Questionnaire) => {
     try {
-      // Get the highest version for this questionnaire type/branch combo
-      const { data: existingVersions, error: versionError } = await supabase
-        .from('compliance_questionnaires')
-        .select('version')
-        .eq('compliance_type_id', baseQuestionnaire.compliance_type_id)
-        .eq('branch_id', baseQuestionnaire.branch_id || null)
-        .is('deleted_at', null)
-        .order('version', { ascending: false })
-        .limit(1);
-
-      if (versionError) throw versionError;
-
-      const nextVersion = (existingVersions?.[0]?.version || 0) + 1;
-
-      // Deactivate current active version
-      await supabase
-        .from('compliance_questionnaires')
-        .update({ 
-          is_active: false,
-          effective_to: new Date().toISOString().split('T')[0]
-        })
-        .eq('compliance_type_id', baseQuestionnaire.compliance_type_id)
-        .eq('branch_id', baseQuestionnaire.branch_id || null)
-        .eq('is_active', true)
-        .is('deleted_at', null);
+      const nextVersion = (baseQuestionnaire.version || 1) + 1;
 
       // Create new version
       const newQuestionnaire = {
@@ -173,8 +141,7 @@ export function QuestionnaireManagement() {
         compliance_type_id: baseQuestionnaire.compliance_type_id,
         branch_id: baseQuestionnaire.branch_id,
         version: nextVersion,
-        is_active: true,
-        effective_from: new Date().toISOString().split('T')[0]
+        is_active: true
       };
 
       setSelectedQuestionnaire({
@@ -203,7 +170,7 @@ export function QuestionnaireManagement() {
     try {
       const { error } = await supabase
         .from('compliance_questionnaires')
-        .update({ deleted_at: new Date().toISOString() })
+        .delete()
         .eq('id', questionnaire.id);
 
       if (error) throw error;
@@ -227,18 +194,6 @@ export function QuestionnaireManagement() {
   const getStatusBadge = (questionnaire: Questionnaire) => {
     if (!questionnaire.is_active) {
       return <Badge variant="secondary">Inactive</Badge>;
-    }
-    
-    const today = new Date().toISOString().split('T')[0];
-    const effectiveFrom = questionnaire.effective_from;
-    const effectiveTo = questionnaire.effective_to;
-    
-    if (effectiveFrom && effectiveFrom > today) {
-      return <Badge variant="outline">Scheduled</Badge>;
-    }
-    
-    if (effectiveTo && effectiveTo <= today) {
-      return <Badge variant="secondary">Expired</Badge>;
     }
     
     return <Badge variant="default">Active</Badge>;
@@ -282,7 +237,7 @@ export function QuestionnaireManagement() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
                           <h4 className="font-medium">{questionnaire.name}</h4>
-                          <Badge variant="outline">v{questionnaire.version}</Badge>
+                          <Badge variant="outline">v{questionnaire.version || 1}</Badge>
                           {getStatusBadge(questionnaire)}
                         </div>
                         {questionnaire.description && (
@@ -299,16 +254,6 @@ export function QuestionnaireManagement() {
                           {questionnaire.branches && (
                             <Badge variant="outline">
                               {questionnaire.branches.name}
-                            </Badge>
-                          )}
-                          {questionnaire.effective_from && (
-                            <Badge variant="secondary" className="text-xs">
-                              From: {questionnaire.effective_from}
-                            </Badge>
-                          )}
-                          {questionnaire.effective_to && (
-                            <Badge variant="secondary" className="text-xs">
-                              To: {questionnaire.effective_to}
                             </Badge>
                           )}
                         </div>
@@ -379,7 +324,7 @@ export function QuestionnaireManagement() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedQuestionnaire?.id ? `Edit Questionnaire v${selectedQuestionnaire.version}` : 'Create New Questionnaire'}
+              {selectedQuestionnaire?.id ? `Edit Questionnaire v${selectedQuestionnaire.version || 1}` : 'Create New Questionnaire'}
             </DialogTitle>
           </DialogHeader>
           <QuestionnaireBuilder
