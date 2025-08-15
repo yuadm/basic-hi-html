@@ -1,14 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,85 +25,29 @@ interface Questionnaire {
   id: string;
   name: string;
   description?: string;
+  is_active: boolean;
+  compliance_type_id?: string;
+  branch_id?: string;
   version: number;
+  effective_from?: string;
+  effective_to?: string;
 }
 
-interface QuestionnaireFormProps {
-  complianceTypeId: string;
-  branchId?: string;
-  employeeId: string;
-  periodIdentifier: string;
-  onSubmit: (responses: Record<string, any>) => void;
-  onCancel: () => void;
-  initialData?: Record<string, any>;
+interface QuestionnairePreviewProps {
+  questionnaire: Questionnaire;
+  onClose: () => void;
 }
 
-export function QuestionnaireForm({
-  complianceTypeId,
-  branchId,
-  employeeId,
-  periodIdentifier,
-  onSubmit,
-  onCancel,
-  initialData = {}
-}: QuestionnaireFormProps) {
-  const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>(null);
+export function QuestionnairePreview({ questionnaire, onClose }: QuestionnairePreviewProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [responses, setResponses] = useState<Record<string, any>>(initialData);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchActiveQuestionnaire();
-  }, [complianceTypeId, branchId]);
+    fetchQuestions();
+  }, [questionnaire]);
 
-  const fetchActiveQuestionnaire = async () => {
-    try {
-      // First try to find branch-specific questionnaire, then fall back to global
-      let { data: questionnaire, error } = await supabase
-        .from('compliance_questionnaires')
-        .select('id, name, description, version')
-        .eq('compliance_type_id', complianceTypeId)
-        .eq('branch_id', branchId || null)
-        .eq('is_active', true)
-        .is('deleted_at', null)
-        .is('effective_to', null)
-        .single();
-
-      // If no branch-specific questionnaire found and we have a branch, try global
-      if (error && branchId) {
-        const { data: globalQuestionnaire, error: globalError } = await supabase
-          .from('compliance_questionnaires')
-          .select('id, name, description, version')
-          .eq('compliance_type_id', complianceTypeId)
-          .is('branch_id', null)
-          .eq('is_active', true)
-          .is('deleted_at', null)
-          .is('effective_to', null)
-          .single();
-
-        if (globalError) throw globalError;
-        questionnaire = globalQuestionnaire;
-      } else if (error) {
-        throw error;
-      }
-
-      setQuestionnaire(questionnaire);
-      await fetchQuestions(questionnaire.id);
-    } catch (error) {
-      console.error('Error fetching questionnaire:', error);
-      toast({
-        title: "Error",
-        description: "No active questionnaire found for this compliance type",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchQuestions = async (questionnaireId: string) => {
+  const fetchQuestions = async () => {
     try {
       const { data, error } = await supabase
         .from('compliance_questionnaire_questions')
@@ -121,7 +63,7 @@ export function QuestionnaireForm({
             help_text
           )
         `)
-        .eq('questionnaire_id', questionnaireId)
+        .eq('questionnaire_id', questionnaire.id)
         .order('order_index');
 
       if (error) throw error;
@@ -145,69 +87,25 @@ export function QuestionnaireForm({
         description: "Failed to load questions",
         variant: "destructive",
       });
-    }
-  };
-
-  const handleResponseChange = (questionId: string, value: any) => {
-    setResponses(prev => ({
-      ...prev,
-      [questionId]: value
-    }));
-  };
-
-  const validateForm = () => {
-    const requiredQuestions = questions.filter(q => q.is_required);
-    const missingResponses = requiredQuestions.filter(q => 
-      !responses[q.id] || (typeof responses[q.id] === 'string' && !responses[q.id].trim())
-    );
-
-    if (missingResponses.length > 0) {
-      toast({
-        title: "Validation Error",
-        description: `Please answer all required questions (${missingResponses.length} missing)`,
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-
-    setSubmitting(true);
-    try {
-      const formData = {
-        questionnaire_id: questionnaire?.id,
-        questionnaire_version: questionnaire?.version,
-        responses,
-        completed_at: new Date().toISOString()
-      };
-
-      onSubmit(formData);
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit questionnaire",
-        variant: "destructive",
-      });
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
+
+  const groupedQuestions = questions.reduce((acc, question) => {
+    const section = question.section || 'General';
+    if (!acc[section]) {
+      acc[section] = [];
+    }
+    acc[section].push(question);
+    return acc;
+  }, {} as Record<string, Question[]>);
 
   const renderQuestionInput = (question: Question) => {
-    const value = responses[question.id] || '';
-
     switch (question.question_type) {
       case 'yes_no':
         return (
-          <Select 
-            value={value} 
-            onValueChange={(newValue) => handleResponseChange(question.id, newValue)}
-          >
+          <Select disabled>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
@@ -220,10 +118,7 @@ export function QuestionnaireForm({
       
       case 'multiple_choice':
         return (
-          <Select 
-            value={value} 
-            onValueChange={(newValue) => handleResponseChange(question.id, newValue)}
-          >
+          <Select disabled>
             <SelectTrigger>
               <SelectValue placeholder="Select an option..." />
             </SelectTrigger>
@@ -241,9 +136,8 @@ export function QuestionnaireForm({
         return (
           <Input 
             type="number" 
-            value={value}
-            onChange={(e) => handleResponseChange(question.id, e.target.value)}
             placeholder="Enter number..." 
+            disabled 
             className="w-32"
           />
         );
@@ -252,9 +146,8 @@ export function QuestionnaireForm({
       default:
         return (
           <Textarea 
-            value={value}
-            onChange={(e) => handleResponseChange(question.id, e.target.value)}
             placeholder="Enter response..." 
+            disabled 
             rows={2}
           />
         );
@@ -262,29 +155,8 @@ export function QuestionnaireForm({
   };
 
   if (loading) {
-    return <div>Loading questionnaire...</div>;
+    return <div>Loading questionnaire preview...</div>;
   }
-
-  if (!questionnaire || questions.length === 0) {
-    return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          No questionnaire is currently available for this compliance type. Please contact your administrator.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // Group questions by section
-  const groupedQuestions = questions.reduce((acc, question) => {
-    const section = question.section || 'General';
-    if (!acc[section]) {
-      acc[section] = [];
-    }
-    acc[section].push(question);
-    return acc;
-  }, {} as Record<string, Question[]>);
 
   return (
     <div className="space-y-6">
@@ -337,13 +209,18 @@ export function QuestionnaireForm({
         ))}
       </div>
 
+      {questions.length === 0 && (
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+            No questions found in this questionnaire.
+          </CardContent>
+        </Card>
+      )}
+
       {/* Actions */}
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit} disabled={submitting}>
-          {submitting ? "Submitting..." : "Submit Questionnaire"}
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={onClose}>
+          Close Preview
         </Button>
       </div>
     </div>

@@ -7,13 +7,64 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
   public: {
     Tables: {
+      annual_appraisals: {
+        Row: {
+          action_career: string | null
+          action_plan: string | null
+          action_training: string | null
+          appraisal_date: string
+          comments_employee: string | null
+          comments_manager: string | null
+          created_at: string
+          id: string
+          job_title: string
+          ratings: Json
+          signature_employee: string
+          signature_manager: string
+          submitted_at: string
+          year: number
+        }
+        Insert: {
+          action_career?: string | null
+          action_plan?: string | null
+          action_training?: string | null
+          appraisal_date: string
+          comments_employee?: string | null
+          comments_manager?: string | null
+          created_at?: string
+          id?: string
+          job_title: string
+          ratings: Json
+          signature_employee: string
+          signature_manager: string
+          submitted_at?: string
+          year: number
+        }
+        Update: {
+          action_career?: string | null
+          action_plan?: string | null
+          action_training?: string | null
+          appraisal_date?: string
+          comments_employee?: string | null
+          comments_manager?: string | null
+          created_at?: string
+          id?: string
+          job_title?: string
+          ratings?: Json
+          signature_employee?: string
+          signature_manager?: string
+          submitted_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       application_documents: {
         Row: {
           application_id: string | null
@@ -1907,7 +1958,7 @@ export type Database = {
     }
     Functions: {
       calculate_archive_dates: {
-        Args: { frequency: string; base_year?: number }
+        Args: { base_year?: number; frequency: string }
         Returns: {
           archive_due_date: string
           download_available_date: string
@@ -1971,7 +2022,7 @@ export type Database = {
         Returns: string
       }
       increment: {
-        Args: { row_id: string; increment_amount: number }
+        Args: { increment_amount: number; row_id: string }
         Returns: number
       }
       is_admin_by_id: {
@@ -1987,11 +2038,11 @@ export type Database = {
         Returns: number
       }
       user_has_permission: {
-        Args: { user_id: string; perm_type: string; perm_key: string }
+        Args: { perm_key: string; perm_type: string; user_id: string }
         Returns: boolean
       }
       verify_password: {
-        Args: { password_input: string; password_hash: string }
+        Args: { password_hash: string; password_input: string }
         Returns: boolean
       }
     }
