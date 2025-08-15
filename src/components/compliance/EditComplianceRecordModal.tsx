@@ -64,7 +64,18 @@ export function EditComplianceRecordModal({
   };
   
   const [completionDate, setCompletionDate] = useState<Date>(parseCompletionDate(record.completion_date));
-  const [notes, setNotes] = useState(record.notes || '');
+  const [notes, setNotes] = useState(() => {
+    // For annual appraisals, extract freeTextNotes from JSON
+    if (record.completion_method === 'annual_appraisal' && record.notes) {
+      try {
+        const parsed = JSON.parse(record.notes);
+        return parsed.freeTextNotes || '';
+      } catch (e) {
+        console.error('Error parsing annual appraisal notes:', e);
+      }
+    }
+    return record.notes || '';
+  });
   const [recordType, setRecordType] = useState<'date' | 'new' | 'annualappraisal'>(() => {
     return record.completion_method === 'annual_appraisal' ? 'annualappraisal' : 'date';
   });

@@ -1085,33 +1085,33 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                             })() : '-'}
                           </TableCell>
                           <TableCell className="max-w-xs">
-                            <div className="truncate" title={(() => {
-                              if (!item.record?.notes) return '';
-                              if (item.record?.completion_method === 'supervision') {
-                                try {
-                                  const j = JSON.parse(item.record.notes);
-                                  const txt = (j?.freeTextNotes || '').toString().trim();
-                                  return txt || '';
-                                } catch {
-                                  return '';
-                                }
-                              }
-                              return item.record?.notes || '';
-                            })()}>
-                              {(() => {
-                                if (!item.record?.notes) return '-';
-                                if (item.record?.completion_method === 'supervision') {
-                                  try {
-                                    const j = JSON.parse(item.record.notes);
-                                    const txt = (j?.freeTextNotes || '').toString().trim();
-                                    return txt || '-';
-                                  } catch {
-                                    return '-';
-                                  }
-                                }
-                                return item.record?.notes || '-';
-                              })()}
-                            </div>
+                             <div className="truncate" title={(() => {
+                               if (!item.record?.notes) return '';
+                               if (item.record?.completion_method === 'supervision' || item.record?.completion_method === 'annual_appraisal') {
+                                 try {
+                                   const j = JSON.parse(item.record.notes);
+                                   const txt = (j?.freeTextNotes || '').toString().trim();
+                                   return txt || '';
+                                 } catch {
+                                   return '';
+                                 }
+                               }
+                               return item.record?.notes || '';
+                             })()}>
+                               {(() => {
+                                 if (!item.record?.notes) return '-';
+                                 if (item.record?.completion_method === 'supervision' || item.record?.completion_method === 'annual_appraisal') {
+                                   try {
+                                     const j = JSON.parse(item.record.notes);
+                                     const txt = (j?.freeTextNotes || '').toString().trim();
+                                     return txt || '-';
+                                   } catch {
+                                     return '-';
+                                   }
+                                 }
+                                 return item.record?.notes || '-';
+                               })()}
+                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-end gap-2">
@@ -1250,21 +1250,21 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                                         {item.record.notes && (
                                           <div>
                                             <h4 className="font-semibold text-sm text-muted-foreground mb-2">Notes</h4>
-                                            <p className="text-sm bg-muted p-3 rounded-md">
-                                              {(() => {
-                                                if (!item.record?.notes) return '';
-                                                if (item.record?.completion_method === 'supervision') {
-                                                  try {
-                                                    const j = JSON.parse(item.record.notes);
-                                                    const txt = (j?.freeTextNotes || '').toString().trim();
-                                                    return txt || '';
-                                                  } catch {
-                                                    return '';
-                                                  }
-                                                }
-                                                return item.record?.notes || '';
-                                              })()}
-                                            </p>
+                                             <p className="text-sm bg-muted p-3 rounded-md">
+                                               {(() => {
+                                                 if (!item.record?.notes) return '';
+                                                 if (item.record?.completion_method === 'supervision' || item.record?.completion_method === 'annual_appraisal') {
+                                                   try {
+                                                     const j = JSON.parse(item.record.notes);
+                                                     const txt = (j?.freeTextNotes || '').toString().trim();
+                                                     return txt || '';
+                                                   } catch {
+                                                     return '';
+                                                   }
+                                                 }
+                                                 return item.record?.notes || '';
+                                               })()}
+                                             </p>
                                           </div>
                                         )}
                                       </div>
