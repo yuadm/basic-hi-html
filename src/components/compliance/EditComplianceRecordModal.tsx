@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCompany } from "@/contexts/CompanyContext";
 import AnnualAppraisalFormDialog, { type AnnualAppraisalFormData } from "./AnnualAppraisalFormDialog";
 import { downloadAnnualAppraisalPDF } from "@/lib/annual-appraisal-pdf";
 
@@ -84,6 +85,7 @@ export function EditComplianceRecordModal({
   });
   const [annualOpen, setAnnualOpen] = useState(false);
   const { toast } = useToast();
+  const { companySettings } = useCompany();
 
   // Calculate valid date range based on period and frequency
   const getValidDateRange = () => {
@@ -330,7 +332,7 @@ export function EditComplianceRecordModal({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => downloadAnnualAppraisalPDF(annualData, employeeName, { name: 'Company' })}
+                      onClick={() => downloadAnnualAppraisalPDF(annualData, employeeName, { name: companySettings?.name, logo: companySettings?.logo })}
                     >
                       <Download className="w-4 h-4 mr-1" />
                       PDF

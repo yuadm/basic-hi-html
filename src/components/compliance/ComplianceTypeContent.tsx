@@ -1154,6 +1154,35 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
         <Download className="w-4 h-4" />
       </Button>
     )}
+    {item.record.completion_method === 'annual_appraisal' && item.record.status === 'completed' && (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="hover-scale"
+        onClick={() => {
+          if (item.record?.notes) {
+            try {
+              const parsedData = JSON.parse(item.record.notes);
+              import('@/lib/annual-appraisal-pdf').then(({ generateAnnualAppraisalPDF }) => {
+                generateAnnualAppraisalPDF(parsedData, item.employee.name, {
+                  name: companySettings?.name,
+                  logo: companySettings?.logo
+                });
+              });
+            } catch (error) {
+              console.error('Error generating PDF:', error);
+              toast({
+                title: "Error generating PDF",
+                description: "Could not generate annual appraisal PDF.",
+                variant: "destructive",
+              });
+            }
+          }
+        }}
+      >
+        <Download className="w-4 h-4" />
+      </Button>
+    )}
     {item.record.completion_method === 'supervision' && item.record.status !== 'completed' && (
       <Badge className="bg-warning/10 text-warning border-warning/20">Not completed</Badge>
     )}

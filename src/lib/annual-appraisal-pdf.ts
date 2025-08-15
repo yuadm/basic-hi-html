@@ -199,31 +199,33 @@ export async function generateAnnualAppraisalPDF(data: AnnualAppraisalFormData, 
     { key: 'attendance', label: 'Attendance & Punctuality' }
   ];
 
-  const ratingOptions = ['A', 'B', 'C', 'D', 'E'];
+  const ratingDescriptions = {
+    'A': 'Outstanding performance',
+    'B': 'Exceeds expectations',
+    'C': 'Meets expectations',
+    'D': 'Below expectations',
+    'E': 'Unsatisfactory'
+  };
 
   performanceQuestions.forEach((question) => {
     const selectedRating = (data.ratings as any)[question.key];
-    ensureSpace(60);
+    ensureSpace(80);
     
     // Question label
     page.drawText(question.label, { x: marginX, y: y - lineHeight, size: 11, font: boldFont, color: textColor })
     y -= lineHeight + 6;
     
-    // Rating options with checkmarks in a single line
-    let optionX = marginX + 20;
-    ratingOptions.forEach((option) => {
-      const isSelected = option === selectedRating;
-      const checkmark = isSelected ? '☑' : '☐';
-      const optionColor = isSelected ? rgb(0.2, 0.6, 0.3) : rgb(0.6, 0.6, 0.6);
-      
-      // Draw checkmark
-      page.drawText(checkmark, { x: optionX, y: y - lineHeight, size: 12, font, color: optionColor });
-      // Draw option letter
-      page.drawText(option, { x: optionX + 15, y: y - lineHeight, size: 11, font, color: textColor });
-      
-      optionX += 50;
-    });
-    y -= lineHeight + 12;
+    // Selected rating with description
+    if (selectedRating && ratingDescriptions[selectedRating as keyof typeof ratingDescriptions]) {
+      const selectedText = `Selected: ${selectedRating} — ${ratingDescriptions[selectedRating as keyof typeof ratingDescriptions]}`;
+      const selectedColor = rgb(0.2, 0.6, 0.3);
+      page.drawText(selectedText, { x: marginX + 20, y: y - lineHeight, size: 11, font: boldFont, color: selectedColor });
+      y -= lineHeight + 8;
+    } else {
+      // No selection made
+      page.drawText('No rating selected', { x: marginX + 20, y: y - lineHeight, size: 11, font, color: rgb(0.6, 0.6, 0.6) });
+      y -= lineHeight + 8;
+    }
   });
 
   // Comments Section
