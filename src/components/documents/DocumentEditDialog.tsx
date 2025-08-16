@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import countries from "world-countries";
+import { getNationalityStatusFromCountry } from "@/utils/nationalityMapping";
 
 const COUNTRY_NAMES = countries.map((c) => c.name.common).sort();
 interface Document {
@@ -346,7 +347,14 @@ export function DocumentEditDialog({
               <Label htmlFor="country">Country</Label>
               <Select
                 value={editDocument.country}
-                onValueChange={(val) => setEditDocument(prev => ({ ...prev, country: val }))}
+                onValueChange={(val) => {
+                  const nationalityStatus = getNationalityStatusFromCountry(val);
+                  setEditDocument(prev => ({ 
+                    ...prev, 
+                    country: val,
+                    nationality_status: nationalityStatus
+                  }));
+                }}
               >
                 <SelectTrigger id="country" className="h-10">
                   <SelectValue placeholder="Select country" />

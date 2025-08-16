@@ -24,6 +24,7 @@ import { usePagePermissions } from "@/hooks/usePagePermissions";
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import countries from "world-countries";
+import { getNationalityStatusFromCountry } from "@/utils/nationalityMapping";
 
 // Precomputed country list for the Country select
 const COUNTRY_NAMES = countries.map((c) => c.name.common).sort();
@@ -1244,7 +1245,14 @@ export function DocumentsContent() {
                 <Label htmlFor="country">Country</Label>
                 <Select
                   value={newDocument.country}
-                  onValueChange={(val) => setNewDocument({ ...newDocument, country: val })}
+                  onValueChange={(val) => {
+                    const nationalityStatus = getNationalityStatusFromCountry(val);
+                    setNewDocument({ 
+                      ...newDocument, 
+                      country: val,
+                      nationality_status: nationalityStatus
+                    });
+                  }}
                 >
                   <SelectTrigger id="country" className="h-10">
                     <SelectValue placeholder="Select country" />
