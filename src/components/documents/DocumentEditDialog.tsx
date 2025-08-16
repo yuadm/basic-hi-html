@@ -267,12 +267,12 @@ export function DocumentEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] lg:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Document</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="employee">Employee</Label>
               <Select
@@ -282,7 +282,7 @@ export function DocumentEditDialog({
                 <SelectTrigger>
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[60] bg-popover">
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.name} ({emp.branch})
@@ -300,7 +300,7 @@ export function DocumentEditDialog({
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[60] bg-popover">
                   {documentTypes.map((type) => (
                     <SelectItem key={type.id} value={type.id}>
                       {type.name}
@@ -318,10 +318,11 @@ export function DocumentEditDialog({
               value={editDocument.document_number}
               onChange={(e) => setEditDocument(prev => ({ ...prev, document_number: e.target.value }))}
               placeholder="e.g., ABC123456"
+              className="h-10"
             />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Issue Date</Label>
               <DateTextPicker
@@ -340,17 +341,17 @@ export function DocumentEditDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
               <Select
                 value={editDocument.country}
                 onValueChange={(val) => setEditDocument(prev => ({ ...prev, country: val }))}
               >
-                <SelectTrigger id="country">
+                <SelectTrigger id="country" className="h-10">
                   <SelectValue placeholder="Select country" />
                 </SelectTrigger>
-                <SelectContent className="z-[60] bg-popover">
+                <SelectContent className="z-[60] bg-popover max-h-[200px]">
                   {COUNTRY_NAMES.map((name) => (
                     <SelectItem key={name} value={name}>
                       {name}
@@ -366,6 +367,7 @@ export function DocumentEditDialog({
                 value={editDocument.nationality_status}
                 onChange={(e) => setEditDocument(prev => ({ ...prev, nationality_status: e.target.value }))}
                 placeholder="e.g., British Citizen"
+                className="h-10"
               />
             </div>
           </div>
@@ -377,6 +379,7 @@ export function DocumentEditDialog({
               value={editDocument.notes}
               onChange={(e) => setEditDocument(prev => ({ ...prev, notes: e.target.value }))}
               placeholder="Additional information..."
+              className="h-10"
             />
           </div>
 
@@ -384,23 +387,25 @@ export function DocumentEditDialog({
           <div className="space-y-3 p-4 border rounded-lg bg-gradient-subtle border-primary/20">
             <h4 className="text-sm font-semibold text-foreground">Employee Status</h4>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-3">
                 <Checkbox
                   id="sponsored-edit"
                   checked={sponsored}
                   onCheckedChange={(checked) => setSponsored(checked === true)}
+                  className="h-5 w-5"
                 />
                 <Label htmlFor="sponsored-edit" className="text-sm font-medium cursor-pointer">
                   Sponsored Employee
                 </Label>
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <Checkbox
                   id="twenty-hours-edit"
                   checked={twentyHours}
                   onCheckedChange={(checked) => setTwentyHours(checked === true)}
+                  className="h-5 w-5"
                 />
                 <Label htmlFor="twenty-hours-edit" className="text-sm font-medium cursor-pointer">
                   20 Hours Restriction

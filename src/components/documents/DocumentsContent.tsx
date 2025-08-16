@@ -1162,7 +1162,7 @@ export function DocumentsContent() {
 
       {/* Add Document Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[500px] lg:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Document</DialogTitle>
             <DialogDescription>
@@ -1170,7 +1170,7 @@ export function DocumentsContent() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="employee">Employee</Label>
                 <Select
@@ -1180,7 +1180,7 @@ export function DocumentsContent() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select employee" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[60] bg-popover">
                     {employees.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id}>
                         {emp.name} ({emp.branch})
@@ -1198,7 +1198,7 @@ export function DocumentsContent() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[60] bg-popover">
                     {documentTypes.map((type) => (
                       <SelectItem key={type.id} value={type.id}>
                         {type.name}
@@ -1216,10 +1216,11 @@ export function DocumentsContent() {
                 value={newDocument.document_number}
                 onChange={(e) => setNewDocument({...newDocument, document_number: e.target.value})}
                 placeholder="e.g., ABC123456"
+                className="h-10"
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Issue Date</Label>
                 <DateTextPicker
@@ -1238,17 +1239,17 @@ export function DocumentsContent() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="country">Country</Label>
                 <Select
                   value={newDocument.country}
                   onValueChange={(val) => setNewDocument({ ...newDocument, country: val })}
                 >
-                  <SelectTrigger id="country">
+                  <SelectTrigger id="country" className="h-10">
                     <SelectValue placeholder="Select country" />
                   </SelectTrigger>
-                  <SelectContent className="z-50">
+                  <SelectContent className="z-[60] bg-popover max-h-[200px]">
                     {COUNTRY_NAMES.map((name) => (
                       <SelectItem key={name} value={name}>
                         {name}
@@ -1264,6 +1265,7 @@ export function DocumentsContent() {
                   value={newDocument.nationality_status}
                   onChange={(e) => setNewDocument({...newDocument, nationality_status: e.target.value})}
                   placeholder="e.g., British Citizen"
+                  className="h-10"
                 />
               </div>
             </div>
@@ -1275,6 +1277,7 @@ export function DocumentsContent() {
                 value={newDocument.notes}
                 onChange={(e) => setNewDocument({...newDocument, notes: e.target.value})}
                 placeholder="Additional information..."
+                className="h-10"
               />
             </div>
 
@@ -1282,28 +1285,30 @@ export function DocumentsContent() {
             <div className="space-y-3 p-4 border rounded-lg bg-gradient-subtle border-primary/20">
               <h4 className="text-sm font-semibold text-foreground">Employee Status</h4>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-3">
                   <Checkbox
                     id="sponsored"
                     checked={sponsored}
                     onCheckedChange={(checked) => setSponsored(checked === true)}
+                    className="h-5 w-5"
                   />
                   <Label htmlFor="sponsored" className="text-sm font-medium cursor-pointer">
                     Sponsored Employee
                   </Label>
                 </div>
                 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="twenty-hours"
-                  checked={twentyHours}
-                  onCheckedChange={(checked) => setTwentyHours(checked === true)}
-                />
-                <Label htmlFor="twenty-hours" className="text-sm font-medium cursor-pointer">
-                  20 Hours Restriction
-                </Label>
-              </div>
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="twenty-hours"
+                    checked={twentyHours}
+                    onCheckedChange={(checked) => setTwentyHours(checked === true)}
+                    className="h-5 w-5"
+                  />
+                  <Label htmlFor="twenty-hours" className="text-sm font-medium cursor-pointer">
+                    20 Hours Restriction
+                  </Label>
+                </div>
               </div>
             </div>
           </div>
