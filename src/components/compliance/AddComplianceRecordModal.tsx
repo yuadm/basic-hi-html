@@ -25,6 +25,7 @@ import { useCompany } from "@/contexts/CompanyContext";
 import SpotCheckFormDialog, { SpotCheckFormData } from "@/components/compliance/SpotCheckFormDialog";
 import SupervisionFormDialog, { SupervisionFormData } from "@/components/compliance/SupervisionFormDialog";
 import AnnualAppraisalFormDialog, { AnnualAppraisalFormData } from "@/components/compliance/AnnualAppraisalFormDialog";
+import { QuestionnaireForm } from "@/components/compliance/QuestionnaireForm";
 import { generateSpotCheckPdf } from "@/lib/spot-check-pdf";
 import { generateSupervisionPdf } from "@/lib/supervision-pdf";
 import { downloadAnnualAppraisalPDF } from "@/lib/annual-appraisal-pdf";
@@ -54,7 +55,7 @@ export function AddComplianceRecordModal({
   const [isLoading, setIsLoading] = useState(false);
   const [completionDate, setCompletionDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
-const [recordType, setRecordType] = useState<'date' | 'new' | 'spotcheck' | 'supervision' | 'annualappraisal'>('date');
+const [recordType, setRecordType] = useState<'date' | 'new' | 'spotcheck' | 'supervision' | 'annualappraisal' | 'questionnaire'>('date');
 const [newText, setNewText] = useState('');
 const [spotcheckOpen, setSpotcheckOpen] = useState(false);
 const [spotcheckData, setSpotcheckData] = useState<SpotCheckFormData | null>(null);
@@ -62,6 +63,9 @@ const [supervisionOpen, setSupervisionOpen] = useState(false);
 const [supervisionData, setSupervisionData] = useState<SupervisionFormData | null>(null);
 const [annualOpen, setAnnualOpen] = useState(false);
 const [annualData, setAnnualData] = useState<AnnualAppraisalFormData | null>(null);
+const [questionnaireOpen, setQuestionnaireOpen] = useState(false);
+const [questionnaireData, setQuestionnaireData] = useState<any>(null);
+const [hasActiveQuestionnaire, setHasActiveQuestionnaire] = useState(false);
 const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeId || '');
 const [selectedEmployeeName, setSelectedEmployeeName] = useState(employeeName || '');
 const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurrentPeriodIdentifier(frequency));
@@ -71,12 +75,13 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
   const { getAccessibleBranches, isAdmin } = usePermissions();
   const { companySettings } = useCompany();
 
-  // Fetch employees if not provided
+  // Fetch employees if not provided and check for active questionnaire
   useEffect(() => {
     if (!employeeId) {
       fetchEmployees();
     }
-  }, [employeeId]);
+    checkActiveQuestionnaire();
+  }, [employeeId, complianceTypeId]);
 
   const fetchEmployees = async () => {
     try {
@@ -111,6 +116,23 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
       setBranches(branchesData || []);
     } catch (error) {
       console.error('Error fetching employees:', error);
+    }
+  };
+
+  const checkActiveQuestionnaire = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('compliance_questionnaires')
+        .select('id')
+        .eq('compliance_type_id', complianceTypeId)
+        .eq('is_active', true)
+        .limit(1);
+
+      if (error) throw error;
+      setHasActiveQuestionnaire(data && data.length > 0);
+    } catch (error) {
+      console.error('Error checking for active questionnaire:', error);
+      setHasActiveQuestionnaire(false);
     }
   };
 
@@ -276,6 +298,15 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         });
         return;
       }
+    } else if (recordType === 'questionnaire') {
+      if (!questionnaireData) {
+        toast({
+          title: "Questionnaire incomplete",
+          description: "Please complete the questionnaire.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -303,9 +334,9 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         });
       }
 
-      // Save annual appraisal data (stored in notes field for now until types are updated)
-      // TODO: Update Supabase types to include annual_appraisals table
+      let complianceRecordId: string | null = null;
 
+      // Create the compliance period record first
       const recordData = {
         employee_id: selectedEmployeeId,
         compliance_type_id: complianceTypeId,
@@ -319,27 +350,68 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
                 ? (supervisionData?.dateOfSupervision || format(new Date(), 'yyyy-MM-dd'))
                 : recordType === 'annualappraisal'
                   ? (annualData?.appraisal_date || format(new Date(), 'yyyy-MM-dd'))
-                  : newText,
+                  : recordType === 'questionnaire'
+                    ? format(new Date(), 'yyyy-MM-dd')
+                    : newText,
         completion_method:
           recordType === 'date' ? 'date_entry' : 
           recordType === 'spotcheck' ? 'spotcheck' : 
           recordType === 'supervision' ? 'supervision' : 
-          recordType === 'annualappraisal' ? 'annual_appraisal' : 'text_entry',
+          recordType === 'annualappraisal' ? 'annual_appraisal' : 
+          recordType === 'questionnaire' ? 'questionnaire' : 'text_entry',
         notes: recordType === 'supervision' 
           ? JSON.stringify({ ...(supervisionData as any), freeTextNotes: notes.trim() || '' }) 
           : recordType === 'annualappraisal'
             ? JSON.stringify({ ...(annualData as any), freeTextNotes: notes.trim() || '' })
-            : (notes.trim() || null),
+            : recordType === 'questionnaire'
+              ? 'Questionnaire completed'
+              : (notes.trim() || null),
         status: recordType === 'new' ? 'compliant' : (recordType === 'supervision' ? (supervisionData?.officeComplete ? 'completed' : 'pending') : 'completed'),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      const { data: recordResult, error } = await supabase
         .from('compliance_period_records')
-        .insert(recordData);
+        .insert(recordData)
+        .select('id')
+        .single();
 
       if (error) throw error;
+      complianceRecordId = recordResult?.id || null;
+
+      // Save questionnaire responses if provided
+      if (recordType === 'questionnaire' && questionnaireData && complianceRecordId) {
+        // First create the questionnaire response record
+        const { data: responseRecord, error: responseError } = await supabase
+          .from('compliance_questionnaire_responses')
+          .insert({
+            questionnaire_id: questionnaireData.questionnaire_id,
+            employee_id: selectedEmployeeId,
+            compliance_record_id: complianceRecordId,
+            completed_at: questionnaireData.completed_at,
+            completed_by: null // Will be set by the system if needed
+          })
+          .select('id')
+          .single();
+
+        if (responseError) throw responseError;
+
+        // Then save individual question responses
+        if (responseRecord && questionnaireData.responses) {
+          const responsePromises = Object.entries(questionnaireData.responses).map(async ([questionId, answer]) => {
+            return supabase
+              .from('compliance_responses')
+              .insert({
+                questionnaire_response_id: responseRecord.id,
+                question_id: questionId,
+                response_value: typeof answer === 'string' ? answer : JSON.stringify(answer)
+              });
+          });
+
+          await Promise.all(responsePromises);
+        }
+      }
 
       toast({
         title: "Record added successfully",
@@ -351,6 +423,7 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
       setNotes('');
       setRecordType('date');
       setNewText('');
+      setQuestionnaireData(null);
       onRecordAdded();
     } catch (error) {
       console.error('Error adding compliance record:', error);
@@ -433,7 +506,7 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
             <Label>Record Type</Label>
             <Select
               value={recordType}
-            onValueChange={(value: 'date' | 'new' | 'spotcheck' | 'supervision' | 'annualappraisal') => {
+            onValueChange={(value: 'date' | 'new' | 'spotcheck' | 'supervision' | 'annualappraisal' | 'questionnaire') => {
               setRecordType(value);
               if (value === 'spotcheck') {
                 setSpotcheckOpen(true);
@@ -443,6 +516,9 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
               }
               if (value === 'annualappraisal') {
                 setAnnualOpen(true);
+              }
+              if (value === 'questionnaire') {
+                setQuestionnaireOpen(true);
               }
             }}
             >
@@ -460,6 +536,9 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
                 )}
                 {complianceTypeName?.toLowerCase().includes('appraisal') && (
                   <SelectItem value="annualappraisal">Complete Annual Appraisal</SelectItem>
+                )}
+                {hasActiveQuestionnaire && (
+                  <SelectItem value="questionnaire">Complete Questionnaire</SelectItem>
                 )}
               </SelectContent>
             </Select>
@@ -511,8 +590,25 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
                 This text will be stored as the completion date.
               </p>
             </div>
-          ) : null}
+           ) : null}
 
+          {recordType === 'questionnaire' && (
+            <div className="space-y-2">
+              <QuestionnaireForm
+                complianceTypeId={complianceTypeId}
+                employeeId={selectedEmployeeId}
+                periodIdentifier={selectedPeriod}
+                onSubmit={(data) => {
+                  setQuestionnaireData(data);
+                  setQuestionnaireOpen(false);
+                }}
+                onCancel={() => {
+                  setQuestionnaireOpen(false);
+                  setRecordType('date');
+                }}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes (Optional)</Label>
@@ -599,6 +695,33 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
           setAnnualOpen(false);
         }}
       />
+
+      {/* Questionnaire Dialog */}
+      {questionnaireOpen && (
+        <Dialog open={questionnaireOpen} onOpenChange={setQuestionnaireOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Complete Questionnaire - {complianceTypeName}</DialogTitle>
+              <DialogDescription>
+                Complete the questionnaire for {selectedEmployeeName || 'the selected employee'}
+              </DialogDescription>
+            </DialogHeader>
+            <QuestionnaireForm
+              complianceTypeId={complianceTypeId}
+              employeeId={selectedEmployeeId}
+              periodIdentifier={selectedPeriod}
+              onSubmit={(data) => {
+                setQuestionnaireData(data);
+                setQuestionnaireOpen(false);
+              }}
+              onCancel={() => {
+                setQuestionnaireOpen(false);
+                setRecordType('date');
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }

@@ -1134,7 +1134,7 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                               
 {item.record && (
   <>
-    {item.record.completion_method === 'spotcheck' && (
+    {item.record.completion_method === 'spotcheck' && item.record.status === 'completed' && (
       <Button
         variant="ghost"
         size="sm"
@@ -1144,7 +1144,7 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
         <Download className="w-4 h-4" />
       </Button>
     )}
-    {item.record.completion_method === 'supervision' && (
+    {item.record.completion_method === 'supervision' && item.record.status === 'completed' && (
       <Button
         variant="ghost"
         size="sm"
