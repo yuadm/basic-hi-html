@@ -47,10 +47,7 @@ import { CompliancePeriodView } from "./CompliancePeriodView";
 import { AddComplianceRecordModal } from "./AddComplianceRecordModal";
 import { EditComplianceRecordModal } from "./EditComplianceRecordModal";
 import { format } from "date-fns";
-import { generateSpotCheckPdf } from "@/lib/spot-check-pdf";
-import { generateSupervisionPdf } from "@/lib/supervision-pdf";
-import SpotCheckFormDialog, { SpotCheckFormData } from "./SpotCheckFormDialog";
-import SupervisionFormDialog, { SupervisionFormData } from "./SupervisionFormDialog";
+import { generateQuestionnairePDF } from "@/lib/questionnaire-pdf";
 
 interface ComplianceType {
   id: string;
@@ -117,15 +114,7 @@ export function ComplianceTypeContent() {
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [completedByUsers, setCompletedByUsers] = useState<{ [key: string]: { name: string; created_at: string } }>({});
 
-// Spot check edit state
-const [spotcheckEditOpen, setSpotcheckEditOpen] = useState(false);
-const [spotcheckInitialData, setSpotcheckInitialData] = useState<SpotCheckFormData | null>(null);
-const [spotcheckRowId, setSpotcheckRowId] = useState<string | null>(null);
-const [spotcheckTarget, setSpotcheckTarget] = useState<{ employeeId: string; period: string } | null>(null);
-// Supervision edit state
-const [supervisionEditOpen, setSupervisionEditOpen] = useState(false);
-const [supervisionInitialData, setSupervisionInitialData] = useState<SupervisionFormData | null>(null);
-const [supervisionTarget, setSupervisionTarget] = useState<{ recordId: string } | null>(null);
+// Legacy state (to be removed when migration is complete)
 
   // Get unique branches for filter - filtered by user access
   const uniqueBranches = useMemo(() => {
@@ -531,194 +520,84 @@ const [supervisionTarget, setSupervisionTarget] = useState<{ recordId: string } 
     }
   };
 
-const handleDownloadSpotCheck = async (employeeId: string, period: string) => {
-  if (!id) return;
+const handleDownloadPDF = async (record: ComplianceRecord) => {
+  if (!record || record.status !== 'completed') return;
+
   try {
-    const { data, error } = await supabase
-      .from('spot_check_records')
-      .select('service_user_name, care_worker1, care_worker2, check_date, time_from, time_to, carried_by, observations')
-      .eq('employee_id', employeeId)
-      .eq('compliance_type_id', id)
-      .eq('period_identifier', period)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // For questionnaire-based records, fetch responses and generate PDF
+    if (record.completion_method === 'questionnaire') {
+      const { data: responseData, error: responseError } = await supabase
+        .from('compliance_questionnaire_responses')
+        .select(`
+          id,
+          questionnaire_id,
+          compliance_questionnaires (
+            name,
+            description
+          )
+        `)
+        .eq('compliance_record_id', record.id)
+        .single();
 
-    if (error) throw error;
+      if (responseError) throw responseError;
 
-    if (!data) {
-      toast({ title: 'No spot check found', description: 'No spot check form was saved for this period.', variant: 'destructive' });
-      return;
-    }
+      // Fetch individual responses
+      const { data: responses, error: responsesError } = await supabase
+        .from('compliance_responses')
+        .select(`
+          response_value,
+          compliance_questions (
+            id,
+            question_text,
+            question_type,
+            options
+          )
+        `)
+        .eq('questionnaire_response_id', responseData.id)
+        .order('created_at');
 
-    const formData = {
-      serviceUserName: (data as any).service_user_name || '',
-      careWorker1: (data as any).care_worker1 || '',
-      careWorker2: (data as any).care_worker2 || '',
-      date: (data as any).check_date || '',
-      timeFrom: (data as any).time_from || '',
-      timeTo: (data as any).time_to || '',
-      carriedBy: (data as any).carried_by || '',
-      observations: ((data as any).observations as any) || [],
-    } as import('./SpotCheckFormDialog').SpotCheckFormData;
+      if (responsesError) throw responsesError;
 
-    await generateSpotCheckPdf(formData, companySettings);
-  } catch (err) {
-    console.error('Error generating spot check PDF:', err);
-    toast({ title: 'Error', description: 'Could not generate the spot check PDF.', variant: 'destructive' });
-  }
-};
+      // Get employee name
+      const { data: employeeData } = await supabase
+        .from('employees')
+        .select('name')
+        .eq('id', record.employee_id)
+        .single();
 
-const handleDownloadSupervision = async (record: ComplianceRecord) => {
-  try {
-    if (!record.notes) {
-      toast({ title: 'No data', description: 'No supervision form data found.', variant: 'destructive' });
-      return;
-    }
-    const data = JSON.parse(record.notes) as SupervisionFormData;
-    await generateSupervisionPdf(data, companySettings);
-  } catch (err) {
-    console.error('Error generating supervision PDF:', err);
-    toast({ title: 'Error', description: 'Could not generate the supervision PDF.', variant: 'destructive' });
-  }
-};
+      // Format data for PDF generation
+      const pdfData = {
+        questionnaire_name: responseData.compliance_questionnaires.name,
+        employee_name: employeeData?.name || 'Unknown Employee',
+        completion_date: record.completion_date,
+        responses: responses.map(r => ({
+          id: r.compliance_questions.id,
+          question_text: r.compliance_questions.question_text,
+          question_type: r.compliance_questions.question_type as 'yes_no' | 'text' | 'multiple_choice' | 'number',
+          response_value: r.response_value,
+          options: r.compliance_questions.options as string[] || undefined
+        }))
+      };
 
-const handleOpenSupervisionEdit = (record: ComplianceRecord) => {
-  try {
-    const init: SupervisionFormData | null = record.notes ? JSON.parse(record.notes) : null;
-    setSupervisionInitialData(init);
-    setSupervisionTarget({ recordId: record.id });
-    setSupervisionEditOpen(true);
-  } catch (err) {
-    console.error('Error loading supervision form:', err);
-    toast({ title: 'Error', description: 'Could not load supervision form.', variant: 'destructive' });
-  }
-};
-
-const handleSaveSupervisionEdit = async (formData: SupervisionFormData) => {
-  if (!supervisionTarget) return;
-  try {
-    const { error } = await supabase
-      .from('compliance_period_records')
-      .update({
-        completion_date: formData.dateOfSupervision,
-        completion_method: 'supervision',
-        updated_at: new Date().toISOString(),
-        notes: JSON.stringify(formData),
-        status: formData.officeComplete ? 'completed' : 'pending',
-      })
-      .eq('id', supervisionTarget.recordId);
-    if (error) throw error;
-    toast({ title: 'Supervision updated', description: 'The supervision form has been saved.' });
-    setSupervisionEditOpen(false);
-    setSupervisionInitialData(null);
-    setSupervisionTarget(null);
-    fetchData();
-  } catch (err) {
-    console.error('Error saving supervision form:', err);
-    toast({ title: 'Error', description: 'Could not save the supervision form.', variant: 'destructive' });
-  }
-};
-
-const handleOpenSpotcheckEdit = async (employeeId: string, period: string) => {
-  if (!id) return;
-  try {
-    const { data, error } = await supabase
-      .from('spot_check_records')
-      .select('id, service_user_name, care_worker1, care_worker2, check_date, time_from, time_to, carried_by, observations')
-      .eq('employee_id', employeeId)
-      .eq('compliance_type_id', id)
-      .eq('period_identifier', period)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) throw error;
-
-    const initial: SpotCheckFormData = {
-      serviceUserName: (data as any)?.service_user_name || '',
-      careWorker1: (data as any)?.care_worker1 || '',
-      careWorker2: (data as any)?.care_worker2 || '',
-      date: (data as any)?.check_date || '',
-      timeFrom: (data as any)?.time_from || '',
-      timeTo: (data as any)?.time_to || '',
-      carriedBy: (data as any)?.carried_by || '',
-      observations: (((data as any)?.observations) as any) || [],
-    };
-
-    setSpotcheckInitialData(initial);
-    setSpotcheckRowId((data as any)?.id || null);
-    setSpotcheckTarget({ employeeId, period });
-    setSpotcheckEditOpen(true);
-  } catch (err) {
-    console.error('Error loading spot check form:', err);
-    toast({ title: 'Error', description: 'Could not load spot check form.', variant: 'destructive' });
-  }
-};
-
-const handleSaveSpotcheckEdit = async (formData: SpotCheckFormData) => {
-  if (!id || !spotcheckTarget) return;
-  try {
-    const observationsPayload: any = formData.observations ? JSON.parse(JSON.stringify(formData.observations)) : null;
-
-    if (spotcheckRowId) {
-      const { error: updateErr } = await supabase
-        .from('spot_check_records')
-        .update({
-          service_user_name: formData.serviceUserName,
-          care_worker1: formData.careWorker1,
-          care_worker2: formData.careWorker2 || null,
-          check_date: formData.date,
-          time_from: formData.timeFrom,
-          time_to: formData.timeTo,
-          carried_by: formData.carriedBy,
-          observations: observationsPayload,
-        })
-        .eq('id', spotcheckRowId);
-      if (updateErr) throw updateErr;
+      await generateQuestionnairePDF(pdfData, companySettings);
     } else {
-      const { error: insertErr } = await supabase
-        .from('spot_check_records')
-        .insert({
-          service_user_name: formData.serviceUserName,
-          care_worker1: formData.careWorker1,
-          care_worker2: formData.careWorker2 || null,
-          check_date: formData.date,
-          time_from: formData.timeFrom,
-          time_to: formData.timeTo,
-          carried_by: formData.carriedBy,
-          observations: observationsPayload,
-          employee_id: spotcheckTarget.employeeId,
-          compliance_type_id: id,
-          period_identifier: spotcheckTarget.period,
-        });
-      if (insertErr) throw insertErr;
+      toast({
+        title: "PDF not available",
+        description: "PDF generation is only available for completed questionnaire records",
+        variant: "destructive",
+      });
     }
-
-    const { error: recErr } = await supabase
-      .from('compliance_period_records')
-      .update({
-        completion_date: formData.date,
-        completion_method: 'spotcheck',
-        updated_at: new Date().toISOString(),
-        status: 'completed',
-      })
-      .eq('employee_id', spotcheckTarget.employeeId)
-      .eq('compliance_type_id', id)
-      .eq('period_identifier', spotcheckTarget.period);
-    if (recErr) throw recErr;
-
-    toast({ title: 'Spot check updated', description: 'The spot check form has been saved.' });
-    setSpotcheckEditOpen(false);
-    setSpotcheckRowId(null);
-    setSpotcheckInitialData(null);
-    setSpotcheckTarget(null);
-    fetchData();
-  } catch (err) {
-    console.error('Error saving spot check form:', err);
-    toast({ title: 'Error', description: 'Could not save the spot check form.', variant: 'destructive' });
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    toast({
+      title: "Error generating PDF",
+      description: "Could not generate PDF. Please try again.",
+      variant: "destructive",
+    });
   }
 };
+
+// Remove all legacy functions - now using unified questionnaire system
 
 const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pending') => {
   setFilteredStatus(filteredStatus === status ? null : status);
@@ -1134,22 +1013,12 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                               
 {item.record && (
   <>
-    {item.record.completion_method === 'spotcheck' && item.record.status === 'completed' && (
+    {item.record.status === 'completed' && (
       <Button
         variant="ghost"
         size="sm"
         className="hover-scale"
-        onClick={() => handleDownloadSpotCheck(item.employee.id, item.record!.period_identifier)}
-      >
-        <Download className="w-4 h-4" />
-      </Button>
-    )}
-    {item.record.completion_method === 'supervision' && item.record.status === 'completed' && (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="hover-scale"
-        onClick={() => handleDownloadSupervision(item.record!)}
+        onClick={() => handleDownloadPDF(item.record!)}
       >
         <Download className="w-4 h-4" />
       </Button>
@@ -1271,39 +1140,19 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
                                     </DialogContent>
                                   </Dialog>
 
-{/* Edit Record */}
-{item.record.completion_method === 'spotcheck' ? (
-  <Button
-    variant="ghost"
-    size="sm"
-    className="hover-scale"
-    onClick={() => handleOpenSpotcheckEdit(item.employee.id, item.record!.period_identifier)}
-  >
-    <Edit className="w-4 h-4" />
-  </Button>
-) : item.record.completion_method === 'supervision' ? (
-  <Button
-    variant="ghost"
-    size="sm"
-    className="hover-scale"
-    onClick={() => handleOpenSupervisionEdit(item.record!)}
-  >
-    <Edit className="w-4 h-4" />
-  </Button>
-) : (
-  <EditComplianceRecordModal
-    record={item.record}
-    employeeName={item.employee.name}
-    complianceTypeName={complianceType?.name || ''}
-    frequency={complianceType?.frequency || ''}
-    onRecordUpdated={fetchData}
-    trigger={
-      <Button variant="ghost" size="sm" className="hover-scale">
-        <Edit className="w-4 h-4" />
-      </Button>
-    }
-  />
-)}
+{/* Edit Record - Only for questionnaire records */}
+<EditComplianceRecordModal
+  record={item.record}
+  employeeName={item.employee.name}
+  complianceTypeName={complianceType?.name || ''}
+  frequency={complianceType?.frequency || ''}
+  onRecordUpdated={fetchData}
+  trigger={
+    <Button variant="ghost" size="sm" className="hover-scale">
+      <Edit className="w-4 h-4" />
+    </Button>
+  }
+/>
 
                                   {/* Delete Dialog */}
                                   <AlertDialog>
@@ -1357,22 +1206,6 @@ const handleStatusCardClick = (status: 'compliant' | 'overdue' | 'due' | 'pendin
         </TabsContent>
       </Tabs>
 
-{/* Spot Check Edit Dialog */}
-<SpotCheckFormDialog
-  open={spotcheckEditOpen}
-  onOpenChange={setSpotcheckEditOpen}
-  initialData={spotcheckInitialData || undefined}
-  periodIdentifier={spotcheckTarget?.period}
-  frequency={complianceType?.frequency}
-  onSubmit={handleSaveSpotcheckEdit}
-/>
-{/* Supervision Edit Dialog */}
-<SupervisionFormDialog
-  open={supervisionEditOpen}
-  onOpenChange={setSupervisionEditOpen}
-  initialData={supervisionInitialData || undefined}
-  onSubmit={handleSaveSupervisionEdit}
-/>
     </div>
   );
 }

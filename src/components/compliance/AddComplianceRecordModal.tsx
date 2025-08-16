@@ -1,4 +1,3 @@
-
 import { useState, useEffect, ReactNode } from "react";
 import { CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,13 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useCompany } from "@/contexts/CompanyContext";
-import SpotCheckFormDialog, { SpotCheckFormData } from "@/components/compliance/SpotCheckFormDialog";
-import SupervisionFormDialog, { SupervisionFormData } from "@/components/compliance/SupervisionFormDialog";
-import AnnualAppraisalFormDialog, { AnnualAppraisalFormData } from "@/components/compliance/AnnualAppraisalFormDialog";
 import { QuestionnaireForm } from "@/components/compliance/QuestionnaireForm";
-import { generateSpotCheckPdf } from "@/lib/spot-check-pdf";
-import { generateSupervisionPdf } from "@/lib/supervision-pdf";
-import { downloadAnnualAppraisalPDF } from "@/lib/annual-appraisal-pdf";
 
 interface AddComplianceRecordModalProps {
   employeeId?: string;
@@ -55,20 +48,14 @@ export function AddComplianceRecordModal({
   const [isLoading, setIsLoading] = useState(false);
   const [completionDate, setCompletionDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
-const [recordType, setRecordType] = useState<'date' | 'new' | 'spotcheck' | 'supervision' | 'annualappraisal' | 'questionnaire'>('date');
-const [newText, setNewText] = useState('');
-const [spotcheckOpen, setSpotcheckOpen] = useState(false);
-const [spotcheckData, setSpotcheckData] = useState<SpotCheckFormData | null>(null);
-const [supervisionOpen, setSupervisionOpen] = useState(false);
-const [supervisionData, setSupervisionData] = useState<SupervisionFormData | null>(null);
-const [annualOpen, setAnnualOpen] = useState(false);
-const [annualData, setAnnualData] = useState<AnnualAppraisalFormData | null>(null);
-const [questionnaireOpen, setQuestionnaireOpen] = useState(false);
-const [questionnaireData, setQuestionnaireData] = useState<any>(null);
-const [hasActiveQuestionnaire, setHasActiveQuestionnaire] = useState(false);
-const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeId || '');
-const [selectedEmployeeName, setSelectedEmployeeName] = useState(employeeName || '');
-const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurrentPeriodIdentifier(frequency));
+  const [recordType, setRecordType] = useState<'questionnaire' | 'date' | 'new'>('questionnaire');
+  const [newText, setNewText] = useState('');
+  const [questionnaireOpen, setQuestionnaireOpen] = useState(false);
+  const [questionnaireData, setQuestionnaireData] = useState<any>(null);
+  const [hasActiveQuestionnaire, setHasActiveQuestionnaire] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(employeeId || '');
+  const [selectedEmployeeName, setSelectedEmployeeName] = useState(employeeName || '');
+  const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurrentPeriodIdentifier(frequency));
   const [employees, setEmployees] = useState<Array<{id: string, name: string, branch: string}>>([]);
   const [branches, setBranches] = useState<Array<{id: string, name: string}>>([]);
   const { toast } = useToast();
@@ -82,6 +69,15 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
     }
     checkActiveQuestionnaire();
   }, [employeeId, complianceTypeId]);
+
+  // Set default record type based on questionnaire availability
+  useEffect(() => {
+    if (hasActiveQuestionnaire) {
+      setRecordType('questionnaire');
+    } else {
+      setRecordType('date');
+    }
+  }, [hasActiveQuestionnaire]);
 
   const fetchEmployees = async () => {
     try {
@@ -271,33 +267,6 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         });
         return;
       }
-    } else if (recordType === 'spotcheck') {
-      if (!spotcheckData) {
-        toast({
-          title: "Spot check incomplete",
-          description: "Please complete the spot check form.",
-          variant: "destructive",
-        });
-        return;
-      }
-    } else if (recordType === 'supervision') {
-      if (!supervisionData) {
-        toast({
-          title: "Supervision incomplete",
-          description: "Please complete the supervision form.",
-          variant: "destructive",
-        });
-        return;
-      }
-    } else if (recordType === 'annualappraisal') {
-      if (!annualData) {
-        toast({
-          title: "Annual appraisal incomplete",
-          description: "Please complete the annual appraisal form.",
-          variant: "destructive",
-        });
-        return;
-      }
     } else if (recordType === 'questionnaire') {
       if (!questionnaireData) {
         toast({
@@ -312,28 +281,6 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
     setIsLoading(true);
 
     try {
-      // Save spot check form when provided
-      if (recordType === 'spotcheck' && spotcheckData) {
-        // Serialize observations to plain JSON and loosen the type for Supabase Json
-        const observationsPayload: any = spotcheckData.observations
-          ? JSON.parse(JSON.stringify(spotcheckData.observations))
-          : null;
-
-        await supabase.from('spot_check_records').insert({
-          service_user_name: spotcheckData.serviceUserName,
-          care_worker1: spotcheckData.careWorker1,
-          care_worker2: spotcheckData.careWorker2 || null,
-          check_date: spotcheckData.date,
-          time_from: spotcheckData.timeFrom,
-          time_to: spotcheckData.timeTo,
-          carried_by: spotcheckData.carriedBy,
-          observations: observationsPayload,
-          employee_id: selectedEmployeeId,
-          compliance_type_id: complianceTypeId,
-          period_identifier: selectedPeriod,
-        });
-      }
-
       let complianceRecordId: string | null = null;
 
       // Create the compliance period record first
@@ -344,29 +291,16 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
         completion_date:
           recordType === 'date'
             ? format(completionDate, 'yyyy-MM-dd')
-            : recordType === 'spotcheck'
-              ? (spotcheckData?.date || format(new Date(), 'yyyy-MM-dd'))
-              : recordType === 'supervision'
-                ? (supervisionData?.dateOfSupervision || format(new Date(), 'yyyy-MM-dd'))
-                : recordType === 'annualappraisal'
-                  ? (annualData?.appraisal_date || format(new Date(), 'yyyy-MM-dd'))
-                  : recordType === 'questionnaire'
-                    ? format(new Date(), 'yyyy-MM-dd')
-                    : newText,
+            : recordType === 'questionnaire'
+                ? format(new Date(), 'yyyy-MM-dd')
+                : newText,
         completion_method:
           recordType === 'date' ? 'date_entry' : 
-          recordType === 'spotcheck' ? 'spotcheck' : 
-          recordType === 'supervision' ? 'supervision' : 
-          recordType === 'annualappraisal' ? 'annual_appraisal' : 
           recordType === 'questionnaire' ? 'questionnaire' : 'text_entry',
-        notes: recordType === 'supervision' 
-          ? JSON.stringify({ ...(supervisionData as any), freeTextNotes: notes.trim() || '' }) 
-          : recordType === 'annualappraisal'
-            ? JSON.stringify({ ...(annualData as any), freeTextNotes: notes.trim() || '' })
-            : recordType === 'questionnaire'
+        notes: recordType === 'questionnaire'
               ? 'Questionnaire completed'
               : (notes.trim() || null),
-        status: recordType === 'new' ? 'compliant' : (recordType === 'supervision' ? (supervisionData?.officeComplete ? 'completed' : 'pending') : 'completed'),
+        status: recordType === 'new' ? 'compliant' : 'completed',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -421,7 +355,7 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
       setIsOpen(false);
       setCompletionDate(new Date());
       setNotes('');
-      setRecordType('date');
+      setRecordType(hasActiveQuestionnaire ? 'questionnaire' : 'date');
       setNewText('');
       setQuestionnaireData(null);
       onRecordAdded();
@@ -442,7 +376,6 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
       Add Compliance Record
     </Button>
   );
-
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -503,48 +436,22 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
           </div>
 
           <div className="space-y-2">
-            <Label>Record Type</Label>
-            <Select
-              value={recordType}
-            onValueChange={(value: 'date' | 'new' | 'spotcheck' | 'supervision' | 'annualappraisal' | 'questionnaire') => {
-              setRecordType(value);
-              if (value === 'spotcheck') {
-                setSpotcheckOpen(true);
-              }
-              if (value === 'supervision') {
-                setSupervisionOpen(true);
-              }
-              if (value === 'annualappraisal') {
-                setAnnualOpen(true);
-              }
-              if (value === 'questionnaire') {
-                setQuestionnaireOpen(true);
-              }
-            }}
-            >
+            <Label htmlFor="recordType">Record Type</Label>
+            <Select value={recordType} onValueChange={(value: typeof recordType) => setRecordType(value)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select record type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="date">Date</SelectItem>
-                <SelectItem value="new">New (before employee joined)</SelectItem>
-                {complianceTypeName?.toLowerCase().includes('spot') && (
-                  <SelectItem value="spotcheck">Complete Spot Check</SelectItem>
-                )}
-                {complianceTypeName?.toLowerCase().includes('supervis') && (
-                  <SelectItem value="supervision">Complete Supervision</SelectItem>
-                )}
-                {complianceTypeName?.toLowerCase().includes('appraisal') && (
-                  <SelectItem value="annualappraisal">Complete Annual Appraisal</SelectItem>
-                )}
                 {hasActiveQuestionnaire && (
                   <SelectItem value="questionnaire">Complete Questionnaire</SelectItem>
                 )}
+                <SelectItem value="date">Date Entry</SelectItem>
+                <SelectItem value="new">Text Entry</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {recordType === 'date' ? (
+          {recordType === 'date' && (
             <div className="space-y-2">
               <Label>Completion Date</Label>
               {isValid(minDate) && isValid(maxDate) && (
@@ -577,7 +484,9 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
                 </PopoverContent>
               </Popover>
             </div>
-          ) : recordType === 'new' ? (
+          )}
+
+          {recordType === 'new' && (
             <div className="space-y-2">
               <Label htmlFor="newText">Text</Label>
               <Input
@@ -590,23 +499,24 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
                 This text will be stored as the completion date.
               </p>
             </div>
-           ) : null}
+          )}
 
+          {/* Questionnaire form */}
           {recordType === 'questionnaire' && (
             <div className="space-y-2">
-              <QuestionnaireForm
-                complianceTypeId={complianceTypeId}
-                employeeId={selectedEmployeeId}
-                periodIdentifier={selectedPeriod}
-                onSubmit={(data) => {
-                  setQuestionnaireData(data);
-                  setQuestionnaireOpen(false);
-                }}
-                onCancel={() => {
-                  setQuestionnaireOpen(false);
-                  setRecordType('date');
-                }}
-              />
+              <Button 
+                type="button" 
+                onClick={() => setQuestionnaireOpen(true)}
+                variant={questionnaireData ? "default" : "outline"}
+                className="w-full"
+              >
+                {questionnaireData ? "Edit Questionnaire" : "Complete Questionnaire"}
+              </Button>
+              {questionnaireData && (
+                <p className="text-sm text-muted-foreground">
+                  Questionnaire completed
+                </p>
+              )}
             </div>
           )}
 
@@ -630,73 +540,14 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
             >
               Cancel
             </Button>
-            {recordType === 'spotcheck' && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => spotcheckData ? generateSpotCheckPdf(spotcheckData, companySettings) : undefined}
-                disabled={!spotcheckData}
-              >
-                Download PDF
-              </Button>
-            )}
-            {recordType === 'supervision' && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => supervisionData ? generateSupervisionPdf(supervisionData, companySettings) : undefined}
-                disabled={!supervisionData}
-              >
-                Download PDF
-              </Button>
-            )}
-            {recordType === 'annualappraisal' && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => annualData ? downloadAnnualAppraisalPDF(annualData, selectedEmployeeName, { name: companySettings?.name, logo: companySettings?.logo }) : undefined}
-                disabled={!annualData}
-              >
-                Download PDF
-              </Button>
-            )}
             <Button type="submit" disabled={isLoading}>
               {isLoading ? "Adding..." : "Add Record"}
             </Button>
           </div>
         </form>
       </DialogContent>
-      <SpotCheckFormDialog
-        open={spotcheckOpen}
-        onOpenChange={setSpotcheckOpen}
-        periodIdentifier={selectedPeriod}
-        frequency={frequency}
-        onSubmit={(data) => {
-          setSpotcheckData(data);
-          setSpotcheckOpen(false);
-        }}
-      />
-      <SupervisionFormDialog
-        open={supervisionOpen}
-        onOpenChange={setSupervisionOpen}
-        initialData={supervisionData || undefined}
-        employeeName={selectedEmployeeName}
-        onSubmit={(data) => {
-          setSupervisionData(data);
-          setSupervisionOpen(false);
-        }}
-      />
-      <AnnualAppraisalFormDialog
-        open={annualOpen}
-        onOpenChange={setAnnualOpen}
-        initialData={annualData || undefined}
-        onSubmit={(data) => {
-          setAnnualData(data);
-          setAnnualOpen(false);
-        }}
-      />
 
-      {/* Questionnaire Dialog */}
+      {/* Questionnaire Form Dialog */}
       {questionnaireOpen && (
         <Dialog open={questionnaireOpen} onOpenChange={setQuestionnaireOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -716,7 +567,7 @@ const [selectedPeriod, setSelectedPeriod] = useState(periodIdentifier || getCurr
               }}
               onCancel={() => {
                 setQuestionnaireOpen(false);
-                setRecordType('date');
+                setRecordType(hasActiveQuestionnaire ? 'questionnaire' : 'date');
               }}
             />
           </DialogContent>
